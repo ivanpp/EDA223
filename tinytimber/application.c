@@ -4,13 +4,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
+#define MAX_BUFFER_SIZE 4
+
 typedef struct {
     Object super;
-    int count;
-    char c;
+    int count; // haven't been used yet
+    int index;
+    char c; // haven't been used yet
+    char buffer[MAX_BUFFER_SIZE]; // MAX_BUFFER_SIZE * 1B
 } App;
 
-App app = { initObject(), 0, 'X' };
+App app = { initObject(), 0, 0, 'X', {} };
 
 void reader(App*, int);
 void receiver(App*, int);
@@ -27,9 +32,45 @@ void receiver(App *self, int unused) {
 }
 
 void reader(App *self, int c) {
-    SCI_WRITE(&sci0, "Rcv: \'");
-    SCI_WRITECHAR(&sci0, c);
-    SCI_WRITE(&sci0, "\'\n");
+    switch (c)
+    {
+        case 'e':
+        case 'E':
+            self->buffer[self->index] = '\0';
+            int val = atoi(self->buffer);
+            char temp [MAX_BUFFER_SIZE] = {};
+            int _len = snprintf(temp, 32, "%d\n", val);
+            self->index = 0;
+            SCI_WRITE(&sci0, temp);
+            break;
+        case '-':
+        case '0' ... '9':
+            SCI_WRITE(&sci0, "Input stored in buffer: \'");
+            SCI_WRITECHAR(&sci0, c);
+            SCI_WRITE(&sci0, "\'\n");
+            self->buffer[self->index] = c;
+            self-> index = (self->index + 1) % MAX_BUFFER_SIZE;
+            break;
+        case '\n':
+        ;
+            char guide [256] = {};
+            int len = snprintf(guide, 256,  "-----------------------------------------------\n"
+                                            "Try input some number:\n"
+                                            "Maximum individual integer length: %d\n"
+                                            "-----------------------------------------------\n"
+                                            "press \'e\' to end the number:\n"
+                                            "press \'enter\' to display this helper again\n",
+                                            MAX_BUFFER_SIZE - 1);
+            SCI_WRITE(&sci0, guide);
+            break;
+        case '\r':
+            break;
+        default:
+            SCI_WRITE(&sci0, "Input received: \'");
+            SCI_WRITECHAR(&sci0, c);
+            SCI_WRITE(&sci0, "\'\n");
+            break;
+    }
 }
 
 void startApp(App *self, int arg) {
@@ -37,7 +78,7 @@ void startApp(App *self, int arg) {
 
     CAN_INIT(&can0);
     SCI_INIT(&sci0);
-    SCI_WRITE(&sci0, "Hello, hello...\n");
+    SCI_WRITE(&sci0, "Hello from RTS C1...\n");
 
     msg.msgId = 1;
     msg.nodeId = 1;
