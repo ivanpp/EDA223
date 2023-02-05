@@ -6,19 +6,26 @@
 
 
 #define MAX_BUFFER_SIZE 4
+#define MAX_HISTORY_SIZE 32
+#define NHISTORY 3
 
 typedef struct {
     Object super;
-    int count; // haven't been used yet
-    int index;
+    int count; // counter for history[]
+    int index; // index serves the buffer[]
+    int sum;
     char c; // haven't been used yet
     char buffer[MAX_BUFFER_SIZE]; // MAX_BUFFER_SIZE * 1B
+    int history[MAX_HISTORY_SIZE];
 } App;
 
-App app = { initObject(), 0, 0, 'X', {} };
+App app = { initObject(), 0, 0, 0, 'X', {} };
 
 void reader(App*, int);
 void receiver(App*, int);
+void nhistory(App*, int);
+void clearbuffer(App*);
+void clearhistory(App*);
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 
@@ -31,38 +38,88 @@ void receiver(App *self, int unused) {
     SCI_WRITE(&sci0, msg.buff);
 }
 
+void clearbuffer(App *self) {
+    for (int i = 0; i < MAX_BUFFER_SIZE - 1; i++){
+        self->buffer[i] = '\0';
+    };
+    self->index = 0;
+}
+
+void clearhistory(App *self) {
+    for (int i = 0; i < MAX_HISTORY_SIZE - 1; i++){
+        self->history[i] = 0;
+    }
+    self->count = 0;
+    self->sum   = 0;
+}
+
+void nhistory(App *self, int val) {
+    // TODO: make it circular
+    // TODO: make it n-history, (able to change n)
+    self->history[self->count++] = val;
+    self->sum += val;
+    int n = NHISTORY;
+    int far_idx, close_idx, median, count, farrr_idx;
+    count = self->count - 1; // current index
+    n = n > self->count ? self->count : n;
+    far_idx   = (int) n / 2;
+    close_idx = (int) (n - 1) / 2;
+    farrr_idx = count - (NHISTORY - 1);
+    median    = (int) ((self->history[count-close_idx]+self->history[count-far_idx]) / 2);
+    if (farrr_idx > 0) {
+        self->sum -= self->history[count - NHISTORY];
+    }
+    char temp [128] = {};
+    snprintf(temp, 128, \
+            "\'%d\' is stored, now %d/%d numbers, %d-history -> median: %d, sum: %d\n", \
+            val, count+1, MAX_HISTORY_SIZE, NHISTORY, median, self->sum);
+    SCI_WRITE(&sci0, temp);
+}
+
 void reader(App *self, int c) {
     switch (c)
     {
-        case 'e':
-        case 'E':
+        case 'e': // end of the integer
+        case 'E':;
             self->buffer[self->index] = '\0';
             int val = atoi(self->buffer);
-            char temp [MAX_BUFFER_SIZE] = {};
-            int _len = snprintf(temp, 32, "%d\n", val);
             self->index = 0;
-            SCI_WRITE(&sci0, temp);
+            nhistory(self, val);
+            break;
+        case 'f': // erase nhistory
+        case 'F':;
+            clearhistory(self);
+            char tempf[32] = {};
+            snprintf(tempf, 32, "%d-history has been erased\n", NHISTORY);
+            SCI_WRITE(&sci0, tempf);
             break;
         case '-':
-        case '0' ... '9':
+        case '0' ... '9':;
             SCI_WRITE(&sci0, "Input stored in buffer: \'");
             SCI_WRITECHAR(&sci0, c);
             SCI_WRITE(&sci0, "\'\n");
             self->buffer[self->index] = c;
             self-> index = (self->index + 1) % MAX_BUFFER_SIZE;
             break;
-        case '\n':
-        ;
-            char guide [256] = {};
-            int len = snprintf(guide, 256,  "-----------------------------------------------\n"
-                                            "Try input some number:\n"
-                                            "Maximum individual integer length: %d\n"
-                                            "-----------------------------------------------\n"
-                                            "press \'e\' to end the number:\n"
-                                            "press \'enter\' to display this helper again\n",
-                                            MAX_BUFFER_SIZE - 1);
+        case '\n':;
+            char guide [512] = {};
+            snprintf(guide, 512,  "-----------------------------------------------\n"
+                                  "Try input some number:\n"
+                                  "Maximum individual integer length: %d\n"
+                                  "%d-history of median & sum will be shown\n"
+                                  "-----------------------------------------------\n"
+                                  "press \'e\' to end the number and save\n"
+                                  "press \'backspace\' to discard current input\n"
+                                  "press \'f\' to erase the history\n"
+                                  "press \'enter\' to display this helper again\n"
+                                  "\n",
+                                  MAX_BUFFER_SIZE - 1,
+                                  NHISTORY);
             SCI_WRITE(&sci0, guide);
             break;
+        case '\b':
+            clearbuffer(self);
+            SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
         case '\r':
             break;
         default:
