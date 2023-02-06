@@ -102,7 +102,7 @@ $(DEBUGDIR)sciTinyTimber.o: sciTinyTimber.c sciTinyTimber.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
 # User-defined targets
-$(DEBUGDIR)application.o: application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h
+$(DEBUGDIR)application.o: application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h application.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
 ###

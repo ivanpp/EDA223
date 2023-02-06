@@ -1,35 +1,25 @@
 #include "TinyTimber.h"
+#include "application.h"
 #include "sciTinyTimber.h"
 #include "canTinyTimber.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
-
-#define MAX_BUFFER_SIZE 4
-#define MAX_HISTORY_SIZE 8
-#define NHISTORY 3
-
-typedef struct {
-    Object super;
-    int count; // counter for history[]
-    int index; // index serves the buffer[]
-    int sum;
-    char c; // haven't been used yet
-    char buffer[MAX_BUFFER_SIZE];
-    int history[MAX_HISTORY_SIZE];
-} App;
-
-App app = { initObject(), 0, 0, 0, 'X', {} };
-
-void reader(App*, int);
-void receiver(App*, int);
-void nhistory(App*, int);
-void clearbuffer(App*);
-void clearhistory(App*);
+App app = initApp();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 
 Can can0 = initCan(CAN_PORT0, &app, receiver);
+
+int brotherJohn [32] = {0, 2, 4, 0,
+                        0, 2, 4, 0,
+                        4, 5, 7,
+                        4, 5, 7,
+                        7, 9, 7, 5, 4, 0,
+                        7, 9, 7, 5, 4, 0,
+                        0, -5, 0,
+                        0, -5, 0};
 
 void receiver(App *self, int unused) {
     CANMsg msg;
@@ -38,14 +28,14 @@ void receiver(App *self, int unused) {
     SCI_WRITE(&sci0, msg.buff);
 }
 
-void clearbuffer(App *self) {
+void clearbuffer(App *self, int unused) {
     for (int i = 0; i < MAX_BUFFER_SIZE - 1; i++){
         self->buffer[i] = '\0';
     };
     self->index = 0;
 }
 
-void clearhistory(App *self) {
+void clearhistory(App *self, int unused) {
     for (int i = 0; i < MAX_HISTORY_SIZE - 1; i++){
         self->history[i] = 0;
     }
@@ -91,10 +81,34 @@ void reader(App *self, int c) {
             break;
         case 'f': // erase nhistory
         case 'F':;
-            clearhistory(self);
+            clearhistory(self, 0);
+            clearbuffer(self, 0);
             char tempf[32] = {};
             snprintf(tempf, 32, "%d-history has been erased\n", NHISTORY);
             SCI_WRITE(&sci0, tempf);
+            break;
+        case 'p': // period lookup
+        case 'P':
+            // TODO: use strcat
+            self->buffer[self->index] = '\0';
+            int key = atoi(self->buffer);
+            self->index = 0;
+            char tempp[32] = {};
+            snprintf(tempp, 32, "Key: %d\n", key);
+            SCI_WRITE(&sci0, tempp);
+            if (key < KEY_MIN || key > KEY_MAX){
+                snprintf(tempp, 32, "Invalid! Key must be: [%d, %d]\n", KEY_MIN, KEY_MAX);
+                SCI_WRITE(&sci0, tempp);
+            } else{
+                int index, period;
+                for (int i = 0; i < 32; i++){
+                    index = brotherJohn[i] + key - PERIODS_IDX_DIFF;
+                    period = PERIODS[index];
+                    snprintf(tempp, 32, "%d ", period);
+                    SCI_WRITE(&sci0, tempp);
+                }
+                SCI_WRITE(&sci0, "\n");
+            }
             break;
         case '-':
         case '0' ... '9':;
@@ -102,7 +116,7 @@ void reader(App *self, int c) {
             SCI_WRITECHAR(&sci0, c);
             SCI_WRITE(&sci0, "\'\n");
             self->buffer[self->index] = c;
-            self-> index = (self->index + 1) % MAX_BUFFER_SIZE;
+            self->index = (self->index + 1) % MAX_BUFFER_SIZE;
             break;
         case '\n':;
             char guide [512] = {};
@@ -122,7 +136,7 @@ void reader(App *self, int c) {
             SCI_WRITE(&sci0, guide);
             break;
         case '\b':
-            clearbuffer(self);
+            clearbuffer(self, 0);
             SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
         case '\r':
             break;
