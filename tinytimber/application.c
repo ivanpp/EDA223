@@ -6,7 +6,7 @@
 
 
 #define MAX_BUFFER_SIZE 4
-#define MAX_HISTORY_SIZE 32
+#define MAX_HISTORY_SIZE 8
 #define NHISTORY 3
 
 typedef struct {
@@ -15,7 +15,7 @@ typedef struct {
     int index; // index serves the buffer[]
     int sum;
     char c; // haven't been used yet
-    char buffer[MAX_BUFFER_SIZE]; // MAX_BUFFER_SIZE * 1B
+    char buffer[MAX_BUFFER_SIZE];
     int history[MAX_HISTORY_SIZE];
 } App;
 
@@ -54,25 +54,28 @@ void clearhistory(App *self) {
 }
 
 void nhistory(App *self, int val) {
-    // TODO: make it circular
-    // TODO: make it n-history, (able to change n)
-    self->history[self->count++] = val;
-    self->sum += val;
+    int far_idx, close_idx, median, count, farrr_idx, idx;
+    idx   = self->count % MAX_HISTORY_SIZE; // current index
+    self->history[idx] = val;
+    count = self->count++;
     int n = NHISTORY;
-    int far_idx, close_idx, median, count, farrr_idx;
-    count = self->count - 1; // current index
+    // n-median
     n = n > self->count ? self->count : n;
-    far_idx   = (int) n / 2;
-    close_idx = (int) (n - 1) / 2;
-    farrr_idx = count - (NHISTORY - 1);
-    median    = (int) ((self->history[count-close_idx]+self->history[count-far_idx]) / 2);
-    if (farrr_idx > 0) {
-        self->sum -= self->history[count - NHISTORY];
-    }
+    far_idx   = idx - (int) n / 2;
+    close_idx = idx - (int) (n - 1) / 2;
+    far_idx   = (far_idx   % MAX_HISTORY_SIZE + MAX_HISTORY_SIZE) % MAX_HISTORY_SIZE;
+    close_idx = (close_idx % MAX_HISTORY_SIZE + MAX_HISTORY_SIZE) % MAX_HISTORY_SIZE;
+    median    = (int) ((self->history[close_idx]+self->history[far_idx]) / 2);
+    // sum
+    self->sum += val;
+    farrr_idx = (count - NHISTORY) % MAX_HISTORY_SIZE;
+    if (farrr_idx >= 0) self->sum -= self->history[farrr_idx];
+    // display info
+    count = self->count > MAX_HISTORY_SIZE ? MAX_HISTORY_SIZE : self->count;
     char temp [128] = {};
     snprintf(temp, 128, \
-            "\'%d\' is stored, now %d/%d numbers, %d-history -> median: %d, sum: %d\n", \
-            val, count+1, MAX_HISTORY_SIZE, NHISTORY, median, self->sum);
+            "[%d/%d]: \'%d\' is stored, %d-history -> median: %d, sum: %d\n",
+            count, MAX_HISTORY_SIZE, val, NHISTORY, median, self->sum);
     SCI_WRITE(&sci0, temp);
 }
 
@@ -108,7 +111,8 @@ void reader(App *self, int c) {
                                   "Maximum individual integer length: %d\n"
                                   "%d-history of median & sum will be shown\n"
                                   "-----------------------------------------------\n"
-                                  "press \'e\' to end the number and save\n"
+                                  "press \'-\' and \'0\'-\'9\' to input\n"
+                                  "press \'e\' to end input and save\n"
                                   "press \'backspace\' to discard current input\n"
                                   "press \'f\' to erase the history\n"
                                   "press \'enter\' to display this helper again\n"
