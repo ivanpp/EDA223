@@ -19,10 +19,11 @@ typedef struct {
     Object super;
     int count; // counter for history[]
     int index; // index serves the buffer[]
-    int sum;
-    char c; // haven't been used yet
-    char buffer[MAX_BUFFER_SIZE];
-    int history[MAX_HISTORY_SIZE];
+    int sum; // current sum
+    char c; //
+    char buffer[MAX_BUFFER_SIZE];  // input buffer
+    int history[MAX_HISTORY_SIZE]; // history
+    int sortedh[MAX_HISTORY_SIZE]; // sorted-history
 } App;
 
 #define initApp() \

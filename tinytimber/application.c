@@ -43,29 +43,48 @@ void clearhistory(App *self, int unused) {
     self->sum   = 0;
 }
 
+// https://devdocs.io/c/algorithm/qsort
+int compare_ints(const void* a, const void* b){
+    int arg1 = *(const int*)a;
+    int arg2 = *(const int*)b;
+    return (arg1 > arg2) - (arg1 < arg2);
+}
+
 void nhistory(App *self, int val) {
-    int far_idx, close_idx, median, count, farrr_idx, idx;
-    idx   = self->count % MAX_HISTORY_SIZE; // current index
-    self->history[idx] = val;
-    count = self->count++;
     int n = NHISTORY;
-    // n-median
-    n = n > self->count ? self->count : n;
-    far_idx   = idx - (int) n / 2;
-    close_idx = idx - (int) (n - 1) / 2;
-    far_idx   = (far_idx   % MAX_HISTORY_SIZE + MAX_HISTORY_SIZE) % MAX_HISTORY_SIZE;
-    close_idx = (close_idx % MAX_HISTORY_SIZE + MAX_HISTORY_SIZE) % MAX_HISTORY_SIZE;
-    median    = (int) ((self->history[close_idx]+self->history[far_idx]) / 2);
-    // sum
+    int mleft_idx, mright_idx, median, count, tail, head;
+    head   = self->count % MAX_HISTORY_SIZE; // current index (head)
+    self->history[head] = val;
+    count = ++self->count; // current count
+    // min(n, count)-history will be applied
+    n = n > count ? count : n; 
+    tail = (count - NHISTORY) % MAX_HISTORY_SIZE; // (tail), start from negative, but never negative again
+    // memcpy and sort
+    if (tail > head){
+        self->sum   = self->sum - self->history[tail-1]; // first in, first deducted from sum
+        int len_t2e = MAX_HISTORY_SIZE-tail;
+        int len_s2h = n - len_t2e;
+        memcpy(self->sortedh        , self->history+tail, len_t2e*sizeof(int));
+        memcpy(self->sortedh+len_t2e, self->history     , len_s2h*sizeof(int));
+    } else if (tail == 0){
+        if (count > n) self->sum = self->sum - self->history[MAX_HISTORY_SIZE-1];
+        memcpy(self->sortedh, self->history+tail, n*sizeof(int));
+    } else if (tail > 0){
+        self->sum = self->sum - self->history[tail-1];
+        memcpy(self->sortedh, self->history+tail, n*sizeof(int));
+    } else{
+        memcpy(self->sortedh, self->history, n*sizeof(int));
+    }
+    qsort(self->sortedh, n, sizeof(int), compare_ints);
+    mleft_idx   = (n - 1) - (int) n / 2;
+    mright_idx  = (n - 1) - (int) (n - 1) / 2;
+    median      = (int) ((self->sortedh[mright_idx] + self->sortedh[mleft_idx]) / 2);
     self->sum += val;
-    farrr_idx = (count - NHISTORY) % MAX_HISTORY_SIZE;
-    if (farrr_idx >= 0) self->sum -= self->history[farrr_idx];
-    // display info
-    count = self->count > MAX_HISTORY_SIZE ? MAX_HISTORY_SIZE : self->count;
+    count = count > MAX_HISTORY_SIZE ? MAX_HISTORY_SIZE : count; // for print
     char temp [128] = {};
     snprintf(temp, 128, \
-            "[%d/%d]: \'%d\' is stored, %d-history -> median: %d, sum: %d\n",
-            count, MAX_HISTORY_SIZE, val, NHISTORY, median, self->sum);
+            "[%d/%d]: \'%d\' is stored, %d-history -> sum: %d, median: %d\n",
+            count, MAX_HISTORY_SIZE, val, n, self->sum, median);
     SCI_WRITE(&sci0, temp);
 }
 
