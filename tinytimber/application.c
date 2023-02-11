@@ -2,6 +2,8 @@
 #include "application.h"
 #include "sciTinyTimber.h"
 #include "canTinyTimber.h"
+#include "toneGenerator.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -184,6 +186,9 @@ void startApp(App *self, int arg) {
     msg.buff[4] = 'o';
     msg.buff[5] = 0;
     CAN_SEND(&can0, &msg);
+
+    ToneGenerator toneGenerator;
+    ASYNC(&toneGenerator, playTone, 10);
 }
 
 int main() {

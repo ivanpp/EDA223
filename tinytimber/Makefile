@@ -45,6 +45,7 @@ OBJECTS= $(DEBUGDIR)dispatch.o \
          $(DEBUGDIR)TinyTimber.o \
          $(DEBUGDIR)canTinyTimber.o \
          $(DEBUGDIR)sciTinyTimber.o \
+         $(DEBUGDIR)toneGenerator.o \
          $(DEBUGDIR)stm32f4xx_can.o \
          $(DEBUGDIR)stm32f4xx_dac.o \
          $(DEBUGDIR)stm32f4xx_exti.o \
@@ -101,8 +102,11 @@ $(DEBUGDIR)canTinyTimber.o: canTinyTimber.c canTinyTimber.h
 $(DEBUGDIR)sciTinyTimber.o: sciTinyTimber.c sciTinyTimber.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
+$(DEBUGDIR)toneGenerator.o: toneGenerator.c toneGenerator.h
+	$(CC) -c $< -o $@ $(CCFLAGS)
+
 # User-defined targets
-$(DEBUGDIR)application.o: application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h application.h
+$(DEBUGDIR)application.o: application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h toneGenerator.h application.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
 ###
