@@ -3,6 +3,7 @@
 #include "sciTinyTimber.h"
 #include "canTinyTimber.h"
 #include "toneGenerator.h"
+#include "backgroundLoad.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,6 +12,7 @@
 App app = initApp();
 
 ToneGenerator toneGenerator = initToneGenerator();
+BackgroundLoad backgroundLoad = initBackgroundLoad();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 
@@ -212,6 +214,7 @@ void startApp(App *self, int arg) {
     CAN_SEND(&can0, &msg);
 
     ASYNC(&toneGenerator, playTone, 10);
+    ASYNC(&backgroundLoad, loadLoop, 10);
 }
 
 int main() {
