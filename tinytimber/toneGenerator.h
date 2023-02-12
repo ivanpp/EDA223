@@ -8,7 +8,7 @@ typedef struct
 {
     Object super;
     int isPlaying;
-    //int toneFreq; //KHz
+    int toneFreq; //KHz
 } ToneGenerator;
 
 #define initToneGenerator() \
