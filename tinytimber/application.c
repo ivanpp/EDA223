@@ -10,6 +10,8 @@
 
 App app = initApp();
 
+ToneGenerator toneGenerator = initToneGenerator();
+
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 
 Can can0 = initCan(CAN_PORT0, &app, receiver);
@@ -100,6 +102,24 @@ void reader(App *self, int c) {
             self->index = 0;
             nhistory(self, val);
             break;
+        case 'q':
+            self->buffer[self->index] = '\0';
+            int frequency = atoi(self->buffer);
+            self->index = 0;
+            ASYNC(&toneGenerator, setFrequency, frequency);
+            break;
+        case 'v':
+            self->buffer[self->index] = '\0';
+            int volume = atoi(self->buffer);
+            self->index = 0;
+            ASYNC(&toneGenerator, setVolume, volume);
+            break;
+        case 'n':
+            ASYNC(&toneGenerator, adjustVolume, -1);
+            break;
+        case 'm':
+            ASYNC(&toneGenerator, adjustVolume, 1);
+            break;
         case 'f': // erase nhistory
         case 'F':;
             clearhistory(self, 0);
@@ -187,7 +207,6 @@ void startApp(App *self, int arg) {
     msg.buff[5] = 0;
     CAN_SEND(&can0, &msg);
 
-    ToneGenerator toneGenerator;
     ASYNC(&toneGenerator, playTone, 10);
 }
 
