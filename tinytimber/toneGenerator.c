@@ -4,11 +4,17 @@
 int playTone(ToneGenerator *self, int value) 
     { 
         int volatile * const p_reg = (int *) 0x4000741C;
-        if (self->isPlaying) {        
+        if (self->isMuted) 
+        {
+            *p_reg = 0;
+            self->isPlaying = 0;
+        } 
+        else if (self->isPlaying) 
+        {        
             *p_reg = (((self->volume)<(SAFE_VOLUME)) ? (self->volume) : (SAFE_VOLUME));
             self->isPlaying = 0;
-            
-        } else {
+        } else 
+        {
             *p_reg = 0x0;
             self->isPlaying = 1;
         }
@@ -49,5 +55,12 @@ int adjustVolume(ToneGenerator *self, int volume) {
     int max = (((adjusted)>(0)) ? (adjusted) : (0));
     int min = (((max)<(SAFE_VOLUME)) ? (max) : (SAFE_VOLUME));
     self->volume = min;
+    return self->volume;
+}
+
+int toggleAudio(ToneGenerator *self, int value) {
+
+    self ->isMuted = self->isMuted ? 0 : 1;
+
     return self->volume;
 }

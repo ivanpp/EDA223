@@ -12,10 +12,11 @@ typedef struct
     int isPlaying;
     int toneFreq; //KHz
     int volume;
+    int isMuted;
 } ToneGenerator;
 
 #define initToneGenerator() \
-    { initObject(), 0, 1000, 2}
+    { initObject(), 0, 1000, 2, 0}
 
 
 int genTone(ToneGenerator *, int);
@@ -23,6 +24,8 @@ int playTone(ToneGenerator *, int);
 int setFrequency(ToneGenerator *, int);
 int setVolume(ToneGenerator *, int);
 int adjustVolume(ToneGenerator *, int);
+
+int toggleAudio(ToneGenerator *, int);
 
 
 

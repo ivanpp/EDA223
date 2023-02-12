@@ -108,16 +108,20 @@ void reader(App *self, int c) {
             self->index = 0;
             ASYNC(&toneGenerator, setFrequency, frequency);
             break;
-        case 'v':
+/*       case 'v':
             self->buffer[self->index] = '\0';
             int volume = atoi(self->buffer);
             self->index = 0;
             ASYNC(&toneGenerator, setVolume, volume);
+            break; 
+*/
+        case 'm': 
+            ASYNC(&toneGenerator, toggleAudio, 1);
             break;
-        case 'n':
+        case 0x1f:
             ASYNC(&toneGenerator, adjustVolume, -1);
             break;
-        case 'm':
+        case 0x1e:
             ASYNC(&toneGenerator, adjustVolume, 1);
             break;
         case 'f': // erase nhistory
