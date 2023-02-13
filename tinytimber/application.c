@@ -95,6 +95,9 @@ void nhistory(App *self, int val) {
 }
 
 void reader(App *self, int c) {
+    char bgLoadLeftArrowPrint [64] = {};
+    char bgLoadRightArrowPrint [64] = {};
+    int newBgLoadValue, newBgLoadValue1;
     switch (c)
     {
         case 'e': // end of the integer
@@ -125,6 +128,39 @@ void reader(App *self, int c) {
             break;
         case 0x1e:
             ASYNC(&toneGenerator, adjustVolume, 1);
+            break;
+        /* Referred from : https://www.alt-codes.net/arrow_alt_codes.php */
+        case 0x1c://0x11: /* Left arrow : decrease delay in steps of 500 and print */
+            newBgLoadValue = backgroundLoad.backgroundLoopRange;
+            if(500 < backgroundLoad.backgroundLoopRange)
+            {
+                newBgLoadValue = backgroundLoad.backgroundLoopRange - LOAD_STEP;
+                updateLoad(&backgroundLoad, newBgLoadValue);
+                snprintf(bgLoadLeftArrowPrint,64,"New bgLoad: %d\n",backgroundLoad.backgroundLoopRange);
+            }
+            else
+            {
+                snprintf(bgLoadLeftArrowPrint,64,"can't reduce bgLoad(min:500) current:%d\n",backgroundLoad.backgroundLoopRange);
+            }            
+            SCI_WRITE(&sci0, bgLoadLeftArrowPrint);
+            ASYNC(&backgroundLoad, loadLoop, 0 /*unused*/);
+            break;
+        
+        /* Referred from : https://www.alt-codes.net/arrow_alt_codes.php */
+        case 0x1d://0x10:/* Right arrow : increase delay in steps of 500 and print */
+            newBgLoadValue1 = backgroundLoad.backgroundLoopRange;
+            if(8500 > backgroundLoad.backgroundLoopRange)
+            {
+                newBgLoadValue1 = backgroundLoad.backgroundLoopRange + LOAD_STEP;
+                updateLoad(&backgroundLoad, newBgLoadValue1);
+                snprintf(bgLoadRightArrowPrint,64,"New bgLoad: %d\n",backgroundLoad.backgroundLoopRange);
+            }
+            else
+            {
+                snprintf(bgLoadRightArrowPrint,64,"can't rise bgLoad(max:8500) current:%d\n",backgroundLoad.backgroundLoopRange);
+            }            
+            SCI_WRITE(&sci0, bgLoadRightArrowPrint);
+            ASYNC(&backgroundLoad, loadLoop, 0 /*unused*/);
             break;
         case 'f': // erase nhistory
         case 'F':;
@@ -166,8 +202,8 @@ void reader(App *self, int c) {
             self->index = (self->index + 1) % MAX_BUFFER_SIZE;
             break;
         case '\n':;
-            char guide [512] = {};
-            snprintf(guide, 512,  "-----------------------------------------------\n"
+            char guide [800] = {};
+            snprintf(guide, 800,  "-----------------------------------------------\n"
                                   "Try input some number:\n"
                                   "Maximum individual integer length: %d\n"
                                   "%d-history of median & sum will be shown\n"
@@ -177,6 +213,8 @@ void reader(App *self, int c) {
                                   "press \'backspace\' to discard current input\n"
                                   "press \'f\' to erase the history\n"
                                   "press \'enter\' to display this helper again\n"
+                                  "press left arrow to decrease bg load\n"
+                                  "press right arrow to increase bg load\n"
                                   "\n",
                                   MAX_BUFFER_SIZE - 1,
                                   NHISTORY);
