@@ -1,7 +1,7 @@
 #ifndef APPLICATION_API
 #define APPLICATION_API
 
-#define MAX_BUFFER_SIZE 4
+#define MAX_BUFFER_SIZE 5
 #define MAX_HISTORY_SIZE 5
 #define NHISTORY 3
 
