@@ -97,6 +97,7 @@ void nhistory(App *self, int val) {
 void reader(App *self, int c) {
     char bgLoadLeftArrowPrint [64] = {};
     char bgLoadRightArrowPrint [64] = {};
+    char deadlineInfoPrint [48] = {};
     int newBgLoadValue, newBgLoadValue1;
     switch (c)
     {
@@ -143,7 +144,7 @@ void reader(App *self, int c) {
                 snprintf(bgLoadLeftArrowPrint,64,"can't reduce bgLoad(min:500) current:%d\n",backgroundLoad.backgroundLoopRange);
             }            
             SCI_WRITE(&sci0, bgLoadLeftArrowPrint);
-            ASYNC(&backgroundLoad, loadLoop, 0 /*unused*/);
+            BEFORE(self->bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
         
         /* Referred from : https://www.alt-codes.net/arrow_alt_codes.php */
@@ -160,8 +161,29 @@ void reader(App *self, int c) {
                 snprintf(bgLoadRightArrowPrint,64,"can't rise bgLoad(max:8500) current:%d\n",backgroundLoad.backgroundLoopRange);
             }            
             SCI_WRITE(&sci0, bgLoadRightArrowPrint);
-            ASYNC(&backgroundLoad, loadLoop, 0 /*unused*/);
+            BEFORE(self->bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
+
+        case 'D':
+        case 'd':
+                /* update tone generator and bgLoad deadlines */
+                if(true == self->isDeadlineEnabled)
+                {
+                    self->toneGenDeadline = TONE_GEN_DEADLINE;
+                    self->bgLoadDeadline = BGLOAD_DEADLINE;
+                }
+                else
+                {
+                    self->toneGenDeadline = 0;
+                    self->bgLoadDeadline = 0;
+                }
+                
+                /* toggle deadline flag*/
+                self->isDeadlineEnabled = !(self->isDeadlineEnabled);
+                snprintf(deadlineInfoPrint,48,"deadline (enabled:1; disabled:0):%d\n",self->isDeadlineEnabled);
+                SCI_WRITE(&sci0, deadlineInfoPrint);
+                break;
+        
         case 'f': // erase nhistory
         case 'F':;
             clearhistory(self, 0);
@@ -202,8 +224,8 @@ void reader(App *self, int c) {
             self->index = (self->index + 1) % MAX_BUFFER_SIZE;
             break;
         case '\n':;
-            char guide [800] = {};
-            snprintf(guide, 800,  "-----------------------------------------------\n"
+            char guide [1000] = {};
+            snprintf(guide, 1000,  "-----------------------------------------------\n"
                                   "Try input some number:\n"
                                   "Maximum individual integer length: %d\n"
                                   "%d-history of median & sum will be shown\n"
@@ -215,6 +237,7 @@ void reader(App *self, int c) {
                                   "press \'enter\' to display this helper again\n"
                                   "press left arrow to decrease bg load\n"
                                   "press right arrow to increase bg load\n"
+                                  "press d to toggle deadline, default: deadline disabled\n"
                                   "\n",
                                   MAX_BUFFER_SIZE - 1,
                                   NHISTORY);
@@ -251,8 +274,11 @@ void startApp(App *self, int arg) {
     msg.buff[5] = 0;
     CAN_SEND(&can0, &msg);
 
-    ASYNC(&toneGenerator, playTone, 10);
-    ASYNC(&backgroundLoad, loadLoop, 10);
+    /* introduce deadline to tone generator */
+    BEFORE(self->toneGenDeadline,&toneGenerator, playTone, 10);
+
+    /* introduce deadline to backgroundLoad task */
+    BEFORE(self->bgLoadDeadline,&backgroundLoad, loadLoop, 10);
 }
 
 int main() {
