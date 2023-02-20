@@ -6,14 +6,25 @@
 
 #define SAFE_VOLUME 5
 #define LOAD_STEP 500
+
+
+///@brief   define background Load deadline 
+#define BGLOAD_DEADLINE USEC(1300)
+
 typedef struct 
 {
     Object super;
     int backgroundLoopRange;
+
+    /// @brief  member variable to check if deadline is enabled or disabled : part1_task3
+    bool isDeadlineEnabled;
+
+    /// @brief  bgLoad specific deadline
+    int bgLoadDeadline;
 } BackgroundLoad;
 
 #define initBackgroundLoad() \
-    { initObject(), 1000}
+    { initObject(), 1000, false, 0 }
 
 
 int loadLoop(BackgroundLoad *, int);

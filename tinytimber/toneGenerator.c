@@ -20,7 +20,19 @@ int playTone(ToneGenerator *self, int value)
         }
         int tone = genTone(self, self->toneFreq);
 
-        SEND(USEC(tone), USEC(tone/2), self, playTone, value);
+        /* update deadline based on isDeadlineEnabled flag */
+        if(true == self->isDeadlineEnabled)
+        {
+            // part2_task3: update deadline for playing
+            self->toneGenDeadline = TONE_GEN_DEADLINE;
+        }
+        else
+        {
+            // default value
+            self->toneGenDeadline = tone/2;
+        }
+
+        SEND(USEC(tone), USEC(self->toneGenDeadline), self, playTone, value);
         return value;
     }
 

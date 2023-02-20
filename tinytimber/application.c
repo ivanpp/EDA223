@@ -144,13 +144,13 @@ void reader(App *self, int c) {
                 snprintf(bgLoadLeftArrowPrint,64,"can't reduce bgLoad(min:500) current:%d\n",backgroundLoad.backgroundLoopRange);
             }            
             SCI_WRITE(&sci0, bgLoadLeftArrowPrint);
-            BEFORE(self->bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
+            BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
         
         /* Referred from : https://www.alt-codes.net/arrow_alt_codes.php */
         case 0x1d://0x10:/* Right arrow : increase delay in steps of 500 and print */
             newBgLoadValue1 = backgroundLoad.backgroundLoopRange;
-            if(8500 > backgroundLoad.backgroundLoopRange)
+            if(12000 > backgroundLoad.backgroundLoopRange)
             {
                 newBgLoadValue1 = backgroundLoad.backgroundLoopRange + LOAD_STEP;
                 updateLoad(&backgroundLoad, newBgLoadValue1);
@@ -158,29 +158,20 @@ void reader(App *self, int c) {
             }
             else
             {
-                snprintf(bgLoadRightArrowPrint,64,"can't rise bgLoad(max:8500) current:%d\n",backgroundLoad.backgroundLoopRange);
+                snprintf(bgLoadRightArrowPrint,64,"can't rise bgLoad(max:12000) current:%d\n",backgroundLoad.backgroundLoopRange);
             }            
             SCI_WRITE(&sci0, bgLoadRightArrowPrint);
-            BEFORE(self->bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
+            BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
 
+        /* Toggle deadline flags for each task */
         case 'D':
         case 'd':
-                /* update tone generator and bgLoad deadlines */
-                if(true == self->isDeadlineEnabled)
-                {
-                    self->toneGenDeadline = TONE_GEN_DEADLINE;
-                    self->bgLoadDeadline = BGLOAD_DEADLINE;
-                }
-                else
-                {
-                    self->toneGenDeadline = 0;
-                    self->bgLoadDeadline = 0;
-                }
-                
-                /* toggle deadline flag*/
-                self->isDeadlineEnabled = !(self->isDeadlineEnabled);
-                snprintf(deadlineInfoPrint,48,"deadline (enabled:1; disabled:0):%d\n",self->isDeadlineEnabled);
+                /* toggle deadline flags */
+                backgroundLoad.isDeadlineEnabled = !(backgroundLoad.isDeadlineEnabled);
+                toneGenerator.isDeadlineEnabled = !(toneGenerator.isDeadlineEnabled);
+
+                snprintf(deadlineInfoPrint,48,"deadline (enabled:1; disabled:0):%d\n",backgroundLoad.isDeadlineEnabled && toneGenerator.isDeadlineEnabled);
                 SCI_WRITE(&sci0, deadlineInfoPrint);
                 break;
         
@@ -275,10 +266,10 @@ void startApp(App *self, int arg) {
     CAN_SEND(&can0, &msg);
 
     /* introduce deadline to tone generator */
-    BEFORE(self->toneGenDeadline,&toneGenerator, playTone, 10);
+    BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, 10);
 
     /* introduce deadline to backgroundLoad task */
-    BEFORE(self->bgLoadDeadline,&backgroundLoad, loadLoop, 10);
+    BEFORE(backgroundLoad.bgLoadDeadline,&backgroundLoad, loadLoop, 10);
 }
 
 int main() {
