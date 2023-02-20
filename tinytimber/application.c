@@ -109,6 +109,7 @@ void reader(App *self, int c) {
             nhistory(self, val);
             break;
         case 'q':
+        case 'Q':
             self->buffer[self->index] = '\0';
             int frequency = atoi(self->buffer);
             self->index = 0;
@@ -121,17 +122,17 @@ void reader(App *self, int c) {
             ASYNC(&toneGenerator, setVolume, volume);
             break; 
 */
-        case 'm': 
+        case 'm':
+        case 'M':
             ASYNC(&toneGenerator, toggleAudio, 1);
             break;
-        case 0x1f:
+        case 0x1f: //arrow-down: volumn down
             ASYNC(&toneGenerator, adjustVolume, -1);
             break;
-        case 0x1e:
+        case 0x1e: //arrow-up, volumn up
             ASYNC(&toneGenerator, adjustVolume, 1);
             break;
-        /* Referred from : https://www.alt-codes.net/arrow_alt_codes.php */
-        case 0x1c://0x11: /* Left arrow : decrease delay in steps of 500 and print */
+        case 0x1c: //arrow-left, bgLoad down
             newBgLoadValue = backgroundLoad.backgroundLoopRange;
             if(500 < backgroundLoad.backgroundLoopRange)
             {
@@ -146,9 +147,7 @@ void reader(App *self, int c) {
             SCI_WRITE(&sci0, bgLoadLeftArrowPrint);
             BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
-        
-        /* Referred from : https://www.alt-codes.net/arrow_alt_codes.php */
-        case 0x1d://0x10:/* Right arrow : increase delay in steps of 500 and print */
+        case 0x1d: //arrow-right, bgLoad up
             newBgLoadValue1 = backgroundLoad.backgroundLoopRange;
             if(12000 > backgroundLoad.backgroundLoopRange)
             {
@@ -163,10 +162,9 @@ void reader(App *self, int c) {
             SCI_WRITE(&sci0, bgLoadRightArrowPrint);
             BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
-
         /* Toggle deadline flags for each task */
-        case 'D':
         case 'd':
+        case 'D':
                 /* toggle deadline flags */
                 backgroundLoad.isDeadlineEnabled = !(backgroundLoad.isDeadlineEnabled);
                 toneGenerator.isDeadlineEnabled = !(toneGenerator.isDeadlineEnabled);
@@ -225,10 +223,10 @@ void reader(App *self, int c) {
                                   "press \'e\' to end input and save\n"
                                   "press \'backspace\' to discard current input\n"
                                   "press \'f\' to erase the history\n"
-                                  "press \'enter\' to display this helper again\n"
                                   "press left arrow to decrease bg load\n"
                                   "press right arrow to increase bg load\n"
                                   "press d to toggle deadline, default: deadline disabled\n"
+                                  "press \'enter\' to display this helper again\n"
                                   "\n",
                                   MAX_BUFFER_SIZE - 1,
                                   NHISTORY);
