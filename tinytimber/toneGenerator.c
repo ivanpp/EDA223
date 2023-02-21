@@ -43,8 +43,8 @@ int genTone(ToneGenerator *self, int frequency) {
 int setFrequency(ToneGenerator *self, int frequency) {
     if (frequency > 4000) {
         self->toneFreq = 4000;
-    } else if (frequency < 0) {
-        self->toneFreq = 0;
+    } else if (frequency < 1) {
+        self->toneFreq = 1;
     } else {
         self->toneFreq = frequency;
     }

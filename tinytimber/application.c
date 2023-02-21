@@ -98,22 +98,27 @@ void reader(App *self, int c) {
     char bgLoadLeftArrowPrint [64] = {};
     char bgLoadRightArrowPrint [64] = {};
     char deadlineInfoPrint [48] = {};
+    char infoToPrint[64] = {};
     int newBgLoadValue, newBgLoadValue1;
     switch (c)
     {
-        case 'e': // end of the integer
+        /* end of integer */
+        case 'e':
         case 'E':;
             self->buffer[self->index] = '\0';
             int val = atoi(self->buffer);
             self->index = 0;
             nhistory(self, val);
             break;
+        /* set freq: [1,4000]*/
         case 'q':
         case 'Q':
             self->buffer[self->index] = '\0';
             int frequency = atoi(self->buffer);
             self->index = 0;
+            snprintf(infoToPrint, 64, "Frquency set to: %d\n", frequency);
             ASYNC(&toneGenerator, setFrequency, frequency);
+            SCI_WRITE(&sci0, infoToPrint);
             break;
 /*       case 'v':
             self->buffer[self->index] = '\0';
@@ -122,17 +127,21 @@ void reader(App *self, int c) {
             ASYNC(&toneGenerator, setVolume, volume);
             break; 
 */
+        /* toggle audio */
         case 'm':
         case 'M':
             ASYNC(&toneGenerator, toggleAudio, 1);
             break;
-        case 0x1f: //arrow-down: volumn down
+        /* arrow-down: volumn down */
+        case 0x1f:
             ASYNC(&toneGenerator, adjustVolume, -1);
             break;
-        case 0x1e: //arrow-up, volumn up
+        /* arrow-up, volumn up */
+        case 0x1e:
             ASYNC(&toneGenerator, adjustVolume, 1);
             break;
-        case 0x1c: //arrow-left, bgLoad down
+        /* arrow-left, bgLoad down */
+        case 0x1c:
             newBgLoadValue = backgroundLoad.backgroundLoopRange;
             if(500 < backgroundLoad.backgroundLoopRange)
             {
@@ -147,7 +156,8 @@ void reader(App *self, int c) {
             SCI_WRITE(&sci0, bgLoadLeftArrowPrint);
             BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
-        case 0x1d: //arrow-right, bgLoad up
+        /* arrow-right, bgLoad up */
+        case 0x1d:
             newBgLoadValue1 = backgroundLoad.backgroundLoopRange;
             if(12000 > backgroundLoad.backgroundLoopRange)
             {
@@ -172,8 +182,8 @@ void reader(App *self, int c) {
                 snprintf(deadlineInfoPrint,48,"deadline (enabled:1; disabled:0):%d\n",backgroundLoad.isDeadlineEnabled && toneGenerator.isDeadlineEnabled);
                 SCI_WRITE(&sci0, deadlineInfoPrint);
                 break;
-        
-        case 'f': // erase nhistory
+        /* erase nhistory */
+        case 'f':
         case 'F':;
             clearhistory(self, 0);
             clearbuffer(self, 0);
@@ -181,7 +191,8 @@ void reader(App *self, int c) {
             snprintf(tempf, 32, "%d-history has been erased\n", NHISTORY);
             SCI_WRITE(&sci0, tempf);
             break;
-        case 'p': // period lookup
+        /* period lookup */
+        case 'p':
         case 'P':
             // TODO: use strcat
             self->buffer[self->index] = '\0';
@@ -212,6 +223,7 @@ void reader(App *self, int c) {
             self->buffer[self->index] = c;
             self->index = (self->index + 1) % MAX_BUFFER_SIZE;
             break;
+        /* display helper */
         case '\n':;
             char guide [1000] = {};
             snprintf(guide, 1000,  "-----------------------------------------------\n"
@@ -232,11 +244,12 @@ void reader(App *self, int c) {
                                   NHISTORY);
             SCI_WRITE(&sci0, guide);
             break;
+        case '\r':
+            break;
+        /* backspace */
         case '\b':
             clearbuffer(self, 0);
             SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
-        case '\r':
-            break;
         default:
             SCI_WRITE(&sci0, "Input received: \'");
             SCI_WRITECHAR(&sci0, c);

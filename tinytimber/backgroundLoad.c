@@ -1,5 +1,5 @@
 #include "backgroundLoad.h"
-#include "stdlib.h"
+#include <stdlib.h>
 
 int loadLoop(BackgroundLoad *self, int value) 
     { 
@@ -23,6 +23,10 @@ int loadLoop(BackgroundLoad *self, int value)
         return 1;
     }
 
+int adjustLoad(BackgroundLoad *self, int value){
+    self->backgroundLoopRange += value;
+    return self->backgroundLoopRange;
+}
 void updateLoad(BackgroundLoad *f_self, int f_newBackgroundLoadValue)
 {
     f_self->backgroundLoopRange = f_newBackgroundLoadValue;

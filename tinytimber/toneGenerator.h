@@ -32,10 +32,5 @@ int playTone(ToneGenerator *, int);
 int setFrequency(ToneGenerator *, int);
 int setVolume(ToneGenerator *, int);
 int adjustVolume(ToneGenerator *, int);
-
 int toggleAudio(ToneGenerator *, int);
-
-
-
-
-
+void disableDeadline(ToneGenerator *, int);
