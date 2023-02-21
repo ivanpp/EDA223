@@ -143,9 +143,9 @@ void reader(App *self, int c) {
         /* arrow-left, bgLoad down */
         case 0x1c:
             newBgLoadValue = backgroundLoad.backgroundLoopRange;
-            if(500 < backgroundLoad.backgroundLoopRange)
+            if(0 < backgroundLoad.backgroundLoopRange)
             {
-                newBgLoadValue = backgroundLoad.backgroundLoopRange - LOAD_STEP;
+                newBgLoadValue = ((backgroundLoad.backgroundLoopRange - LOAD_STEP) >0) ? (backgroundLoad.backgroundLoopRange - LOAD_STEP) : 0;
                 updateLoad(&backgroundLoad, newBgLoadValue);
                 snprintf(bgLoadLeftArrowPrint,64,"New bgLoad: %d\n",backgroundLoad.backgroundLoopRange);
             }
@@ -154,12 +154,12 @@ void reader(App *self, int c) {
                 snprintf(bgLoadLeftArrowPrint,64,"can't reduce bgLoad(min:500) current:%d\n",backgroundLoad.backgroundLoopRange);
             }            
             SCI_WRITE(&sci0, bgLoadLeftArrowPrint);
-            BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
+            //BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
         /* arrow-right, bgLoad up */
         case 0x1d:
             newBgLoadValue1 = backgroundLoad.backgroundLoopRange;
-            if(12000 > backgroundLoad.backgroundLoopRange)
+            if(50000 > backgroundLoad.backgroundLoopRange)
             {
                 newBgLoadValue1 = backgroundLoad.backgroundLoopRange + LOAD_STEP;
                 updateLoad(&backgroundLoad, newBgLoadValue1);
@@ -170,7 +170,7 @@ void reader(App *self, int c) {
                 snprintf(bgLoadRightArrowPrint,64,"can't rise bgLoad(max:12000) current:%d\n",backgroundLoad.backgroundLoopRange);
             }            
             SCI_WRITE(&sci0, bgLoadRightArrowPrint);
-            BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
+            //BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
         /* Toggle deadline flags for each task */
         case 'd':

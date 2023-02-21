@@ -4,16 +4,16 @@
 int playTone(ToneGenerator *self, int value) 
     { 
         int volatile * const p_reg = (int *) 0x4000741C;
-        if (self->isMuted) 
+        if (self->isMuted) //Have we muted sound?
         {
             *p_reg = 0;
             self->isPlaying = 0;
         } 
-        else if (self->isPlaying) 
+        else if (self->isPlaying) //Are we playing
         {        
             *p_reg = (((self->volume)<(SAFE_VOLUME)) ? (self->volume) : (SAFE_VOLUME));
             self->isPlaying = 0;
-        } else 
+        } else //Are we not playing
         {
             *p_reg = 0x0;
             self->isPlaying = 1;
@@ -29,7 +29,7 @@ int playTone(ToneGenerator *self, int value)
         else
         {
             // default value
-            self->toneGenDeadline = tone/2;
+            self->toneGenDeadline = 0;//tone/2;
         }
 
         SEND(USEC(tone), USEC(self->toneGenDeadline), self, playTone, value);
