@@ -95,13 +95,55 @@ void nhistory(App *self, int val) {
 }
 
 void reader(App *self, int c) {
-    char bgLoadLeftArrowPrint [64] = {};
-    char bgLoadRightArrowPrint [64] = {};
-    char deadlineInfoPrint [48] = {};
-    char infoToPrint[64] = {};
+    // create char inside switch case (only claim when needed)
+    // think about the execution time
+    // naming convention: funcInfo
+    //char debugInfo[64] = { }; // for debuging
     int newBgLoadValue, newBgLoadValue1;
+    int volPercentage;
     switch (c)
     {
+        /* display helper */
+        case '\n':;
+            char guide [1024] = {};
+            snprintf(guide, 1024, 
+                "-----------------------------------------------\n"
+                "Try input some number:\n"
+                "Maximum individual integer length: %d\n"
+                "%d-history of median & sum will be shown\n"
+                "-----------------------------------------------\n"
+                "press \'-\' and \'0\'-\'9\' to input\n"
+                "press \'e\' to end input and save\n"
+                "press \'backspace\' to discard current input\n"
+                "press \'f\' to erase the history\n"
+                /* CHANGE TEXT ENCODING OF TERMINAL TO 'utf-8' */
+                //"press arrow-left to decrease bg load\n"
+                "press \'←\' to decrease bg load\n"
+                //"press arrow-right to increase bg load\n"
+                "press \'→\' to increase bg load\n"
+                //"press arrow-up to volumn-up\n"
+                "press \'↑\' to volumn-up\n"
+                //"press arrow-down to volumn-down\n"
+                "press \'↓\' to volumn-down\n"
+                "press \'d\' to toggle deadline, default: deadline disabled\n"
+                "press \'enter\' to display this helper again\n"
+                "\n",
+                MAX_BUFFER_SIZE - 1,
+                NHISTORY);
+            SCI_WRITE(&sci0, guide);
+            break;
+        /* CRLF compatible */
+        case '\r':
+            break;
+        /* valid integer input */
+        case '-':
+        case '0' ... '9':;
+            SCI_WRITE(&sci0, "Input stored in buffer: \'");
+            SCI_WRITECHAR(&sci0, c);
+            SCI_WRITE(&sci0, "\'\n");
+            self->buffer[self->index] = c;
+            self->index = (self->index + 1) % MAX_BUFFER_SIZE;
+            break;
         /* end of integer */
         case 'e':
         case 'E':;
@@ -110,15 +152,20 @@ void reader(App *self, int c) {
             self->index = 0;
             nhistory(self, val);
             break;
+        /* backspace */
+        case '\b':
+            clearbuffer(self, 0);
+            SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
         /* set freq: [1,4000]*/
         case 'q':
-        case 'Q':
+        case 'Q':;
+            char setFreqInfo [64] = { };
             self->buffer[self->index] = '\0';
             int frequency = atoi(self->buffer);
             self->index = 0;
-            snprintf(infoToPrint, 64, "Frquency set to: %d\n", frequency);
+            snprintf(setFreqInfo, 64, "Frquency set to: %d Hz\n", frequency);
             ASYNC(&toneGenerator, setFrequency, frequency);
-            SCI_WRITE(&sci0, infoToPrint);
+            SCI_WRITE(&sci0, setFreqInfo);
             break;
 /*       case 'v':
             self->buffer[self->index] = '\0';
@@ -129,19 +176,36 @@ void reader(App *self, int c) {
 */
         /* toggle audio */
         case 'm':
-        case 'M':
-            ASYNC(&toneGenerator, toggleAudio, 1);
+        case 'M':;
+            char volMuteInfo [16] = { };
+            SYNC(&toneGenerator, toggleAudio, 0);
+            if (toneGenerator.isMuted) snprintf(volMuteInfo, 64, "<X  muted\n");
+            else snprintf(volMuteInfo, 64, "<)  unmuted\n");
+            SCI_WRITE(&sci0, volMuteInfo);
             break;
         /* arrow-down: volumn down */
-        case 0x1f:
-            ASYNC(&toneGenerator, adjustVolume, -1);
+        case 0x1f:;
+            char volDownInfo [32] = { };
+            SYNC(&toneGenerator, adjustVolume, -1);
+            snprintf(volDownInfo, 64, "<)  [-----------]%d/%d\n", 
+                toneGenerator.volume, SAFE_VOLUME);
+            volPercentage = (10 * toneGenerator.volume) / SAFE_VOLUME;
+            volDownInfo[volPercentage+5] = '|';
+            SCI_WRITE(&sci0, volDownInfo);
             break;
         /* arrow-up, volumn up */
-        case 0x1e:
-            ASYNC(&toneGenerator, adjustVolume, 1);
+        case 0x1e:;
+            char volUpInfo [32] = { };
+            SYNC(&toneGenerator, adjustVolume, 1);
+            snprintf(volUpInfo, 64, "<)) [-----------]%d/%d\n", 
+                toneGenerator.volume, SAFE_VOLUME);
+            volPercentage = (10 * toneGenerator.volume) / SAFE_VOLUME;
+            volUpInfo[volPercentage+5] = '|';
+            SCI_WRITE(&sci0, volUpInfo);
             break;
         /* arrow-left, bgLoad down */
-        case 0x1c:
+        case 0x1c:;
+            char bgLoadLeftArrowPrint [64] = {};
             newBgLoadValue = backgroundLoad.backgroundLoopRange;
             if(0 < backgroundLoad.backgroundLoopRange)
             {
@@ -157,7 +221,8 @@ void reader(App *self, int c) {
             //BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
             break;
         /* arrow-right, bgLoad up */
-        case 0x1d:
+        case 0x1d:;
+            char bgLoadRightArrowPrint [64] = {};
             newBgLoadValue1 = backgroundLoad.backgroundLoopRange;
             if(50000 > backgroundLoad.backgroundLoopRange)
             {
@@ -174,13 +239,12 @@ void reader(App *self, int c) {
             break;
         /* Toggle deadline flags for each task */
         case 'd':
-        case 'D':
-                /* toggle deadline flags */
+        case 'D':;
+                char deadlineInfo [48] = {};
                 backgroundLoad.isDeadlineEnabled = !(backgroundLoad.isDeadlineEnabled);
                 toneGenerator.isDeadlineEnabled = !(toneGenerator.isDeadlineEnabled);
-
-                snprintf(deadlineInfoPrint,48,"deadline (enabled:1; disabled:0):%d\n",backgroundLoad.isDeadlineEnabled && toneGenerator.isDeadlineEnabled);
-                SCI_WRITE(&sci0, deadlineInfoPrint);
+                snprintf(deadlineInfo,48,"deadline (enabled:1; disabled:0):%d\n",backgroundLoad.isDeadlineEnabled && toneGenerator.isDeadlineEnabled);
+                SCI_WRITE(&sci0, deadlineInfo);
                 break;
         /* erase nhistory */
         case 'f':
@@ -215,41 +279,6 @@ void reader(App *self, int c) {
                 SCI_WRITE(&sci0, "\n");
             }
             break;
-        case '-':
-        case '0' ... '9':;
-            SCI_WRITE(&sci0, "Input stored in buffer: \'");
-            SCI_WRITECHAR(&sci0, c);
-            SCI_WRITE(&sci0, "\'\n");
-            self->buffer[self->index] = c;
-            self->index = (self->index + 1) % MAX_BUFFER_SIZE;
-            break;
-        /* display helper */
-        case '\n':;
-            char guide [1000] = {};
-            snprintf(guide, 1000,  "-----------------------------------------------\n"
-                                  "Try input some number:\n"
-                                  "Maximum individual integer length: %d\n"
-                                  "%d-history of median & sum will be shown\n"
-                                  "-----------------------------------------------\n"
-                                  "press \'-\' and \'0\'-\'9\' to input\n"
-                                  "press \'e\' to end input and save\n"
-                                  "press \'backspace\' to discard current input\n"
-                                  "press \'f\' to erase the history\n"
-                                  "press left arrow to decrease bg load\n"
-                                  "press right arrow to increase bg load\n"
-                                  "press d to toggle deadline, default: deadline disabled\n"
-                                  "press \'enter\' to display this helper again\n"
-                                  "\n",
-                                  MAX_BUFFER_SIZE - 1,
-                                  NHISTORY);
-            SCI_WRITE(&sci0, guide);
-            break;
-        case '\r':
-            break;
-        /* backspace */
-        case '\b':
-            clearbuffer(self, 0);
-            SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
         default:
             SCI_WRITE(&sci0, "Input received: \'");
             SCI_WRITECHAR(&sci0, c);

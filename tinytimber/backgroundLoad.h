@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SAFE_VOLUME 5
 #define LOAD_STEP 500
 
 

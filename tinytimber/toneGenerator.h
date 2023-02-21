@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SAFE_VOLUME 5
+#define SAFE_VOLUME 25
 
 ///@brief   define tone generator deadline 
 #define TONE_GEN_DEADLINE USEC(100)
@@ -28,7 +28,7 @@ typedef struct
 
 
 int genTone(ToneGenerator *, int);
-int playTone(ToneGenerator *, int);
+void playTone(ToneGenerator *, int);
 int setFrequency(ToneGenerator *, int);
 int setVolume(ToneGenerator *, int);
 int adjustVolume(ToneGenerator *, int);
