@@ -1,3 +1,6 @@
+#ifndef TONEGEN_H
+#define TONEGEN_H
+
 #include "TinyTimber.h"
 #include "sciTinyTimber.h"
 #include <stdbool.h>
@@ -5,6 +8,7 @@
 #include <stdlib.h>
 
 #define SAFE_VOLUME 25
+#define MAX_FREQ 4000
 
 ///@brief   define tone generator deadline 
 #define TONE_GEN_DEADLINE USEC(100)
@@ -27,10 +31,12 @@ typedef struct
     { initObject(), 0, 1000, 2, 0, false, 0}
 
 
-int genTone(ToneGenerator *, int);
 void playTone(ToneGenerator *, int);
+int genTone(ToneGenerator *, int);
 int setFrequency(ToneGenerator *, int);
 int setVolume(ToneGenerator *, int);
 int adjustVolume(ToneGenerator *, int);
 int toggleAudio(ToneGenerator *, int);
-void disableDeadline(ToneGenerator *, int);
+int toggleDeadlineTG(ToneGenerator *, int);
+
+#endif

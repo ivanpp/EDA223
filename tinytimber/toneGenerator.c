@@ -18,7 +18,7 @@ void playTone(ToneGenerator *self, int unused) {
     /* deadline */
     if(true == self->isDeadlineEnabled) self->toneGenDeadline = TONE_GEN_DEADLINE;
     else self->toneGenDeadline = 0;
-
+    /* periodic call, wi/wo ddl*/
     SEND(USEC(tone), USEC(self->toneGenDeadline), self, playTone, unused);
 }
 
@@ -27,8 +27,8 @@ int genTone(ToneGenerator *self, int frequency) {
 }
 
 int setFrequency(ToneGenerator *self, int frequency) {
-    if (frequency > 4000) {
-        self->toneFreq = 4000;
+    if (frequency > MAX_FREQ) {
+        self->toneFreq = MAX_FREQ;
     } else if (frequency < 1) {
         self->toneFreq = 1;
     } else {
@@ -59,4 +59,9 @@ int adjustVolume(ToneGenerator *self, int volume) {
 int toggleAudio(ToneGenerator *self, int unused) {
     self ->isMuted = self->isMuted ? 0 : 1;
     return self->volume;
+}
+
+int toggleDeadlineTG(ToneGenerator *self, int unused) {
+    self->isDeadlineEnabled = !self->isDeadlineEnabled;
+    return self->isDeadlineEnabled;
 }

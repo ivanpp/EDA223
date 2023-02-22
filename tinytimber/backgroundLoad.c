@@ -1,21 +1,28 @@
 #include "backgroundLoad.h"
 #include <stdlib.h>
 
-int loadLoop(BackgroundLoad *self, int value) { 
+void loadLoop(BackgroundLoad *self, int unused) { 
     for(int i = 0; i<self->backgroundLoopRange; i++) {
 
     }
     /* deadline */
     if(true == self->isDeadlineEnabled) self->bgLoadDeadline = BGLOAD_DEADLINE;
     else self->bgLoadDeadline = 0;
-    
-    SEND(USEC(1300),self->bgLoadDeadline, self, loadLoop, value);
-    return 1;
+    /* periodic call, wi/wo ddl*/
+    SEND(BGLOAD_PERIODICITY, self->bgLoadDeadline, self, loadLoop, unused);
 }
 
-int adjustLoad(BackgroundLoad *self, int value){
-    self->backgroundLoopRange += value;
-    return self->backgroundLoopRange;
+int adjustLoad(BackgroundLoad *self, int diff) {
+    int value = self->backgroundLoopRange + diff;
+    value = value > MAX_LOOP_RANGE ? MAX_LOOP_RANGE : value;
+    value = value < MIN_LOOP_RANGE ? MIN_LOOP_RANGE : value;
+    self->backgroundLoopRange = value;
+    return value;
+}
+
+int toggleDeadlineBG(BackgroundLoad *self, int unused) {
+    self->isDeadlineEnabled = !self->isDeadlineEnabled;
+    return self->isDeadlineEnabled;
 }
 
 void updateLoad(BackgroundLoad *f_self, int f_newBackgroundLoadValue)

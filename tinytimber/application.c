@@ -99,8 +99,8 @@ void reader(App *self, int c) {
     // think about the execution time
     // naming convention: funcInfo
     //char debugInfo[64] = { }; // for debuging
-    int newBgLoadValue, newBgLoadValue1;
-    int volPercentage;
+    int currentLoad;
+    int volPercentage; // [0, 10]
     switch (c)
     {
         /* display helper */
@@ -174,6 +174,7 @@ void reader(App *self, int c) {
             ASYNC(&toneGenerator, setVolume, volume);
             break; 
 */
+        /* VOLUME CONTROL: mute/unmute, vol-down, vol-up*/
         /* toggle audio */
         case 'm':
         case 'M':;
@@ -203,49 +204,36 @@ void reader(App *self, int c) {
             volUpInfo[volPercentage+5] = '|';
             SCI_WRITE(&sci0, volUpInfo);
             break;
+        /* BACKGROUND LOAD CONTROL: load-down, load-up */
         /* arrow-left, bgLoad down */
         case 0x1c:;
-            char bgLoadLeftArrowPrint [64] = {};
-            newBgLoadValue = backgroundLoad.backgroundLoopRange;
-            if(0 < backgroundLoad.backgroundLoopRange)
-            {
-                newBgLoadValue = ((backgroundLoad.backgroundLoopRange - LOAD_STEP) >0) ? (backgroundLoad.backgroundLoopRange - LOAD_STEP) : 0;
-                updateLoad(&backgroundLoad, newBgLoadValue);
-                snprintf(bgLoadLeftArrowPrint,64,"New bgLoad: %d\n",backgroundLoad.backgroundLoopRange);
-            }
-            else
-            {
-                snprintf(bgLoadLeftArrowPrint,64,"can't reduce bgLoad(min:500) current:%d\n",backgroundLoad.backgroundLoopRange);
-            }            
-            SCI_WRITE(&sci0, bgLoadLeftArrowPrint);
-            //BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
+            char loadDwonInfo [32] = { };
+            currentLoad = SYNC(&backgroundLoad, adjustLoad, -LOAD_STEP);
+            snprintf(loadDwonInfo, 32, "Current background load: %d\n", currentLoad);
+            SCI_WRITE(&sci0, loadDwonInfo);
             break;
         /* arrow-right, bgLoad up */
         case 0x1d:;
-            char bgLoadRightArrowPrint [64] = {};
-            newBgLoadValue1 = backgroundLoad.backgroundLoopRange;
-            if(50000 > backgroundLoad.backgroundLoopRange)
-            {
-                newBgLoadValue1 = backgroundLoad.backgroundLoopRange + LOAD_STEP;
-                updateLoad(&backgroundLoad, newBgLoadValue1);
-                snprintf(bgLoadRightArrowPrint,64,"New bgLoad: %d\n",backgroundLoad.backgroundLoopRange);
-            }
-            else
-            {
-                snprintf(bgLoadRightArrowPrint,64,"can't rise bgLoad(max:12000) current:%d\n",backgroundLoad.backgroundLoopRange);
-            }            
-            SCI_WRITE(&sci0, bgLoadRightArrowPrint);
-            //BEFORE(backgroundLoad.bgLoadDeadline, &backgroundLoad, loadLoop, 0 /*unused*/);
+            char loadUpInfo [32] = { };
+            currentLoad = SYNC(&backgroundLoad, adjustLoad, +LOAD_STEP);
+            snprintf(loadUpInfo, 32, "Current background load: %d\n", currentLoad);
+            SCI_WRITE(&sci0, loadUpInfo);
             break;
+        /* DEADLINE CONTROL: enable/disable */
         /* Toggle deadline flags for each task */
         case 'd':
         case 'D':;
-                char deadlineInfo [48] = {};
-                backgroundLoad.isDeadlineEnabled = !(backgroundLoad.isDeadlineEnabled);
-                toneGenerator.isDeadlineEnabled = !(toneGenerator.isDeadlineEnabled);
-                snprintf(deadlineInfo,48,"deadline (enabled:1; disabled:0):%d\n",backgroundLoad.isDeadlineEnabled && toneGenerator.isDeadlineEnabled);
-                SCI_WRITE(&sci0, deadlineInfo);
-                break;
+            char deadlineInfo [32] = {};
+            int tgStatus, bgStatus;
+            tgStatus = SYNC(&toneGenerator, toggleDeadlineTG, /*unused*/ 0);
+            bgStatus = SYNC(&backgroundLoad, toggleDeadlineBG, /*unused*/ 0);
+            if (tgStatus && bgStatus) {
+                snprintf(deadlineInfo, 32, "Deadline enabled\n");
+            } else{
+                snprintf(deadlineInfo, 32, "Deadline disabled\n");
+            }
+            SCI_WRITE(&sci0, deadlineInfo);
+            break;
         /* erase nhistory */
         case 'f':
         case 'F':;
