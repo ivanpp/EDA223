@@ -4,6 +4,7 @@
 #include "canTinyTimber.h"
 #include "toneGenerator.h"
 #include "backgroundLoad.h"
+#include "musicPlayer.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,8 +12,8 @@
 
 App app = initApp();
 
-ToneGenerator toneGenerator = initToneGenerator();
 BackgroundLoad backgroundLoad = initBackgroundLoad();
+MusicPlayer musicPlayer = initMusicPlayer();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 
@@ -47,6 +48,13 @@ void clearhistory(App *self, int unused) {
     }
     self->count = 0;
     self->sum   = 0;
+}
+
+// Get the value from buffer, then reset it
+int parseValue(App *self, int unused) {
+    self->buffer[self->index] = '\0';
+    self->index = 0;
+    return atoi(self->buffer);
 }
 
 // https://devdocs.io/c/algorithm/qsort
@@ -101,6 +109,7 @@ void reader(App *self, int c) {
     //char debugInfo[64] = { }; // for debuging
     int currentLoad;
     int volPercentage; // [0, 10]
+    int val; // 
     switch (c)
     {
         /* display helper */
@@ -126,6 +135,10 @@ void reader(App *self, int c) {
                 "press arrow-down to volumn-down\n"
                 //"press \'↓\' to volumn-down\n"
                 "press \'d\' to toggle deadline, default: deadline disabled\n"
+                "------------------MUSIC PLAYER------------------\n"
+                "press \'k\' to set the key\n"
+                "press \'t\' to set the tempo\n"
+                "\n"
                 "press \'enter\' to display this helper again\n"
                 "\n",
                 MAX_BUFFER_SIZE - 1,
@@ -147,24 +160,26 @@ void reader(App *self, int c) {
         /* end of integer */
         case 'e':
         case 'E':;
-            self->buffer[self->index] = '\0';
-            int val = atoi(self->buffer);
-            self->index = 0;
+            val = parseValue(self, /*unused*/0);
             nhistory(self, val);
             break;
         /* backspace */
         case '\b':
             clearbuffer(self, 0);
             SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
+            break;
         /* set freq: [1,4000]*/
         case 'q':
         case 'Q':;
-            char setFreqInfo [64] = { };
-            self->buffer[self->index] = '\0';
-            int frequency = atoi(self->buffer);
-            self->index = 0;
-            snprintf(setFreqInfo, 64, "Frquency set to: %d Hz\n", frequency);
-            ASYNC(&toneGenerator, setFrequency, frequency);
+            char setFreqInfo [48] = { };
+            val = parseValue(self, /*unused*/0);
+            if (val < 1 || val > MAX_FREQ) {
+                snprintf(setFreqInfo, 48,
+                    "Freq must be: [%d, %d] (attempt: %d)\n", 1, MAX_FREQ, val);
+                SCI_WRITE(&sci0, setFreqInfo);
+            }
+            int freq = SYNC(&toneGenerator, setFrequency, val);
+            snprintf(setFreqInfo, 48, "Frquency set to: %d Hz\n", freq);
             SCI_WRITE(&sci0, setFreqInfo);
             break;
 /*       case 'v':
@@ -234,6 +249,35 @@ void reader(App *self, int c) {
             }
             SCI_WRITE(&sci0, deadlineInfo);
             break;
+        /* MUSIC PLAYER CONTROL*/
+        /* change key */
+        case 'k':
+        case 'K':;
+            char musicKeyInfo [48] = { };
+            int key = parseValue(self, /*unused*/0);
+            if (key < KEY_MIN || key > KEY_MAX){
+                snprintf(musicKeyInfo, 48, 
+                        "Key must be: [%d, %d] (attempt: %d)\n", KEY_MIN, KEY_MAX, key);
+                SCI_WRITE(&sci0, musicKeyInfo);
+            }
+            key = SYNC(&musicPlayer, setKey, key);
+            snprintf(musicKeyInfo, 32, "Key set to: %d\n", key);
+            SCI_WRITE(&sci0, musicKeyInfo);
+            break;
+        /* change tempo */
+        case 't':
+        case 'T':;
+            char musicTempoInfo [48] = { };
+            int tempo = parseValue(self, /*unused*/0);
+            if (tempo < TEMPO_MIN || tempo > TEMPO_MAX){
+                snprintf(musicTempoInfo, 48, 
+                        "Tempo must be: [%d, %d] (attempt: %d)\n", TEMPO_MIN, TEMPO_MAX, tempo);
+                SCI_WRITE(&sci0, musicTempoInfo);
+            }
+            tempo = SYNC(&musicPlayer, setTempo, tempo);
+            snprintf(musicTempoInfo, 32, "Tempo set to %d\n", tempo);
+            SCI_WRITE(&sci0, musicTempoInfo);
+            break;
         /* erase nhistory */
         case 'f':
         case 'F':;
@@ -247,22 +291,20 @@ void reader(App *self, int c) {
         case 'p':
         case 'P':
             // TODO: use strcat
-            self->buffer[self->index] = '\0';
-            int key = atoi(self->buffer);
-            self->index = 0;
-            char tempp[32] = {};
-            snprintf(tempp, 32, "Key: %d\n", key);
-            SCI_WRITE(&sci0, tempp);
-            if (key < KEY_MIN || key > KEY_MAX){
-                snprintf(tempp, 32, "Invalid! Key must be: [%d, %d]\n", KEY_MIN, KEY_MAX);
-                SCI_WRITE(&sci0, tempp);
+            val = parseValue(self, /*unused*/0);
+            char lookupInfo[32] = {};
+            snprintf(lookupInfo, 32, "Key: %d\n", val);
+            SCI_WRITE(&sci0, lookupInfo);
+            if (val < KEY_MIN || val > KEY_MAX){
+                snprintf(lookupInfo, 32, "Invalid! Key must be: [%d, %d]\n", KEY_MIN, KEY_MAX);
+                SCI_WRITE(&sci0, lookupInfo);
             } else{
                 int index, period;
                 for (int i = 0; i < 32; i++){
-                    index = brotherJohn[i] + key - PERIODS_IDX_DIFF;
+                    index = brotherJohn[i] + val - PERIODS_IDX_DIFF;
                     period = PERIODS[index];
-                    snprintf(tempp, 32, "%d ", period);
-                    SCI_WRITE(&sci0, tempp);
+                    snprintf(lookupInfo, 32, "%d ", period);
+                    SCI_WRITE(&sci0, lookupInfo);
                 }
                 SCI_WRITE(&sci0, "\n");
             }

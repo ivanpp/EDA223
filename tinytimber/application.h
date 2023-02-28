@@ -7,8 +7,6 @@
 #define MAX_HISTORY_SIZE 5
 #define NHISTORY 3
 
-#define KEY_MAX 5
-#define KEY_MIN -5
 // pre-computed periods, [-15, 16]
 #define PERIODS_IDX_DIFF -15
 const int PERIODS [32] = {2702, 2551, 2407, 2272, 2145, 2024, 1911, 1803, /*-8*/
@@ -36,5 +34,6 @@ void receiver(App*, int);
 void nhistory(App*, int);
 void clearbuffer(App*, int);
 void clearhistory(App*, int);
+int parseValue(App*, int);
 
 #endif

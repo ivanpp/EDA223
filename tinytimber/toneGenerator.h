@@ -30,6 +30,7 @@ typedef struct
 #define initToneGenerator() \
     { initObject(), 0, 1000, 2, 0, false, 0}
 
+extern ToneGenerator toneGenerator;
 
 void playTone(ToneGenerator *, int);
 int genTone(ToneGenerator *, int);

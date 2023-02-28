@@ -1,6 +1,9 @@
 #include "toneGenerator.h"
 #include <stdlib.h>
 
+ToneGenerator toneGenerator = initToneGenerator();
+
+
 void playTone(ToneGenerator *self, int unused) { 
     int volatile * const p_reg = (int *) 0x4000741C;
     /* sound */
