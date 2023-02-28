@@ -17,26 +17,40 @@ void playTone(ToneGenerator *self, int unused) {
         *p_reg = 0x0;
         self->isPlaying = 1;
     }
-    int tone = genTone(self, self->toneFreq);
     /* deadline */
     if(true == self->isDeadlineEnabled) self->toneGenDeadline = TONE_GEN_DEADLINE;
     else self->toneGenDeadline = 0;
     /* periodic call, wi/wo ddl*/
-    SEND(USEC(tone), USEC(self->toneGenDeadline), self, playTone, unused);
-}
-
-int genTone(ToneGenerator *self, int frequency) {
-    return 1000000 / (2 * frequency);
+    SEND(USEC(self->period), USEC(self->toneGenDeadline), self, playTone, unused);
 }
 
 int setFrequency(ToneGenerator *self, int frequency) {
+    // set freq
     if (frequency > MAX_FREQ) {
         self->toneFreq = MAX_FREQ;
-    } else if (frequency < 1) {
-        self->toneFreq = 1;
+    } else if (frequency < MIN_FREQ) {
+        self->toneFreq = MIN_FREQ;
     } else {
         self->toneFreq = frequency;
     }
+    // set period for that freq
+    self->period = 1000000 / (2 * self->toneFreq);
+    return self->toneFreq;
+}
+
+int setPeriod(ToneGenerator *self, int period) {
+    // set period
+    int max_period, min_period;
+    max_period = 5000000 / MIN_FREQ;
+    min_period = 5000000 / MAX_FREQ;
+    if (period > max_period){
+        period = max_period;
+    } else if (period < min_period){
+        period = min_period;
+    }
+    self->period = period;
+    // set freq for that period, return the freq(readable)
+    self->toneFreq = 5000000 / period;
     return self->toneFreq;
 }
 

@@ -13,7 +13,7 @@ typedef struct{
     int index;
     int key; // offset to the freq index
     int tempo; // bpm: beat per minute
-    int beatlen;
+    int beatlen; // ms
     int periods[32]; // periods for each notes
     int tempos[32];  // a: 2, b: 4, c: 1
 } MusicPlayer;
