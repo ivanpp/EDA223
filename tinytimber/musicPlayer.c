@@ -39,7 +39,7 @@ int setKey(MusicPlayer *self, int key){
 int setTempo(MusicPlayer *self, int tempo){
     tempo = tempo < TEMPO_MIN ? TEMPO_MIN : tempo;
     tempo = tempo > TEMPO_MAX ? TEMPO_MAX : tempo;
-    int beatMult = 60 * 1000 / tempo;
+    int beatMult = 30 * 1000 / tempo;
     self->tempo   = tempo;
     self->beatMult = beatMult;
     return tempo;
@@ -48,12 +48,13 @@ int setTempo(MusicPlayer *self, int tempo){
 void playMusic(MusicPlayer *self, int unused){
     // get next tone info
     int period, beatLen;
-    period = pianoPeriods[brotherJohn[self->index]+15]; //Get period
+    period = pianoPeriods[brotherJohn[self->index] + self->key -PERIODS_IDX_DIFF]; //Get period
     beatLen = self->beatMult * tempos[self->index]; // Get beatLen
     // set tone generator
-    ASYNC(&toneGenerator, toggleAudio, 0);
-    AFTER(MSEC(50), &toneGenerator, toggleAudio, 0);
+    ASYNC(&toneGenerator, mute, 0);
     ASYNC(&toneGenerator, setPeriod, period);
+    AFTER(MSEC(50), &toneGenerator, unmute, 0);
+
     // next tone
     self->index++;
     self->index = self->index%32;

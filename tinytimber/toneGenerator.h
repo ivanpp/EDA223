@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #define SAFE_VOLUME 25
-#define MAX_FREQ 4000
+#define MAX_FREQ 20000
 #define MIN_FREQ 1
 
 ///@brief   define tone generator deadline 
@@ -22,6 +22,7 @@ typedef struct
     int period; // usec
     int volume;
     int isMuted;
+    int isBlank;
     /// @brief  member variable to check if deadline is enabled or disabled : part1_task3
     bool isDeadlineEnabled;
 
@@ -41,5 +42,7 @@ int setVolume(ToneGenerator *, int);
 int adjustVolume(ToneGenerator *, int);
 int toggleAudio(ToneGenerator *, int);
 int toggleDeadlineTG(ToneGenerator *, int);
+void mute(ToneGenerator *self, int unused);
+void unmute(ToneGenerator *self, int unused);
 
 #endif

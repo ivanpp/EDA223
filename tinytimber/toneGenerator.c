@@ -7,7 +7,7 @@ ToneGenerator toneGenerator = initToneGenerator();
 void playTone(ToneGenerator *self, int unused) { 
     int volatile * const p_reg = (int *) 0x4000741C;
     /* sound */
-    if (self->isMuted) { //Have we muted sound?
+    if (self->isMuted || self->isBlank) { //Have we muted sound?
         *p_reg = 0;
         self->isPlaying = 0;
     } else if (self->isPlaying) { //Are we playing
@@ -39,7 +39,7 @@ int setFrequency(ToneGenerator *self, int frequency) {
 }
 
 int setPeriod(ToneGenerator *self, int period) {
-    // set period
+    // set period 
     int max_period, min_period;
     max_period = 5000000 / MIN_FREQ;
     min_period = 5000000 / MAX_FREQ;
@@ -76,6 +76,14 @@ int adjustVolume(ToneGenerator *self, int volume) {
 int toggleAudio(ToneGenerator *self, int unused) {
     self ->isMuted = self->isMuted ? 0 : 1;
     return self->volume;
+}
+
+void mute(ToneGenerator *self, int unused) {
+    self ->isBlank = 1;
+}
+
+void unmute(ToneGenerator *self, int unused) {
+    self ->isBlank = 0;
 }
 
 int toggleDeadlineTG(ToneGenerator *self, int unused) {
