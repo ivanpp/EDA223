@@ -19,7 +19,7 @@ Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 
 Can can0 = initCan(CAN_PORT0, &app, receiver);
 
-int brotherJohn [32] = {0, 2, 4, 0,
+int brotherJohnIndices [32] = {0, 2, 4, 0,
                         0, 2, 4, 0,
                         4, 5, 7,
                         4, 5, 7,
@@ -301,7 +301,7 @@ void reader(App *self, int c) {
             } else{
                 int index, period;
                 for (int i = 0; i < 32; i++){
-                    index = brotherJohn[i] + val - PERIODS_IDX_DIFF;
+                    index = brotherJohnIndices[i] + val - PERIODS_IDX_DIFF;
                     period = PERIODS[index];
                     snprintf(lookupInfo, 32, "%d ", period);
                     SCI_WRITE(&sci0, lookupInfo);
@@ -340,6 +340,9 @@ void startApp(App *self, int arg) {
 
     /* introduce deadline to backgroundLoad task */
     BEFORE(backgroundLoad.bgLoadDeadline,&backgroundLoad, loadLoop, 10);
+
+    //SYNC(&musicPlayer, playMusic, 0);
+    ASYNC(&musicPlayer, playMusic, 0);
 }
 
 int main() {
