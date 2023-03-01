@@ -138,6 +138,7 @@ void reader(App *self, int c) {
                 "------------------MUSIC PLAYER------------------\n"
                 "press \'k\' to set the key\n"
                 "press \'t\' to set the tempo\n"
+                "press \'m\' to mute/unmute\n"
                 "\n"
                 "press \'enter\' to display this helper again\n"
                 "\n",

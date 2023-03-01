@@ -27,7 +27,7 @@ typedef struct
 } BackgroundLoad;
 
 #define initBackgroundLoad() \
-    { initObject(), 1000, false, 0 }
+    { initObject(), 0, false, 0 }
 
 
 void loadLoop(BackgroundLoad *, int);
