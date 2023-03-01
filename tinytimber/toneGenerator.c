@@ -6,6 +6,8 @@ ToneGenerator toneGenerator = initToneGenerator();
 
 void playTone(ToneGenerator *self, int unused) { 
     int volatile * const p_reg = (int *) 0x4000741C;
+	if (self->isStop)
+		return;
     /* sound */
     if (self->isMuted || self->isBlank) { //Have we muted sound?
         *p_reg = 0;
@@ -89,4 +91,12 @@ void unmute(ToneGenerator *self, int unused) {
 int toggleDeadlineTG(ToneGenerator *self, int unused) {
     self->isDeadlineEnabled = !self->isDeadlineEnabled;
     return self->isDeadlineEnabled;
+}
+
+void stopToneGen(ToneGenerator *self, int unused) {
+	self->isStop = 1;
+}
+
+void startToneGen(ToneGenerator *self, int unused) {
+	self->isStop = 0;
 }

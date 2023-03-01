@@ -25,7 +25,7 @@ const int tempos[32] = {2, 2, 2, 2,
                  2, 2, 4, 
                  2, 2, 4}; 
 
-// key related
+// set Key
 int setKey(MusicPlayer *self, int key){
     key = key < KEY_MIN ? KEY_MIN : key;
     key = key > KEY_MAX ? KEY_MAX : key;
@@ -34,7 +34,6 @@ int setKey(MusicPlayer *self, int key){
 }
 
 
-/* tempo related */
 // set tempo (bpm) for 'a'
 int setTempo(MusicPlayer *self, int tempo){
     tempo = tempo < TEMPO_MIN ? TEMPO_MIN : tempo;
@@ -45,10 +44,45 @@ int setTempo(MusicPlayer *self, int tempo){
     return tempo;
 }
 
+// pause/unpause
+int pauseMusic(MusicPlayer *self, int unused){
+    // if music is stop
+    if (self->isStop) {
+        self->isStop = 0;
+        SYNC(&toneGenerator, startToneGen, 0);
+        SYNC(&toneGenerator, playTone, 0);
+        playMusic(self, 0);
+    } else {
+        self->isStop = 1;
+        SYNC(&toneGenerator, stopToneGen, 0);
+    }
+    return self->isStop;
+}
+
+// stop/restart
+int stopMusic(MusicPlayer *self, int unused){
+    // if music is stop
+    if (self->isStop) {
+         // reset the index, start from the begining
+        self->isStop = 0;
+        SYNC(&toneGenerator, startToneGen, 0);
+        self->index = 0;
+        SYNC(&toneGenerator, playTone, 0);
+        playMusic(self, 0);
+    } else{
+        self->isStop = 1;
+        SYNC(&toneGenerator, stopToneGen, 0);
+        self->index = 0;
+    }
+    return self->isStop;
+}
+
 void playMusic(MusicPlayer *self, int unused){
     // get next tone info
+    if (self->isStop)
+        return;
     int period, beatLen;
-    period = pianoPeriods[brotherJohn[self->index] + self->key -PERIODS_IDX_DIFF]; //Get period
+    period = pianoPeriods[brotherJohn[self->index] + self->key - PERIODS_IDX_DIFF]; //Get period
     beatLen = self->beatMult * tempos[self->index]; // Get beatLen
     // set tone generator
     ASYNC(&toneGenerator, mute, 0);

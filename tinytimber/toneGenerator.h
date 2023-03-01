@@ -23,6 +23,7 @@ typedef struct
     int volume;
     int isMuted;
     int isBlank;
+	int isStop; // be able to detect stop
     /// @brief  member variable to check if deadline is enabled or disabled : part1_task3
     bool isDeadlineEnabled;
 
@@ -31,7 +32,7 @@ typedef struct
 } ToneGenerator;
 
 #define initToneGenerator() \
-    { initObject(), 0, /*freq*/1000, /*period*/500, /*volumn*/2, 0, false, 0}
+    { initObject(), 0, /*freq*/1000, /*period*/500, /*volumn*/2, /*mute*/0, /*blank*/0, /*stop*/1, /*DDL*/0}
 
 extern ToneGenerator toneGenerator;
 
@@ -44,5 +45,7 @@ int toggleAudio(ToneGenerator *, int);
 int toggleDeadlineTG(ToneGenerator *, int);
 void mute(ToneGenerator *self, int unused);
 void unmute(ToneGenerator *self, int unused);
+void startToneGen(ToneGenerator *, int);
+void stopToneGen(ToneGenerator *, int);
 
 #endif

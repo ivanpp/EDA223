@@ -20,13 +20,13 @@ Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
 
 int brotherJohnIndices [32] = {0, 2, 4, 0,
-                        0, 2, 4, 0,
-                        4, 5, 7,
-                        4, 5, 7,
-                        7, 9, 7, 5, 4, 0,
-                        7, 9, 7, 5, 4, 0,
-                        0, -5, 0,
-                        0, -5, 0};
+                            0, 2, 4, 0,
+                            4, 5, 7,
+                            4, 5, 7,
+                            7, 9, 7, 5, 4, 0,
+                            7, 9, 7, 5, 4, 0,
+                            0, -5, 0,
+                            0, -5, 0};
 
 void receiver(App *self, int unused) {
     CANMsg msg;
@@ -116,30 +116,36 @@ void reader(App *self, int c) {
         case '\n':;
             char guide [1024] = {};
             snprintf(guide, 1024, 
-                "-----------------------------------------------\n"
+                "------------------------------------------------\n"
                 "Try input some number:\n"
                 "Maximum individual integer length: %d\n"
                 "%d-history of median & sum will be shown\n"
-                "-----------------------------------------------\n"
+                "------------------------------------------------\n"
                 "press \'-\' and \'0\'-\'9\' to input\n"
                 "press \'e\' to end input and save\n"
                 "press \'backspace\' to discard current input\n"
                 "press \'f\' to erase the history\n"
+                "---------------BACKGROUND AND DDL---------------\n"
                 /* CHANGE TEXT ENCODING OF TERMINAL TO 'utf-8' */
-                "press arrow-left to decrease bg load\n"
-                //"press \'←\' to decrease bg load\n"
-                "press arrow-right to increase bg load\n"
-                //"press \'→\' to increase bg load\n"
-                "press arrow-up to volumn-up\n"
-                //"press \'↑\' to volumn-up\n"
-                "press arrow-down to volumn-down\n"
-                //"press \'↓\' to volumn-down\n"
+                /* IF YOU WANT TO SHOW THE "ARROWS" */
+                //"press arrow-left to decrease bg load\n"
+                //"press arrow-right to increase bg load\n"
+                "press \'←\' to decrease bg load\n"
+                "press \'→\' to increase bg load\n"
                 "press \'d\' to toggle deadline, default: deadline disabled\n"
+                "-----------------VOLUMN CONTROL-----------------\n"
+                //"press arrow-up to volumn-up\n"
+                //"press arrow-down to volumn-down\n"
+                "press \'↑\' to volumn-up\n"
+                "press \'↓\' to volumn-down\n"
+                "press \'m\' to mute/unmute\n"
                 "------------------MUSIC PLAYER------------------\n"
+                "press \'s\' to start/stop music 🎵\n"
+                "press \'p\' to pause/unpause music 🎵\n"
                 "press \'k\' to set the key\n"
                 "press \'t\' to set the tempo\n"
                 "press \'m\' to mute/unmute\n"
-                "\n"
+                "------------------------------------------------\n"
                 "press \'enter\' to display this helper again\n"
                 "\n",
                 MAX_BUFFER_SIZE - 1,
@@ -183,13 +189,6 @@ void reader(App *self, int c) {
             snprintf(setFreqInfo, 48, "Frquency set to: %d Hz\n", freq);
             SCI_WRITE(&sci0, setFreqInfo);
             break;
-/*       case 'v':
-            self->buffer[self->index] = '\0';
-            int volume = atoi(self->buffer);
-            self->index = 0;
-            ASYNC(&toneGenerator, setVolume, volume);
-            break; 
-*/
         /* VOLUME CONTROL: mute/unmute, vol-down, vol-up*/
         /* toggle audio */
         case 'm':
@@ -251,6 +250,28 @@ void reader(App *self, int c) {
             SCI_WRITE(&sci0, deadlineInfo);
             break;
         /* MUSIC PLAYER CONTROL*/
+        /* pause/unpause music */
+        case 'p':
+        case 'P':;
+            char musicPauseInfo [32] = { };
+            int pauseStatus = SYNC(&musicPlayer, pauseMusic, 0);
+            if (pauseStatus)
+                snprintf(musicPauseInfo, 32, " || Music Paused\n");
+            else 
+                snprintf(musicPauseInfo, 32, " |> Music Unpaused\n");
+            SCI_WRITE(&sci0, musicPauseInfo);
+            break;
+        /* stop/start music */
+        case 's':
+        case 'S':;
+            char musicStopInfo [32] = { };
+            int stopStatus = SYNC(&musicPlayer, stopMusic, 0);
+            if (stopStatus)
+                snprintf(musicStopInfo, 32, " X  Music Stoped\n");
+            else 
+                snprintf(musicStopInfo, 32, " >  Music Started\n");
+            SCI_WRITE(&sci0, musicStopInfo);
+            break;
         /* change key */
         case 'k':
         case 'K':;
@@ -279,6 +300,7 @@ void reader(App *self, int c) {
             snprintf(musicTempoInfo, 32, "Tempo set to %d\n", tempo);
             SCI_WRITE(&sci0, musicTempoInfo);
             break;
+        /* OTHERS */
         /* erase nhistory */
         case 'f':
         case 'F':;
@@ -289,8 +311,8 @@ void reader(App *self, int c) {
             SCI_WRITE(&sci0, tempf);
             break;
         /* period lookup */
-        case 'p':
-        case 'P':
+        case 'l':
+        case 'L':
             // TODO: use strcat
             val = parseValue(self, /*unused*/0);
             char lookupInfo[32] = {};
@@ -348,7 +370,7 @@ void startApp(App *self, int arg) {
 
 int main() {
     INSTALL(&sci0, sci_interrupt, SCI_IRQ0);
-	INSTALL(&can0, can_interrupt, CAN_IRQ0);
+    INSTALL(&can0, can_interrupt, CAN_IRQ0);
     TINYTIMBER(&app, startApp, 0);
     return 0;
 }
