@@ -110,6 +110,10 @@ void reader(App *self, int c) {
     int currentLoad;
     int volPercentage; // [0, 10]
     int val; // 
+    CANMsg msg;
+    msg.msgId = 1;
+    msg.nodeId = 1;
+    msg.length = 6;
     switch (c)
     {
         /* display helper */
@@ -332,6 +336,16 @@ void reader(App *self, int c) {
                 SCI_WRITE(&sci0, "\n");
             }
             break;
+        case 'a':;
+            msg.buff[0] = 'D';
+            msg.buff[1] = 'e';
+            msg.buff[2] = 'b';
+            msg.buff[3] = 'u';
+            msg.buff[4] = 'g';
+            msg.buff[5] = 0;
+            CAN_SEND(&can0,&msg);
+            break;
+
         default:
             SCI_WRITE(&sci0, "Input received: \'");
             SCI_WRITECHAR(&sci0, c);
