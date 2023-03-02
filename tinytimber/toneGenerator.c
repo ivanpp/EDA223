@@ -40,6 +40,7 @@ int setFrequency(ToneGenerator *self, int frequency) {
     return self->toneFreq;
 }
 
+
 int setPeriod(ToneGenerator *self, int period) {
     // set period 
     int max_period, min_period;
@@ -93,10 +94,11 @@ int toggleDeadlineTG(ToneGenerator *self, int unused) {
     return self->isDeadlineEnabled;
 }
 
+// to stop/start ToneGenerator from other object
 void stopToneGen(ToneGenerator *self, int unused) {
-	self->isStop = 1;
+    self->isStop = 1;
 }
 
 void startToneGen(ToneGenerator *self, int unused) {
-	self->isStop = 0;
+    self->isStop = 0;
 }

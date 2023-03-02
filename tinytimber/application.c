@@ -359,10 +359,10 @@ void startApp(App *self, int arg) {
     CAN_SEND(&can0, &msg);
 
     /* introduce deadline to tone generator */
-    BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, 10);
+    BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
 
     /* introduce deadline to backgroundLoad task */
-    BEFORE(backgroundLoad.bgLoadDeadline,&backgroundLoad, loadLoop, 10);
+    BEFORE(backgroundLoad.bgLoadDeadline,&backgroundLoad, loadLoop, /*unused*/0);
 
     //SYNC(&musicPlayer, playMusic, 0);
     ASYNC(&musicPlayer, playMusic, 0);
