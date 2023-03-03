@@ -2,8 +2,10 @@
 #include "application.h"
 #include "sciTinyTimber.h"
 #include "canTinyTimber.h"
+#include "sioTinyTimber.h"
 #include "toneGenerator.h"
 #include "backgroundLoad.h"
+#include "userButton.h"
 #include "musicPlayer.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,9 +15,17 @@ App app = initApp();
 
 BackgroundLoad backgroundLoad = initBackgroundLoad();
 MusicPlayer musicPlayer = initMusicPlayer();
+UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
+SysIO sio0 = initSysIO(SIO_PORT0, &app, sioDebug);
+//SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButton);
+
+/* SIO DEBUG */
+void sioDebug(App *self, int unused){
+    SCI_WRITE(&sci0, "SIO invoked\n");
+}
 
 /* CAN MSG */
 void constructCanMessage(CANMsg *msg, MUSIC_PLAYER_OP op, int arg){
@@ -487,6 +497,7 @@ void startApp(App *self, int arg) {
 
     CAN_INIT(&can0);
     SCI_INIT(&sci0);
+    SIO_INIT(&sio0);
     SCI_WRITE(&sci0, "Hello from RTS C1...\n");
 
     // msg.msgId = 1;
@@ -511,6 +522,7 @@ void startApp(App *self, int arg) {
 int main() {
     INSTALL(&sci0, sci_interrupt, SCI_IRQ0);
     INSTALL(&can0, can_interrupt, CAN_IRQ0);
+    INSTALL(&sio0, sio_interrupt, SIO_IRQ0);
     TINYTIMBER(&app, startApp, 0);
     return 0;
 }

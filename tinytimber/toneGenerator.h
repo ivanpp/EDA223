@@ -38,8 +38,8 @@ int setVolume(ToneGenerator *, int);
 int adjustVolume(ToneGenerator *, int);
 int toggleAudio(ToneGenerator *, int);
 int toggleDeadlineTG(ToneGenerator *, int);
-void mute(ToneGenerator *self, int unused);
-void unmute(ToneGenerator *self, int unused);
+void mute(ToneGenerator *, int);
+void unmute(ToneGenerator *, int);
 void startToneGen(ToneGenerator *, int);
 void stopToneGen(ToneGenerator *, int);
 

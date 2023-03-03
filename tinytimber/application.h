@@ -47,4 +47,6 @@ void clearbuffer(App*, int);
 void clearhistory(App*, int);
 int parseValue(App*, int);
 
+void sioDebug(App*, int);
+
 #endif
