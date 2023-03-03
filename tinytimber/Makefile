@@ -117,7 +117,7 @@ $(DEBUGDIR)musicPlayer.o: musicPlayer.c musicPlayer.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
 # User-defined targets
-$(DEBUGDIR)application.o: application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h sioTinyTimber.h toneGenerator.h backgroundLoad.h userButton.h musicPlayer.h application.h
+$(DEBUGDIR)application.o: application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h sioTinyTimber.h toneGenerator.h backgroundLoad.h userButton.h musicPlayer.h systemPorts.h application.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
 ###
