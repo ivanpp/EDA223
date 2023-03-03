@@ -45,10 +45,15 @@ void receiver(App *self, int unused) {
     // check length, and ending
     if (msg.length != 6) return;
     if (msg.buff[5] != 193) return;
+    char debugInfo[32] = {};
+    // print out the contents of messages received
+    snprintf(debugInfo, 32, "OP: 0x%02X, ARG: 0x%02X%02X%02X%02X\n", 
+             msg.buff[0], 
+             msg.buff[1], msg.buff[2], msg.buff[3], msg.buff[4]);
+    SCI_WRITE(&sci0, debugInfo);
     // parse the command from CONDUCTOR if we're MUSICIAN
     if (self->mode == MUSICIAN) {
         MUSIC_PLAYER_OP op = msg.buff[0];
-        char debugInfo[32] = {};
         int arg = (msg.buff[1] << 24) | ((msg.buff[2] & 0xFF) << 16) | ((msg.buff[3] & 0xFF) << 8) | (msg.buff[4] & 0xFF);
         switch (op)
         {
