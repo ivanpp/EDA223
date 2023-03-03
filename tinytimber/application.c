@@ -5,7 +5,6 @@
 #include "toneGenerator.h"
 #include "backgroundLoad.h"
 #include "musicPlayer.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,23 +15,80 @@ BackgroundLoad backgroundLoad = initBackgroundLoad();
 MusicPlayer musicPlayer = initMusicPlayer();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
-
 Can can0 = initCan(CAN_PORT0, &app, receiver);
 
-int brotherJohnIndices [32] = {0, 2, 4, 0,
-                            0, 2, 4, 0,
-                            4, 5, 7,
-                            4, 5, 7,
-                            7, 9, 7, 5, 4, 0,
-                            7, 9, 7, 5, 4, 0,
-                            0, -5, 0,
-                            0, -5, 0};
+/* CAN MSG */
+void constructCanMessage(CANMsg *msg, MUSIC_PLAYER_OP op, int arg){
+    // Construct a CAN message of length 6: ['OP'|'ARG'(4)|'ENDING']
+    msg->length = 6;
+    // operation
+    msg->buff[0] = op;
+    // arg
+    msg->buff[1] = arg >> 24; 
+    msg->buff[2] = arg >> 16;
+    msg->buff[3] = arg >>  8;
+    msg->buff[4] = arg;
+    // ending
+    msg->buff[5] = 193;
+}
 
 void receiver(App *self, int unused) {
+    // CAN message: ['OP'|'ARG'(4)|'ENDING']
     CANMsg msg;
     CAN_RECEIVE(&can0, &msg);
-    SCI_WRITE(&sci0, "Can msg received: ");
-    SCI_WRITE(&sci0, msg.buff);
+    // vintage CAN message, just print it
+    if (msg.buff[msg.length - 1] == 0){
+        SCI_WRITE(&sci0, "Can msg received: ");
+        SCI_WRITE(&sci0, msg.buff);
+        SCI_WRITE(&sci0, "\n");
+    }
+    // check length, and ending
+    if (msg.length != 6) return;
+    if (msg.buff[5] != 193) return;
+    // parse the command from CONDUCTOR if we're MUSICIAN
+    if (self->mode == MUSICIAN) {
+        MUSIC_PLAYER_OP op = msg.buff[0];
+        char debugInfo[32] = {};
+        int arg = (msg.buff[1] << 24) | ((msg.buff[2] & 0xFF) << 16) | ((msg.buff[3] & 0xFF) << 8) | (msg.buff[4] & 0xFF);
+        switch (op)
+        {
+        case MUSIC_PAUSE:
+            SCI_WRITE(&sci0, "Operation: Pause/Unpause\n");
+            SYNC(&musicPlayer, pauseMusic, /*unused*/0);
+            break;
+        case MUSIC_STOP:
+            SCI_WRITE(&sci0, "Operation: Stop/Start\n");
+            SYNC(&musicPlayer, stopMusic, /*unused*/0);
+            break;
+        case MUSIC_MUTE:
+            SCI_WRITE(&sci0, "Operation: mute/unmute\n");
+            SYNC(&toneGenerator, toggleAudio, /*unused*/0);
+            break;
+        case MUSIC_SET_KEY:
+            SCI_WRITE(&sci0, "Operation: Set Key\n");
+            SYNC(&musicPlayer, setKey, arg);
+            break;
+        case MUSIC_SET_TEMPO:
+            SCI_WRITE(&sci0, "Operation: Set Tempo\n");
+            SYNC(&musicPlayer, setTempo, arg);
+            break;
+        case MUSIC_VOL_UP:
+            SCI_WRITE(&sci0, "Operation: Volumn Up\n");
+            SYNC(&toneGenerator, adjustVolume, 1);
+            break;
+        case MUSIC_VOL_DOWN:
+            SCI_WRITE(&sci0, "Operation: Volumn Down\n");
+            SYNC(&toneGenerator, adjustVolume, -1);
+            break;
+        case MUSIC_DEBUG:
+            SCI_WRITE(&sci0, "Operation: DEBUG\n");
+            snprintf(debugInfo, 32, "Arg: %d\n", arg);
+            SCI_WRITE(&sci0, debugInfo);
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 void clearbuffer(App *self, int unused) {
@@ -102,6 +158,16 @@ void nhistory(App *self, int val) {
     SCI_WRITE(&sci0, temp);
 }
 
+void changeMode(App *self, int unused){
+    if (self->mode == CONDUCTOR){
+        self->mode = MUSICIAN;
+        SCI_WRITE(&sci0, "Mode changed to: Musician\n");
+    } else{
+        self->mode = CONDUCTOR;
+        SCI_WRITE(&sci0, "Mode changed to: Conductor\n");
+    }
+}
+
 void reader(App *self, int c) {
     // create char inside switch case (only claim when needed)
     // think about the execution time
@@ -114,8 +180,14 @@ void reader(App *self, int c) {
     msg.msgId = 1;
     msg.nodeId = 1;
     msg.length = 6;
-    switch (c)
-    {
+    if (c == 0x9){ // 'Tab'
+        changeMode(self, /*unused*/0);
+        return;
+    }
+    // for the CONDUCTOR, control yourself
+    if (self->mode == CONDUCTOR) {
+        switch (c)
+        {
         /* display helper */
         case '\n':;
             char guide [1024] = {};
@@ -144,8 +216,8 @@ void reader(App *self, int c) {
                 "press \'↓\' to volumn-down\n"
                 "press \'m\' to mute/unmute\n"
                 "------------------MUSIC PLAYER------------------\n"
-                "press \'s\' to start/stop music 🎵\n"
-                "press \'p\' to pause/unpause music 🎵\n"
+                "press \'s\' to start/stop music\n"
+                "press \'p\' to pause/unpause music\n"
                 "press \'k\' to set the key\n"
                 "press \'t\' to set the tempo\n"
                 "press \'m\' to mute/unmute\n"
@@ -179,7 +251,7 @@ void reader(App *self, int c) {
             clearbuffer(self, 0);
             SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
             break;
-        /* set freq: [1,4000]*/
+        /* set freq */
         case 'q':
         case 'Q':;
             char setFreqInfo [48] = { };
@@ -336,49 +408,98 @@ void reader(App *self, int c) {
                 SCI_WRITE(&sci0, "\n");
             }
             break;
-        case 'a':;
-            msg.buff[0] = 'D';
-            msg.buff[1] = 'e';
-            msg.buff[2] = 'b';
-            msg.buff[3] = 'u';
-            msg.buff[4] = 'g';
-            msg.buff[5] = 0;
+        case 'c':
+        case 'C':;
+            constructCanMessage(&msg, MUSIC_DEBUG, -120);
             CAN_SEND(&can0,&msg);
             break;
-
         default:
             SCI_WRITE(&sci0, "Input received: \'");
             SCI_WRITECHAR(&sci0, c);
             SCI_WRITE(&sci0, "\'\n");
             break;
+        }
+    }
+    // for the MUSICIAN, simulate that someone send the msg to you
+    // by send message to yourself
+    if (1) {
+        int arg;
+        switch (c)
+        {
+        case '-':
+        case '0' ... '9':;
+            if (self->mode == MUSICIAN){
+                SCI_WRITE(&sci0, "Input stored in buffer: \'");
+                SCI_WRITECHAR(&sci0, c);
+                SCI_WRITE(&sci0, "\'\n");
+                self->buffer[self->index] = c;
+                self->index = (self->index + 1) % MAX_BUFFER_SIZE;
+            }
+            break;
+        case 'p':
+        case 'P':
+            constructCanMessage(&msg, MUSIC_PAUSE, /*unused*/0);
+            CAN_SEND(&can0, &msg);
+            break;
+        case 's':
+        case 'S':
+            constructCanMessage(&msg, MUSIC_STOP, /*unused*/0);
+            CAN_SEND(&can0, &msg);
+            break;
+        case 'm':
+        case 'M':
+            constructCanMessage(&msg, MUSIC_MUTE, /*unused*/0);
+            CAN_SEND(&can0, &msg);
+            break;
+        case 'k':
+        case 'K':
+            arg = parseValue(self, /*unused*/0);
+            constructCanMessage(&msg, MUSIC_SET_KEY, arg);
+            CAN_SEND(&can0, &msg);
+            break;
+        case 't':
+        case 'T':
+            arg = parseValue(self, /*unused*/0);
+            constructCanMessage(&msg, MUSIC_SET_TEMPO, arg);
+            CAN_SEND(&can0, &msg);
+            break;
+        case 0x1e:
+            constructCanMessage(&msg, MUSIC_VOL_UP, 1);
+            CAN_SEND(&can0, &msg);
+            break;
+        case 0x1f:
+            constructCanMessage(&msg, MUSIC_VOL_DOWN, 1);
+            CAN_SEND(&can0, &msg);
+            break;
+        default:
+            break;
+        }
     }
 }
 
 void startApp(App *self, int arg) {
-    CANMsg msg;
+    //CANMsg msg;
 
     CAN_INIT(&can0);
     SCI_INIT(&sci0);
     SCI_WRITE(&sci0, "Hello from RTS C1...\n");
 
-    msg.msgId = 1;
-    msg.nodeId = 1;
-    msg.length = 6;
-    msg.buff[0] = 'H';
-    msg.buff[1] = 'e';
-    msg.buff[2] = 'l';
-    msg.buff[3] = 'l';
-    msg.buff[4] = 'o';
-    msg.buff[5] = 0;
-    CAN_SEND(&can0, &msg);
+    // msg.msgId = 1;
+    // msg.nodeId = 1;
+    // msg.length = 6;
+    // msg.buff[0] = 'H';
+    // msg.buff[1] = 'e';
+    // msg.buff[2] = 0x00;
+    // msg.buff[3] = 'l';
+    // msg.buff[4] = 'o';
+    // msg.buff[5] = 0;
+    // // msg.buff[5] = '\n';
+    // // msg.buff[6] = '\0';
+    
+    // CAN_SEND(&can0, &msg);
 
-    /* introduce deadline to tone generator */
     BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
-
-    /* introduce deadline to backgroundLoad task */
     BEFORE(backgroundLoad.bgLoadDeadline,&backgroundLoad, loadLoop, /*unused*/0);
-
-    //SYNC(&musicPlayer, playMusic, 0);
     ASYNC(&musicPlayer, playMusic, 0);
 }
 

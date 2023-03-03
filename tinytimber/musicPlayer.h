@@ -19,6 +19,17 @@ typedef struct{
 	int isStop; // be able to stop
 } MusicPlayer;
 
+typedef enum {
+    MUSIC_PAUSE,     // play/pause
+    MUSIC_STOP,      // play/stop
+    MUSIC_MUTE,      // mute/unmute
+    MUSIC_SET_KEY,   // set key
+    MUSIC_SET_TEMPO, // set tempo
+    MUSIC_VOL_UP,    // vol up
+    MUSIC_VOL_DOWN,  // vol down
+    MUSIC_DEBUG,     // debug
+} MUSIC_PLAYER_OP;
+
 #define initMusicPlayer() \
     { initObject(), /*index*/0, /*key*/0, /*tempo*/120, /*beatMult*/250, /*stop*/1} 
                  

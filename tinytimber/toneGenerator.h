@@ -10,8 +10,6 @@
 #define SAFE_VOLUME 25
 #define MAX_FREQ 20000
 #define MIN_FREQ 1
-
-///@brief   define tone generator deadline 
 #define TONE_GEN_DEADLINE USEC(100)
 
 typedef struct 
@@ -24,10 +22,7 @@ typedef struct
     int isMuted;
     int isBlank;
 	int isStop; // be able to detect stop
-    /// @brief  member variable to check if deadline is enabled or disabled : part1_task3
     bool isDeadlineEnabled;
-
-    ///@brief   tone-generator specific deadline 
     int toneGenDeadline;
 } ToneGenerator;
 
