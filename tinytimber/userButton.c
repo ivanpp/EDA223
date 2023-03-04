@@ -51,10 +51,14 @@ void reactUserButton(UserButton *self, int unused){
             SCI_WRITE(&sci0, releasedInfo);
             SIO_TRIG(&sio0, 0);
             // PRESS_MOMENTARY -> PRESS_AND_HOLD
-            if (duration_sec >= 1){
+            if (duration_msec > 1999){
+                int tempo = SYNC(&musicPlayer, setTempo, TEMPO_DEFAULT);
+                snprintf(releasedInfo, 64, "[UserButton]: Tempo reset to: %d)\n", tempo);
+                SCI_WRITE(&sci0, releasedInfo);
+            }
+            if (duration_msec > 999){
                 self->mode = PRESS_AND_HOLD;
-                SCI_WRITE(&sci0, "the fact (I'm funny)\n");
-                SCI_WRITE(&sci0, "ENTER PRESS_AND_HOLD MODE\n");
+                SCI_WRITE(&sci0, "the fact (I'm funny)\nENTER PRESS_AND_HOLD MODE\n");
                 return;
             }
         }
@@ -67,23 +71,24 @@ void reactUserButton(UserButton *self, int unused){
         } else {           //RELEASED
             int duration_sec, duration_msec;
             duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
-            duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease));
+            duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
             int difficulty = 10;
             int diff = duration_msec - 193;
             snprintf(releasedInfo, 128,
                 "\nNow you're STUCKED in PRESS_AND_HOLD MODE\n"
                 "Hit BUTTON, get close to 193 ms (± %d ms) to QUIT\n"
-                "time: %d ms, diff: %d ms\n",
+                "duration: %d ms, diff: %d ms\n",
                 difficulty, duration_msec, diff);
             SCI_WRITE(&sci0, releasedInfo);
             SIO_TRIG(&sio0, 0);
+            // PRESS_AND_HOLD -> PRESS_MOMENTARY
             diff = diff > 0 ? diff : -diff; // abs
             if (diff <= difficulty){
                 self->mode = PRESS_MOMENTARY;
                 SCI_WRITE(&sci0, "\nQuIt ElEgEnTlY, ENTER PRESS_MOMENTARY MODE\n");
                 return;
             }
-            if (duration_sec >= 3){
+            if (duration_msec > 1999){
                 self->mode = PRESS_MOMENTARY;
                 SCI_WRITE(&sci0, "\nqUiT aNgRiLy, ENTER PRESS_MOMENTARY MODE\n");
                 return;

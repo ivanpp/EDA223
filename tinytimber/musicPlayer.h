@@ -5,8 +5,10 @@
 
 #define KEY_MAX 5
 #define KEY_MIN -5
-#define TEMPO_MAX 240
-#define TEMPO_MIN 60
+#define TEMPO_MAX 300
+#define TEMPO_MIN 30
+#define TEMPO_DEFAULT 120
+#define BEATMULT_DEFAULT 30000/TEMPO_DEFAULT
 
 #define PERIODS_IDX_DIFF -15
 
@@ -31,7 +33,7 @@ typedef enum {
 } MUSIC_PLAYER_OP;
 
 #define initMusicPlayer() \
-    { initObject(), /*index*/0, /*key*/0, /*tempo*/120, /*beatMult*/250, /*stop*/1} 
+    { initObject(), /*index*/0, /*key*/0, /*tempo*/TEMPO_DEFAULT, /*beatMult*/BEATMULT_DEFAULT, /*stop*/1} 
 
 extern MusicPlayer musicPlayer;
 

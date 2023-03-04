@@ -5,8 +5,6 @@
 
 #define RELEASED 1
 #define PRESSED  0
-#define TEMPO_SET_MIN 30
-#define TEMPO_SET_MAX 300
 #define MAX_BURST 3
 
 #define BUTTON_BG_DEADLINE    USEC(800)

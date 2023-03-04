@@ -235,6 +235,7 @@ void reader(App *self, int c) {
                 "press \'p\' to pause/unpause music\n"
                 "press \'k\' to set the key\n"
                 "press \'t\' to set the tempo\n"
+                "press \'r\' to show current tempo\n"
                 "press \'m\' to mute/unmute\n"
                 "------------------------------------------------\n"
                 "press \'enter\' to display this helper again\n"
@@ -390,6 +391,13 @@ void reader(App *self, int c) {
             tempo = SYNC(&musicPlayer, setTempo, tempo);
             snprintf(musicTempoInfo, 32, "Tempo set to %d\n", tempo);
             SCI_WRITE(&sci0, musicTempoInfo);
+            break;
+        /* check tempo */
+        case 'r':
+        case 'R':;
+            char checkTempoInfo[32] = {};
+            snprintf(checkTempoInfo, 32, "Tempo: %d\n", musicPlayer.tempo);
+            SCI_WRITE(&sci0, checkTempoInfo);
             break;
         /* OTHERS */
         /* erase nhistory */

@@ -38,7 +38,7 @@ typedef struct {
 } App;
 
 #define initApp() \
-    { initObject(), 0, 0, 0, MUSICIAN, {},{},{} }
+    { initObject(), 0, 0, 0, CONDUCTOR, {},{},{} }
 
 void reader(App*, int);
 void receiver(App*, int);
