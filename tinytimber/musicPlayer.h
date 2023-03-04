@@ -32,7 +32,9 @@ typedef enum {
 
 #define initMusicPlayer() \
     { initObject(), /*index*/0, /*key*/0, /*tempo*/120, /*beatMult*/250, /*stop*/1} 
-                 
+
+extern MusicPlayer musicPlayer;
+
 int setKey(MusicPlayer *, int);
 // set tempo (bpm)
 int setTempo(MusicPlayer *, int);

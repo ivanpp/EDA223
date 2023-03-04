@@ -1,50 +1,60 @@
 #include "userButton.h"
 #include "systemPorts.h"
+#include "musicPlayer.h"
 #include <stdio.h>
 
 // bind to sci interrupt
 void reactUserButton(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
     char releasedInfo [128] = {};
-    char pressedInfo [32] = {};
+    char pressedInfo [64] = {};
     // PRESS_MOMENTARY mode
     if (self->mode == PRESS_MOMENTARY){
         if (currentStatus == PRESSED){
-            int interval_sec, interval_msec;
+            int interval_sec, interval_msec, interval_avg;
             T_RESET(&self->timerPressRelease);
-            snprintf(pressedInfo, 32, "Button Pressed\n");
-            SCI_WRITE(&sci0, pressedInfo);
-            SIO_TRIG(&sio0, 1);
             // tempo-setting burst
             interval_sec = SEC_OF(T_SAMPLE(&self->timerLastPress));
             interval_msec = MSEC_OF(T_SAMPLE(&self->timerLastPress)) + interval_sec * 1000;
-            snprintf(pressedInfo, 32, "Interval %d ms\n", interval_msec);
+            snprintf(pressedInfo, 64, "[UserButton ↧]: pressed, interval: %d ms\n", interval_msec);
             SCI_WRITE(&sci0, pressedInfo);
             if (self->index == 0)
                 self->intervals[self->index] = interval_msec; // store for the first, but not moving index
             // comparable: no interval differs from another interval by 100 ms (that is strict...)
             //             also interval should no more than 366 ms
-            if (interval_msec > 366){ // or differ thing
+            if ((interval_msec > 366) || 0){ // LIMITATION 1
                 clearIntervalHistory(self, /*unused*/0);
-            } else{
-                self->intervals[self->index] = interval_msec;
-                self->index = (self->index + 1) % MAX_BURST;
+                SCI_WRITE(&sci0, "CLR for too large value\n");
+            } else if(compareIntervalHistory(self, interval_msec) || 0){ // LIMITATION 2
+                clearIntervalHistory(self, /*unused*/0);
+                SCI_WRITE(&sci0, "CLR for interval diff\n");
+            }else {
+                self->intervals[self->index % MAX_BURST] = interval_msec;
+                self->index = self->index + 1;
+                if (self->index >= MAX_BURST){
+                    interval_avg = treAverage(self, /*unused*/0);
+                    int tempo = SYNC(&musicPlayer, setTempo, interval_avg);
+                    snprintf(pressedInfo, 64, "[UserButton]: Tempo set to %d, (attempt: %d)\n", 
+                            tempo, interval_avg);
+                    SCI_WRITE(&sci0, pressedInfo);
+                }
             }
             printoutIntervals(self, /*unused*/0);
             T_RESET(&self->timerLastPress);
+            SIO_TRIG(&sio0, 1);
         } else {           //RELEASED
             int duration_sec, duration_msec;
             duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
-            duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease));
+            duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
             snprintf(releasedInfo, 64,
-                "Button Released: duration: %d s %d ms\n", duration_sec, duration_msec);
+                "[UserButton ↥]: released, duration: %d ms\n", duration_msec);
             SCI_WRITE(&sci0, releasedInfo);
             SIO_TRIG(&sio0, 0);
             // PRESS_MOMENTARY -> PRESS_AND_HOLD
             if (duration_sec >= 1){
                 self->mode = PRESS_AND_HOLD;
                 SCI_WRITE(&sci0, "the fact (I'm funny)\n");
-                SCI_WRITE(&sci0, "PRESS_AND_HOLD MODE\n");
+                SCI_WRITE(&sci0, "ENTER PRESS_AND_HOLD MODE\n");
                 return;
             }
         }
@@ -70,12 +80,12 @@ void reactUserButton(UserButton *self, int unused){
             diff = diff > 0 ? diff : -diff; // abs
             if (diff <= difficulty){
                 self->mode = PRESS_MOMENTARY;
-                SCI_WRITE(&sci0, "\nQuIt ElEgEnTlY\n");
+                SCI_WRITE(&sci0, "\nQuIt ElEgEnTlY, ENTER PRESS_MOMENTARY MODE\n");
                 return;
             }
             if (duration_sec >= 3){
                 self->mode = PRESS_MOMENTARY;
-                SCI_WRITE(&sci0, "\nqUiT aNgRiLy\n");
+                SCI_WRITE(&sci0, "\nqUiT aNgRiLy, ENTER PRESS_MOMENTARY MODE\n");
                 return;
             }
         }
@@ -93,9 +103,10 @@ void clearIntervalHistory(UserButton *self, int unused){
 // return 1 if difference is greater than tolerance
 int compareIntervalHistory(UserButton *self, int interval){
     int tolerance = 100; // max diff 100 ms
-    int diff;
-    for(int i = 0; i < self->index; i++){
-        diff = interval - self->intervals[self->index];
+    int diff, max_check;
+    max_check = self->index > MAX_BURST ? MAX_BURST : self->index;
+    for(int i = 0; i < max_check; i++){
+        diff = interval - self->intervals[i];
         diff = diff > 0 ? diff : -diff;
         if (diff > tolerance)
             return 1;
@@ -105,7 +116,8 @@ int compareIntervalHistory(UserButton *self, int interval){
 
 
 int treAverage(UserButton *self, int unused){
-    return 1;
+    int average = (self->intervals[0] + self->intervals[1] + self->intervals[2]) / 3;
+    return average;
 }
 
 void printoutIntervals(UserButton *self, int unused){

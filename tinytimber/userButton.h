@@ -20,7 +20,7 @@ typedef enum {
 typedef struct {
     Object super;
     USER_BUTTON_MODE mode;
-    int lastStatus;
+    int lastStatus; // not needed if using interrupt
     Timer timerPressRelease;
     Timer timerLastPress;
     int index;

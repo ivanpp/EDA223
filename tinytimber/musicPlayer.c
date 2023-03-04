@@ -1,6 +1,8 @@
 #include "musicPlayer.h"
 #include "toneGenerator.h"
 
+MusicPlayer musicPlayer = initMusicPlayer();
+
 const int pianoPeriods[32] = {2702, 2551, 2407, 2272, 2145, 2024, 1911, 1803, /*-8*/
 						  1702, 1607, 1516, 1431, 1351, 1275, 1203, 1136 /*0*/, 
 						  1072, 1012, 955, 901, 851, 803, 758, 715 /*8*/, 

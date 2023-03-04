@@ -15,7 +15,6 @@
 App app = initApp();
 
 BackgroundLoad backgroundLoad = initBackgroundLoad();
-MusicPlayer musicPlayer = initMusicPlayer();
 UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
@@ -224,7 +223,7 @@ void reader(App *self, int c) {
                 //"press arrow-right to increase bg load\n"
                 "press \'←\' to decrease bg load\n"
                 "press \'→\' to increase bg load\n"
-                "press \'d\' to toggle deadline, default: deadline disabled\n"
+                "press \'d\' to toggle deadline\n"
                 "-----------------VOLUMN CONTROL-----------------\n"
                 //"press arrow-up to volumn-up\n"
                 //"press arrow-down to volumn-down\n"
