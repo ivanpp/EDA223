@@ -34,10 +34,10 @@ void constructCanMessage(CANMsg *msg, MUSIC_PLAYER_OP op, int arg){
     // operation
     msg->buff[0] = op;
     // arg
-    msg->buff[1] = arg >> 24; 
-    msg->buff[2] = arg >> 16;
-    msg->buff[3] = arg >>  8;
-    msg->buff[4] = arg;
+    msg->buff[1] = (arg >> 24) & 0xFF; 
+    msg->buff[2] = (arg >> 16) & 0xFF;
+    msg->buff[3] = (arg >>  8) & 0xFF;
+    msg->buff[4] = (arg      ) & 0xFF;
     // ending
     msg->buff[5] = 193;
 }
@@ -89,11 +89,11 @@ void receiver(App *self, int unused) {
             break;
         case MUSIC_VOL_UP:
             SCI_WRITE(&sci0, "Operation: Volumn Up\n");
-            SYNC(&toneGenerator, adjustVolume, 1);
+            SYNC(&toneGenerator, adjustVolume, arg);
             break;
         case MUSIC_VOL_DOWN:
             SCI_WRITE(&sci0, "Operation: Volumn Down\n");
-            SYNC(&toneGenerator, adjustVolume, -1);
+            SYNC(&toneGenerator, adjustVolume, arg);
             break;
         case MUSIC_DEBUG:
             SCI_WRITE(&sci0, "Operation: DEBUG\n");
@@ -190,7 +190,7 @@ void reader(App *self, int c) {
     //char debugInfo[64] = { }; // for debuging
     int currentLoad;
     int volPercentage; // [0, 10]
-    int val; // 
+    int val, arg; // 
     CANMsg msg;
     msg.msgId = 1;
     msg.nodeId = 1;
@@ -368,28 +368,28 @@ void reader(App *self, int c) {
         case 'k':
         case 'K':;
             char musicKeyInfo [48] = { };
-            int key = parseValue(self, /*unused*/0);
-            if (key < KEY_MIN || key > KEY_MAX){
+            arg = parseValue(self, /*unused*/0);
+            if (arg < KEY_MIN || arg > KEY_MAX){
                 snprintf(musicKeyInfo, 48, 
-                        "Key must be: [%d, %d] (attempt: %d)\n", KEY_MIN, KEY_MAX, key);
+                        "Key must be: [%d, %d] (attempt: %d)\n", KEY_MIN, KEY_MAX, arg);
                 SCI_WRITE(&sci0, musicKeyInfo);
             }
-            key = SYNC(&musicPlayer, setKey, key);
-            snprintf(musicKeyInfo, 32, "Key set to: %d\n", key);
+            arg = SYNC(&musicPlayer, setKey, arg);
+            snprintf(musicKeyInfo, 32, "Key set to: %d\n", arg);
             SCI_WRITE(&sci0, musicKeyInfo);
             break;
         /* change tempo */
         case 't':
         case 'T':;
             char musicTempoInfo [48] = { };
-            int tempo = parseValue(self, /*unused*/0);
-            if (tempo < TEMPO_MIN || tempo > TEMPO_MAX){
+            arg = parseValue(self, /*unused*/0);
+            if (arg < TEMPO_MIN || arg > TEMPO_MAX){
                 snprintf(musicTempoInfo, 48, 
-                        "Tempo must be: [%d, %d] (attempt: %d)\n", TEMPO_MIN, TEMPO_MAX, tempo);
+                        "Tempo must be: [%d, %d] (attempt: %d)\n", TEMPO_MIN, TEMPO_MAX, arg);
                 SCI_WRITE(&sci0, musicTempoInfo);
             }
-            tempo = SYNC(&musicPlayer, setTempo, tempo);
-            snprintf(musicTempoInfo, 32, "Tempo set to %d\n", tempo);
+            arg = SYNC(&musicPlayer, setTempo, arg);
+            snprintf(musicTempoInfo, 32, "Tempo set to %d\n", arg);
             SCI_WRITE(&sci0, musicTempoInfo);
             break;
         /* check tempo */
@@ -446,7 +446,6 @@ void reader(App *self, int c) {
     // for the MUSICIAN, simulate that someone send the msg to you
     // by send message to yourself
     if (1) {
-        int arg;
         switch (c)
         {
         case '-':
@@ -476,13 +475,15 @@ void reader(App *self, int c) {
             break;
         case 'k':
         case 'K':
-            arg = parseValue(self, /*unused*/0);
+            if(self->mode == MUSICIAN)
+                arg = parseValue(self, /*unused*/0);
             constructCanMessage(&msg, MUSIC_SET_KEY, arg);
             CAN_SEND(&can0, &msg);
             break;
         case 't':
         case 'T':
-            arg = parseValue(self, /*unused*/0);
+            if(self->mode == MUSICIAN)
+                arg = parseValue(self, /*unused*/0);
             constructCanMessage(&msg, MUSIC_SET_TEMPO, arg);
             CAN_SEND(&can0, &msg);
             break;
@@ -491,7 +492,7 @@ void reader(App *self, int c) {
             CAN_SEND(&can0, &msg);
             break;
         case 0x1f:
-            constructCanMessage(&msg, MUSIC_VOL_DOWN, 1);
+            constructCanMessage(&msg, MUSIC_VOL_DOWN, -1);
             CAN_SEND(&can0, &msg);
             break;
         default:
@@ -501,30 +502,13 @@ void reader(App *self, int c) {
 }
 
 void startApp(App *self, int arg) {
-    //CANMsg msg;
-
     CAN_INIT(&can0);
     SCI_INIT(&sci0);
     SIO_INIT(&sio0);
     SCI_WRITE(&sci0, "Hello from RTS C1...\n");
 
-    // msg.msgId = 1;
-    // msg.nodeId = 1;
-    // msg.length = 6;
-    // msg.buff[0] = 'H';
-    // msg.buff[1] = 'e';
-    // msg.buff[2] = 0x00;
-    // msg.buff[3] = 'l';
-    // msg.buff[4] = 'o';
-    // msg.buff[5] = 0;
-    // // msg.buff[5] = '\n';
-    // // msg.buff[6] = '\0';
-    
-    // CAN_SEND(&can0, &msg);
-
     BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
     BEFORE(backgroundLoad.bgLoadDeadline,&backgroundLoad, loadLoop, /*unused*/0);
-    //BEFORE(1000, &userButton, buttonBackground, /*unused*/0);
     ASYNC(&musicPlayer, playMusic, 0);
 }
 
