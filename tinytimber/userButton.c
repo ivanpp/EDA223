@@ -5,7 +5,7 @@
 // bind to sci interrupt
 void reactUserButton(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
-    char releasedInfo [64] = {};
+    char releasedInfo [128] = {};
     char pressedInfo [32] = {};
     // PRESS_MOMENTARY mode
     if (self->mode == PRESS_MOMENTARY){
@@ -27,6 +27,7 @@ void reactUserButton(UserButton *self, int unused){
                 self->mode = PRESS_AND_HOLD;
                 SCI_WRITE(&sci0, "the fact (I'm funny)\n");
                 SCI_WRITE(&sci0, "PRESS_AND_HOLD MODE\n");
+                return;
             }
         }
     }
@@ -40,10 +41,26 @@ void reactUserButton(UserButton *self, int unused){
             int duration_sec, duration_msec;
             duration_sec = SEC_OF(T_SAMPLE(&self->timer));
             duration_msec = MSEC_OF(T_SAMPLE(&self->timer));
-            snprintf(releasedInfo, 64, 
-                "Stuck in PRESS_AND_HOLD MODE\n");
+            int difficulty = 10;
+            int diff = duration_msec - 193;
+            snprintf(releasedInfo, 128,
+                "\nNow you're STUCKED in PRESS_AND_HOLD MODE\n"
+                "Hit BUTTON, get close to 193 ms (± %d ms) to QUIT\n"
+                "time: %d ms, diff: %d ms\n",
+                difficulty, duration_msec, diff);
             SCI_WRITE(&sci0, releasedInfo);
             SIO_TRIG(&sio0, 0);
+            diff = diff > 0 ? diff : -diff; // abs
+            if (diff <= difficulty){
+                self->mode = PRESS_MOMENTARY;
+                SCI_WRITE(&sci0, "\nQuIt ElEgEnTlY\n");
+                return;
+            }
+            if (duration_sec >= 3){
+                self->mode = PRESS_MOMENTARY;
+                SCI_WRITE(&sci0, "\nqUiT aNgRiLy\n");
+                return;
+            }
         }
     }
 }
