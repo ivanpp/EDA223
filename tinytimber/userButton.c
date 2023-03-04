@@ -4,9 +4,32 @@
 
 // bind to sci interrupt
 void reactUserButton(UserButton *self, int unused){
-    SCI_WRITE(&sci0, "Invoke from UserButton Object\n");
+    int currentStatus = SIO_READ(&sio0);
+    char releasedInfo [64] = {};
+    char pressedInfo [32] = {};
+    // default behavior: trigger call-back when released->pressed
+    if (currentStatus == PRESSED){
+        T_RESET(&self->timer);
+        snprintf(pressedInfo, 32, "Button Pressed\n");
+        SCI_WRITE(&sci0, pressedInfo);
+        SIO_TRIG(&sio0, 1);
+    }
+    if (currentStatus == RELEASED){
+        int duration_sec, duration_msec;
+        duration_sec = SEC_OF(T_SAMPLE(&self->timer));
+        duration_msec = MSEC_OF(T_SAMPLE(&self->timer));
+        snprintf(releasedInfo, 64,
+            "Button Released: duration: %d s %d ms\n", duration_sec, duration_msec);
+        SCI_WRITE(&sci0, releasedInfo);
+        SIO_TRIG(&sio0, 0);
+        if (duration_sec >= 1){
+            // change mode
+        }
+    }
 }
 
+
+// DEPRECATED
 // 'background load' for button
 void buttonBackground(UserButton *self, int unused){
     // sample the current state

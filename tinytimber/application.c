@@ -517,7 +517,7 @@ void startApp(App *self, int arg) {
 
     BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
     BEFORE(backgroundLoad.bgLoadDeadline,&backgroundLoad, loadLoop, /*unused*/0);
-    BEFORE(1000, &userButton, buttonBackground, /*unused*/0);
+    //BEFORE(1000, &userButton, buttonBackground, /*unused*/0);
     ASYNC(&musicPlayer, playMusic, 0);
 }
 
