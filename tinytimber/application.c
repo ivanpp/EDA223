@@ -207,18 +207,17 @@ void reader(App *self, int c) {
         case '\n':;
             char guide [1024] = {};
             snprintf(guide, 1024, 
-                "------------------------------------------------\n"
-                "Try input some number:\n"
-                "Maximum individual integer length: %d\n"
-                "%d-history of median & sum will be shown\n"
-                "------------------------------------------------\n"
-                "press \'-\' and \'0\'-\'9\' to input\n"
-                "press \'e\' to end input and save\n"
-                "press \'backspace\' to discard current input\n"
-                "press \'f\' to erase the history\n"
-                "---------------BACKGROUND AND DDL---------------\n"
                 /* CHANGE TEXT ENCODING OF TERMINAL TO 'utf-8' */
                 /* IF YOU WANT TO SHOW THE "ARROWS" */
+                "-----------------CONDUCTOR MODE-----------------\n"
+                "press \'Tab\' ↹ to change MODE\n"
+                "Input number with \'-\' and \'0\'-\'9\'\n"
+                "Maximum integer length: %d\n"
+                "------------------------------------------------\n"
+                "press \'e\' to end input and save\n"
+                "press \'backspace\' to discard input\n"
+                "press \'f\' to erase the history\n"
+                "---------------BACKGROUND AND DDL---------------\n"
                 //"press arrow-left to decrease bg load\n"
                 //"press arrow-right to increase bg load\n"
                 "press \'←\' to decrease bg load\n"
@@ -231,17 +230,19 @@ void reader(App *self, int c) {
                 "press \'↓\' to volumn-down\n"
                 "press \'m\' to mute/unmute\n"
                 "------------------MUSIC PLAYER------------------\n"
-                "press \'s\' to start/stop music\n"
-                "press \'p\' to pause/unpause music\n"
-                "press \'k\' to set the key\n"
-                "press \'t\' to set the tempo\n"
-                "press \'r\' to show current tempo\n"
-                "press \'m\' to mute/unmute\n"
+                "press \'s\' ▶ to start/stop\n"
+                "press \'p\' ⏯ to pause/unpause\n"
+                "press \'k\' ♯ to set the key\n"
+                "press \'t\' ♩ to set the tempo\n"
+                "press \'r\' ♪ to show current tempo\n"
+                "--------------------JOYSTICK--------------------\n"
+                "hit(4+ times) to set a tempo\n"
+                "press(1s) to PRESS_AND_HOLD mode\n"
+                "press(2s) to reset tempo\n"
                 "------------------------------------------------\n"
-                "press \'enter\' to display this helper again\n"
+                "press \'enter\' to display helper again\n"
                 "\n",
-                MAX_BUFFER_SIZE - 1,
-                NHISTORY);
+                MAX_BUFFER_SIZE - 1);
             SCI_WRITE(&sci0, guide);
             break;
         /* CRLF compatible */
@@ -412,7 +413,6 @@ void reader(App *self, int c) {
         /* period lookup */
         case 'l':
         case 'L':
-            // TODO: use strcat
             val = parseValue(self, /*unused*/0);
             char lookupInfo[32] = {};
             snprintf(lookupInfo, 32, "Key: %d\n", val);
