@@ -1,5 +1,6 @@
 #include "musicPlayer.h"
 #include "toneGenerator.h"
+#include "systemPorts.h"
 
 MusicPlayer musicPlayer = initMusicPlayer();
 
@@ -86,6 +87,9 @@ void playMusic(MusicPlayer *self, int unused){
     int period, beatLen;
     period = pianoPeriods[brotherJohn[self->index] + self->key - PERIODS_IDX_DIFF]; //Get period
     beatLen = self->beatMult * tempos[self->index]; // Get beatLen
+    // LED: lit at the begining, unlit in the middle of a beat
+    SIO_WRITE(&sio0, 0);
+    AFTER(MSEC(beatLen/2), &sio0, sio_write, 1);
     // set tone generator
     ASYNC(&toneGenerator, mute, 0);
     ASYNC(&toneGenerator, setPeriod, period);

@@ -55,9 +55,9 @@ void receiver(App *self, int unused) {
     // check length, and ending
     if (msg.length != 6) return;
     if (msg.buff[5] != 193) return;
-    char debugInfo[32] = {};
+    char debugInfo[48] = {};
     // print out the contents of messages received
-    snprintf(debugInfo, 32, "OP: 0x%02X, ARG: 0x%02X%02X%02X%02X\n", 
+    snprintf(debugInfo, 48, "OP: 0x%02X, ARG: 0x%02X%02X%02X%02X\n", 
              msg.buff[0], 
              msg.buff[1], msg.buff[2], msg.buff[3], msg.buff[4]);
     SCI_WRITE(&sci0, debugInfo);

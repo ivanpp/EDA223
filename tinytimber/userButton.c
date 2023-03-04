@@ -24,10 +24,10 @@ void reactUserButton(UserButton *self, int unused){
             //             also interval should no more than 366 ms
             if ((interval_msec > 366) || 0){ // LIMITATION 1
                 clearIntervalHistory(self, /*unused*/0);
-                SCI_WRITE(&sci0, "CLR for too large value\n");
+                //SCI_WRITE(&sci0, "CLR for too large value\n");
             } else if(compareIntervalHistory(self, interval_msec) || 0){ // LIMITATION 2
                 clearIntervalHistory(self, /*unused*/0);
-                SCI_WRITE(&sci0, "CLR for interval diff\n");
+                //SCI_WRITE(&sci0, "CLR for interval diff\n");
             }else {
                 self->intervals[self->index % MAX_BURST] = interval_msec;
                 self->index = self->index + 1;
