@@ -1,5 +1,6 @@
 #include "userButton.h"
 #include "systemPorts.h"
+#include <stdio.h>
 
 // bind to sci interrupt
 void reactUserButton(UserButton *self, int unused){
@@ -13,14 +14,20 @@ void buttonBackground(UserButton *self, int unused){
     if (self->mode == PRESS_MOMENTARY){
         // pressed -> released
         if (self->lastStatus == PRESSED && currentStatus == RELEASED){
-            SCI_WRITE(&sci0, "Button Released\n");
+            char releasedInfo [64] = {};
             self->lastStatus = currentStatus;
+            // sample the time
+            Time duration = T_SAMPLE(&self->timer);
+            snprintf(releasedInfo, 64, "Button Released, duration: %d ms\n", MSEC_OF(duration));
+            SCI_WRITE(&sci0, releasedInfo);
             // > 1s change mode
         }
         // released -> pressed
         if (self->lastStatus == RELEASED && currentStatus == PRESSED){
-            SCI_WRITE(&sci0, "Button Pressed\n");
+            //char pressedInfor [32] = {};
             self->lastStatus = currentStatus;
+            T_RESET(&self->timer);
+            SCI_WRITE(&sci0, "Button Pressed\n");
         }
     }
     if (self->mode == PRESS_AND_HOLD){

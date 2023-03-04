@@ -18,13 +18,13 @@ typedef struct {
     Object super;
     USER_BUTTON_MODE mode;
     int lastStatus;
-    Time lastTime;
+    Timer timer;
     int count;
     int history[4]; // store the history of PRESS interval (ms)
 } UserButton;
 
 #define initUserButton() \
-    { initObject(), PRESS_MOMENTARY, RELEASED, 0, 0, {} }
+    { initObject(), PRESS_MOMENTARY, RELEASED, initTimer(), 0, {} }
 
 void reactUserButton(UserButton*, int);
 void buttonBackground(UserButton*, int);
