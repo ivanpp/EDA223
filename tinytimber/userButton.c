@@ -22,7 +22,7 @@ void reactUserButton(UserButton *self, int unused){
                 self->intervals[self->index] = interval_msec; // store for the first, but not moving index
             // comparable: no interval differs from another interval by 100 ms (that is strict...)
             //             also interval should no more than 366 ms
-            if ((interval_msec > 366) || 0){ // LIMITATION 1
+            if ((interval_msec > 366) && 0){ // LIMITATION 1
                 clearIntervalHistory(self, /*unused*/0);
                 //SCI_WRITE(&sci0, "CLR for too large value\n");
             } else if(compareIntervalHistory(self, interval_msec) || 0){ // LIMITATION 2
@@ -33,7 +33,7 @@ void reactUserButton(UserButton *self, int unused){
                 self->index = self->index + 1;
                 if (self->index >= MAX_BURST){
                     interval_avg = treAverage(self, /*unused*/0);
-                    double tempo1 = 60 * 1000 / interval_avg;
+                    int tempo1 = 60 * 1000 / interval_avg;
                     int tempo = SYNC(&musicPlayer, setTempo, tempo1);
                     //int tempo = SYNC(&musicPlayer, setTempo, interval_avg);
                     snprintf(pressedInfo, 64, "[UserButton]: Tempo set to %d, (attempt: %d)\n", 
