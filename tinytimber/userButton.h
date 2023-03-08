@@ -23,16 +23,18 @@ typedef struct {
     Timer timerLastPress;
     int index;
     int intervals[MAX_BURST]; // store the history of PRESS interval (ms)
+    Msg abortMessage; 
 } UserButton;
 
 #define initUserButton() \
-    { initObject(), PRESS_MOMENTARY, RELEASED, initTimer(), initTimer(), 0, {} }
+    { initObject(), PRESS_MOMENTARY, RELEASED, initTimer(), initTimer(), 0, {},  }
 
 void reactUserButton(UserButton*, int);
 void clearIntervalHistory(UserButton*, int);
 int compareIntervalHistory(UserButton*, int);
 int treAverage(UserButton*, int);
 void printoutIntervals(UserButton *, int);
+void checkPressAndHold(UserButton *self, int unused);
 
 void buttonBackground(UserButton*, int);
 

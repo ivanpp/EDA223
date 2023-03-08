@@ -11,6 +11,7 @@ void reactUserButton(UserButton *self, int unused){
     // PRESS_MOMENTARY mode
     if (self->mode == PRESS_MOMENTARY){
         if (currentStatus == PRESSED){
+            self->abortMessage = AFTER(SEC(1), self, checkPressAndHold, 0);
             int interval_sec, interval_msec, interval_avg;
             T_RESET(&self->timerPressRelease);
             // tempo-setting burst
@@ -60,10 +61,11 @@ void reactUserButton(UserButton *self, int unused){
                 snprintf(releasedInfo, 64, "[UserButton]: Tempo reset to: %d)\n", tempo);
                 SCI_WRITE(&sci0, releasedInfo);
             }
-            if (duration_msec > 999){
-                self->mode = PRESS_AND_HOLD;
-                SCI_WRITE(&sci0, "the fact (I'm funny)\nENTER PRESS_AND_HOLD MODE\n");
-                return;
+            if (duration_msec < 999) {
+                ABORT(self->abortMessage);
+                snprintf(releasedInfo, 64,
+                "[UserButton ↥]: released, duration: %d ms\n", duration_msec);
+                SCI_WRITE(&sci0, releasedInfo);
             }
         }
     }
@@ -106,6 +108,12 @@ void clearIntervalHistory(UserButton *self, int unused){
         self->intervals[i] = 0;
     }
     self->index = 0;
+}
+
+void checkPressAndHold(UserButton *self, int unused){
+    self->mode = PRESS_AND_HOLD;
+    SCI_WRITE(&sci0, "One second passed.\n entered PRESS_AND_HOLD MODE\n");
+    return;
 }
 
 // compare the interval with intervals already stored in self->intervals[]
