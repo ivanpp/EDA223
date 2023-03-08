@@ -33,9 +33,13 @@ void reactUserButton(UserButton *self, int unused){
                 self->index = self->index + 1;
                 if (self->index >= MAX_BURST){
                     interval_avg = treAverage(self, /*unused*/0);
-                    int tempo = SYNC(&musicPlayer, setTempo, interval_avg);
+                    double tempo1 = 60 * 1000 / interval_avg;
+                    int tempo = SYNC(&musicPlayer, setTempo, tempo1);
+                    //int tempo = SYNC(&musicPlayer, setTempo, interval_avg);
                     snprintf(pressedInfo, 64, "[UserButton]: Tempo set to %d, (attempt: %d)\n", 
-                            tempo, interval_avg);
+                            tempo, tempo1);
+                    //snprintf(pressedInfo, 64, "[UserButton]: Tempo set to %d, (attempt: %d)\n", 
+                    //        tempo, interval_avg);
                     SCI_WRITE(&sci0, pressedInfo);
                 }
             }
