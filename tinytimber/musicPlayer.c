@@ -88,6 +88,7 @@ void playMusic(MusicPlayer *self, int unused){
         self->hardStopped = 1;
         return;
     }
+    int period, tempo, beatLen;
     period = pianoPeriods[brotherJohn[self->index] + self->key - PERIODS_IDX_DIFF]; //Get period
     tempo = tempos[self->index]; // val can be 2, 4, 1
     beatLen = self->beatMult * tempo; // Get beatLen
@@ -101,11 +102,11 @@ void playMusic(MusicPlayer *self, int unused){
             AFTER(MSEC(0), &sio0, sio_toggle, 0);
             break;
         case(2):
-            AFTER(MSEC(0), &sio0, sio_toggle, 0);
+            AFTER(MSEC(0), &sio0, sio_write, 0); // lit
             AFTER(MSEC(beatLen/2), &sio0, sio_toggle, 0);
             break;
         case(4):
-            AFTER(MSEC(0), &sio0, sio_toggle, 0);
+            AFTER(MSEC(0), &sio0, sio_write, 0); // lit
             AFTER(MSEC(1*beatLen/4), &sio0, sio_toggle, 0);
             AFTER(MSEC(2*beatLen/4), &sio0, sio_toggle, 0);
             AFTER(MSEC(3*beatLen/4), &sio0, sio_toggle, 0);
