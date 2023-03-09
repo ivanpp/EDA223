@@ -19,6 +19,7 @@ typedef struct{
     int tempo; // bpm: beat per minute
     int beatMult; // ms
 	int isStop; // be able to stop
+    int hardStopped;
 } MusicPlayer;
 
 typedef enum {
@@ -33,7 +34,7 @@ typedef enum {
 } MUSIC_PLAYER_OP;
 
 #define initMusicPlayer() \
-    { initObject(), /*index*/0, /*key*/0, /*tempo*/TEMPO_DEFAULT, /*beatMult*/BEATMULT_DEFAULT, /*stop*/1} 
+    { initObject(), /*index*/0, /*key*/0, /*tempo*/TEMPO_DEFAULT, /*beatMult*/BEATMULT_DEFAULT, /*stop*/1, 1} 
 
 extern MusicPlayer musicPlayer;
 

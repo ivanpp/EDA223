@@ -50,8 +50,9 @@ int setTempo(MusicPlayer *self, int tempo){
 // pause/unpause
 int pauseMusic(MusicPlayer *self, int unused){
     // if music is stop
-    if (self->isStop) {
+    if (self->hardStopped) {
         self->isStop = 0;
+        self->hardStopped = 0;  
         SYNC(&toneGenerator, startToneGen, 0);
         SYNC(&toneGenerator, playTone, 0);
         playMusic(self, 0);
@@ -65,9 +66,10 @@ int pauseMusic(MusicPlayer *self, int unused){
 // stop/restart
 int stopMusic(MusicPlayer *self, int unused){
     // if music is stop
-    if (self->isStop) {
+    if (self->hardStopped) {
          // reset the index, start from the begining
         self->isStop = 0;
+        self->hardStopped = 0;        
         SYNC(&toneGenerator, startToneGen, 0);
         self->index = 0;
         SYNC(&toneGenerator, playTone, 0);
@@ -82,8 +84,10 @@ int stopMusic(MusicPlayer *self, int unused){
 
 void playMusic(MusicPlayer *self, int unused){
     // get next tone info
-    if (self->isStop)
+    if (self->isStop) {
+        self->hardStopped = 1;
         return;
+    }
     int period, tempo, beatLen;
     period = pianoPeriods[brotherJohn[self->index] + self->key - PERIODS_IDX_DIFF]; //Get period
     tempo = tempos[self->index]; // val can be 2, 4, 1
