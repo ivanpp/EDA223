@@ -84,12 +84,30 @@ void playMusic(MusicPlayer *self, int unused){
     // get next tone info
     if (self->isStop)
         return;
-    int period, beatLen;
+    int period, tempo, beatLen;
     period = pianoPeriods[brotherJohn[self->index] + self->key - PERIODS_IDX_DIFF]; //Get period
-    beatLen = self->beatMult * tempos[self->index]; // Get beatLen
+    tempo = tempos[self->index]; // val can be 2, 4, 1
+    beatLen = self->beatMult * tempo; // Get beatLen
     // LED: lit at the begining, unlit in the middle of a beat
-    SIO_WRITE(&sio0, 0);
-    AFTER(MSEC(beatLen/2), &sio0, sio_write, 1);
+    // since we stores int 2, 4, 1 for 1-beat, 2-beat, half-beat
+    // we can use it to schedule LED too
+    // first, start with the STUPID way
+    switch(tempo){
+        case(1):
+            //AFTER(MSEC(0), &sio0, sio_write, 0); // lit
+            AFTER(MSEC(0), &sio0, sio_toggle, 0);
+            break;
+        case(2):
+            AFTER(MSEC(0), &sio0, sio_toggle, 0);
+            AFTER(MSEC(beatLen/2), &sio0, sio_toggle, 0);
+            break;
+        case(4):
+            AFTER(MSEC(0), &sio0, sio_toggle, 0);
+            AFTER(MSEC(1*beatLen/4), &sio0, sio_toggle, 0);
+            AFTER(MSEC(2*beatLen/4), &sio0, sio_toggle, 0);
+            AFTER(MSEC(3*beatLen/4), &sio0, sio_toggle, 0);
+            break;
+    }
     // set tone generator
     ASYNC(&toneGenerator, mute, 0);
     ASYNC(&toneGenerator, setPeriod, period);
