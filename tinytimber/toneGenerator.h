@@ -10,8 +10,6 @@
 #define SAFE_VOLUME 25
 #define MAX_FREQ 20000
 #define MIN_FREQ 1
-
-///@brief   define tone generator deadline 
 #define TONE_GEN_DEADLINE USEC(100)
 
 typedef struct 
@@ -23,15 +21,13 @@ typedef struct
     int volume;
     int isMuted;
     int isBlank;
-    /// @brief  member variable to check if deadline is enabled or disabled : part1_task3
+	int isStop; // be able to detect stop
     bool isDeadlineEnabled;
-
-    ///@brief   tone-generator specific deadline 
     int toneGenDeadline;
 } ToneGenerator;
 
 #define initToneGenerator() \
-    { initObject(), 0, /*freq*/1000, /*period*/500, /*volumn*/2, 0, false, 0}
+    { initObject(), 0, /*freq*/1000, /*period*/500, /*volumn*/2, /*mute*/0, /*blank*/0, /*stop*/1, /*DDL*/0}
 
 extern ToneGenerator toneGenerator;
 
@@ -42,7 +38,9 @@ int setVolume(ToneGenerator *, int);
 int adjustVolume(ToneGenerator *, int);
 int toggleAudio(ToneGenerator *, int);
 int toggleDeadlineTG(ToneGenerator *, int);
-void mute(ToneGenerator *self, int unused);
-void unmute(ToneGenerator *self, int unused);
+void mute(ToneGenerator *, int);
+void unmute(ToneGenerator *, int);
+void startToneGen(ToneGenerator *, int);
+void stopToneGen(ToneGenerator *, int);
 
 #endif

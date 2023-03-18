@@ -45,8 +45,10 @@ OBJECTS= $(DEBUGDIR)dispatch.o \
          $(DEBUGDIR)TinyTimber.o \
          $(DEBUGDIR)canTinyTimber.o \
          $(DEBUGDIR)sciTinyTimber.o \
+         $(DEBUGDIR)sioTinyTimber.o \
          $(DEBUGDIR)toneGenerator.o \
          $(DEBUGDIR)backgroundLoad.o \
+         $(DEBUGDIR)userButton.o \
          $(DEBUGDIR)musicPlayer.o \
          $(DEBUGDIR)stm32f4xx_can.o \
          $(DEBUGDIR)stm32f4xx_dac.o \
@@ -103,15 +105,19 @@ $(DEBUGDIR)canTinyTimber.o: canTinyTimber.c canTinyTimber.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)sciTinyTimber.o: sciTinyTimber.c sciTinyTimber.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
+$(DEBUGDIR)sioTinyTimber.o: sioTinyTimber.c sioTinyTimber.h
+	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)toneGenerator.o: toneGenerator.c toneGenerator.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)backgroundLoad.o: backgroundLoad.c backgroundLoad.h
+	$(CC) -c $< -o $@ $(CCFLAGS)
+$(DEBUGDIR)userButton.o: userButton.c userButton.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)musicPlayer.o: musicPlayer.c musicPlayer.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
 # User-defined targets
-$(DEBUGDIR)application.o: application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h toneGenerator.h backgroundLoad.h musicPlayer.h application.h
+$(DEBUGDIR)application.o: application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h sioTinyTimber.h toneGenerator.h backgroundLoad.h userButton.h musicPlayer.h systemPorts.h application.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
 ###

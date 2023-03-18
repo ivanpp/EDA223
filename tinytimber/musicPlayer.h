@@ -5,8 +5,10 @@
 
 #define KEY_MAX 5
 #define KEY_MIN -5
-#define TEMPO_MAX 240
-#define TEMPO_MIN 60
+#define TEMPO_MAX 300
+#define TEMPO_MIN 30
+#define TEMPO_DEFAULT 120
+#define BEATMULT_DEFAULT 30000/TEMPO_DEFAULT
 
 #define PERIODS_IDX_DIFF -15
 
@@ -16,13 +18,26 @@ typedef struct{
     int key; // offset to the freq index
     int tempo; // bpm: beat per minute
     int beatMult; // ms
-    //int periods[32]; // periods for each notes
-    //int beatLen[32];  // a: 2, b: 4, c: 1
+	int isStop; // be able to stop
+    int hardStopped;
 } MusicPlayer;
 
+typedef enum {
+    MUSIC_PAUSE,     // play/pause
+    MUSIC_STOP,      // play/stop
+    MUSIC_MUTE,      // mute/unmute
+    MUSIC_SET_KEY,   // set key
+    MUSIC_SET_TEMPO, // set tempo
+    MUSIC_VOL_UP,    // vol up
+    MUSIC_VOL_DOWN,  // vol down
+    MUSIC_DEBUG,     // debug
+} MUSIC_PLAYER_OP;
+
 #define initMusicPlayer() \
-    { initObject(), /*index*/0, /*key*/0, /*tempo*/120, /*beatMult*/250} 
-                 
+    { initObject(), /*index*/0, /*key*/0, /*tempo*/TEMPO_DEFAULT, /*beatMult*/BEATMULT_DEFAULT, /*stop*/1, 1} 
+
+extern MusicPlayer musicPlayer;
+
 int setKey(MusicPlayer *, int);
 // set tempo (bpm)
 int setTempo(MusicPlayer *, int);
@@ -30,5 +45,7 @@ int setTempo(MusicPlayer *, int);
 void setBeatMult(MusicPlayer *, int);
 
 void playMusic(MusicPlayer *, int);
+int pauseMusic(MusicPlayer *, int); // 'p': pause/unpause music
+int stopMusic(MusicPlayer *, int);  // 's': stop/restart music
 
 #endif
