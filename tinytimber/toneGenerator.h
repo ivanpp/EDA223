@@ -37,10 +37,10 @@ int setPeriod(ToneGenerator *, int);
 int setVolume(ToneGenerator *, int);
 int adjustVolume(ToneGenerator *, int);
 int toggleAudio(ToneGenerator *, int);
-int toggleDeadlineTG(ToneGenerator *, int);
-void mute(ToneGenerator *, int);
-void unmute(ToneGenerator *, int);
+void blankTone(ToneGenerator *, int);
+void unblankTone(ToneGenerator *, int);
 void startToneGen(ToneGenerator *, int);
 void stopToneGen(ToneGenerator *, int);
+int toggleDeadlineTG(ToneGenerator *, int);
 
 #endif

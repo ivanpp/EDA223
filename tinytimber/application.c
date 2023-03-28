@@ -13,19 +13,12 @@
 #include <string.h>
 
 App app = initApp();
-
 BackgroundLoad backgroundLoad = initBackgroundLoad();
 UserButton userButton = initUserButton();
-
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
-//SysIO sio0 = initSysIO(SIO_PORT0, &app, sioDebug);
 SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButton);
 
-/* SIO DEBUG */
-void sioDebug(App *self, int unused){
-    SCI_WRITE(&sci0, "SIO invoked\n");
-}
 
 /* CAN MSG */
 void constructCanMessage(CANMsg *msg, MUSIC_PLAYER_OP op, int arg){
@@ -70,11 +63,11 @@ void receiver(App *self, int unused) {
         {
         case MUSIC_PAUSE:
             SCI_WRITE(&sci0, "Operation: Pause/Unpause\n");
-            SYNC(&musicPlayer, pauseMusic, /*unused*/0);
+            SYNC(&musicPlayer, musicPauseUnpause, /*unused*/0);
             break;
         case MUSIC_STOP:
             SCI_WRITE(&sci0, "Operation: Stop/Start\n");
-            SYNC(&musicPlayer, stopMusic, /*unused*/0);
+            SYNC(&musicPlayer, musicStopStart, /*unused*/0);
             break;
         case MUSIC_MUTE:
             SCI_WRITE(&sci0, "Operation: mute/unmute\n");
@@ -107,6 +100,8 @@ void receiver(App *self, int unused) {
     }
 }
 
+
+/* user input */
 void clearbuffer(App *self, int unused) {
     for (int i = 0; i < MAX_BUFFER_SIZE - 1; i++){
         self->buffer[i] = '\0';
@@ -174,6 +169,8 @@ void nhistory(App *self, int val) {
     SCI_WRITE(&sci0, temp);
 }
 
+
+/* change mode */
 void changeMode(App *self, int unused){
     if (self->mode == CONDUCTOR){
         self->mode = MUSICIAN;
@@ -184,6 +181,8 @@ void changeMode(App *self, int unused){
     }
 }
 
+
+/* SCI reader from keyboard */
 void reader(App *self, int c) {
     // create char inside switch case (only claim when needed)
     // think about the execution time
@@ -348,7 +347,7 @@ void reader(App *self, int c) {
         case 'p':
         case 'P':;
             char musicPauseInfo [32] = { };
-            int pauseStatus = SYNC(&musicPlayer, pauseMusic, 0);
+            int pauseStatus = SYNC(&musicPlayer, musicPauseUnpause, 0);
             if (pauseStatus)
                 snprintf(musicPauseInfo, 32, " || Music Paused\n");
             else 
@@ -359,7 +358,7 @@ void reader(App *self, int c) {
         case 's':
         case 'S':;
             char musicStopInfo [32] = { };
-            int stopStatus = SYNC(&musicPlayer, stopMusic, 0);
+            int stopStatus = SYNC(&musicPlayer, musicStopStart, 0);
             if (stopStatus)
                 snprintf(musicStopInfo, 32, " X  Music Stoped\n");
             else 

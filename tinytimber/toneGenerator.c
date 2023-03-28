@@ -5,8 +5,8 @@ ToneGenerator toneGenerator = initToneGenerator();
 
 void playTone(ToneGenerator *self, int unused) { 
     int volatile * const p_reg = (int *) 0x4000741C;
-	if (self->isStop)
-		return;
+    if (self->isStop)
+        return;
     /* sound */
     if (self->isMuted || self->isBlank) { //Have we muted sound?
         *p_reg = 0;
@@ -25,6 +25,9 @@ void playTone(ToneGenerator *self, int unused) {
     SEND(USEC(self->period), USEC(self->toneGenDeadline), self, playTone, unused);
 }
 
+
+/* freq, period */
+// set freq and corresponding period
 int setFrequency(ToneGenerator *self, int frequency) {
     // set freq
     if (frequency > MAX_FREQ) {
@@ -39,7 +42,7 @@ int setFrequency(ToneGenerator *self, int frequency) {
     return self->toneFreq;
 }
 
-
+// set period and corresponding freq
 int setPeriod(ToneGenerator *self, int period) {
     // set period 
     int max_period, min_period;
@@ -56,6 +59,8 @@ int setPeriod(ToneGenerator *self, int period) {
     return self->toneFreq;
 }
 
+
+/* volume [0, SAFE_VOLUME] */
 int setVolume(ToneGenerator *self, int volume) {
     if (volume > SAFE_VOLUME) {
         self->volume = SAFE_VOLUME;
@@ -80,24 +85,30 @@ int toggleAudio(ToneGenerator *self, int unused) {
     return self->volume;
 }
 
-void mute(ToneGenerator *self, int unused) {
+
+/* gap of silience */
+// small gap of silience between note, for better sound quality
+void blankTone(ToneGenerator *self, int unused) {
     self ->isBlank = 1;
 }
 
-void unmute(ToneGenerator *self, int unused) {
+void unblankTone(ToneGenerator *self, int unused) {
     self ->isBlank = 0;
 }
 
-int toggleDeadlineTG(ToneGenerator *self, int unused) {
-    self->isDeadlineEnabled = !self->isDeadlineEnabled;
-    return self->isDeadlineEnabled;
+
+/* stop/start ToneGenerator from other object */
+void startToneGen(ToneGenerator *self, int unused) {
+    self->isStop = 0;
 }
 
-// to stop/start ToneGenerator from other object
 void stopToneGen(ToneGenerator *self, int unused) {
     self->isStop = 1;
 }
 
-void startToneGen(ToneGenerator *self, int unused) {
-    self->isStop = 0;
+
+/* deadline */
+int toggleDeadlineTG(ToneGenerator *self, int unused) {
+    self->isDeadlineEnabled = !self->isDeadlineEnabled;
+    return self->isDeadlineEnabled;
 }

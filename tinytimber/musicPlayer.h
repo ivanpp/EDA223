@@ -39,13 +39,13 @@ typedef enum {
 extern MusicPlayer musicPlayer;
 
 int setKey(MusicPlayer *, int);
-// set tempo (bpm)
 int setTempo(MusicPlayer *, int);
-// set beat length for 'a', a beat (ms)
-void setBeatMult(MusicPlayer *, int);
-
+int musicPauseUnpause(MusicPlayer *, int);
+int musicPause(MusicPlayer *, int);
+int musicUnpause(MusicPlayer *, int);
+int musicStopStart(MusicPlayer *, int);
+int musicStop(MusicPlayer *, int);
+int musicStart(MusicPlayer *, int);
 void playMusic(MusicPlayer *, int);
-int pauseMusic(MusicPlayer *, int); // 'p': pause/unpause music
-int stopMusic(MusicPlayer *, int);  // 's': stop/restart music
 
 #endif
