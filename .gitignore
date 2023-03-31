@@ -56,3 +56,4 @@ resources
 Debug
 .vscode
 *.project
+*.code-workspace
