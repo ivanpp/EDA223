@@ -1,6 +1,6 @@
 # Real-Time Muisc Player on TinyTimber
 
-```bash
+```ini
 .
 |-- dependable-rts #eda423 project <- currently working on
 `-- tinytimber #eda223 project
