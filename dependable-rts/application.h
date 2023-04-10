@@ -25,7 +25,6 @@ typedef struct {
     Object super;
     int index; // keyboard input
     char buffer[MAX_BUFFER_SIZE];
-    int numNode;
     PlayerMode mode; // mode
 } App;
 
@@ -34,9 +33,10 @@ typedef struct {
     initObject(), \
     0, \
     {}, \
-    1, \
-    CONDUCTOR, \
+    MUSICIAN, \
 }
+
+extern App app;
 
 
 /* CAN OPCODE */
@@ -44,6 +44,9 @@ typedef enum {
     /* NETWORK */
     CLAIM_EXISTENCE,
     SEARCH_NETWORK,
+    CLAIM_CONDUCTORSHIP,
+    ACK_CONDUCTORSHIP,
+    OBT_CONDUCTORSHIP,
     /* MUSIC PLAYER */
     MUSIC_RESTART,
     MUSIC_START,
@@ -64,6 +67,9 @@ typedef enum {
 
 void reader(App*, int);
 void receiver(App*, int);
+void toMusician(App*, int);
+void toConductor(App*, int);
 void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg);
+void printAppVerbose(App *self, int unused);
 
 #endif

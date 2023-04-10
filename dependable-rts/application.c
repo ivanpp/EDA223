@@ -84,6 +84,15 @@ void receiver(App *self, int unused) {
                 // TODO: maybe a new method
                 SYNC(&network, handleJoinRequest, sender);
                 break;
+            case CLAIM_CONDUCTORSHIP:
+                SYNC(&network, handleConductorshipRequest, sender);
+                break;
+            case ACK_CONDUCTORSHIP:
+                SYNC(&network, handleConductorshipAck, arg);
+                break;
+            case OBT_CONDUCTORSHIP:
+                SYNC(&network, changeConductor, sender);
+                break;
             default:;
                 break;
         }
@@ -178,7 +187,7 @@ void reader(App *self, int c) {
             test.length = 7;
             CAN_SEND(&can0, &test);
             break;
-        /* send hello */
+        /* verbose print */
         case 'h':
         case 'H':
             break;
@@ -190,11 +199,52 @@ void reader(App *self, int c) {
         case 't': // toggle mute
         case 'T':
             break;
+        case 'c':
+        case 'C':
+            SYNC(&network, claimConductorship, 0);
+            break;
         default:
             break;
         }
     }
-    
+    // if 1
+    switch (c)
+    {
+    case 'v':
+    case 'V':
+        printAppVerbose(self, 0);
+        SCI_WRITE(&sci0, "\n");
+        SYNC(&network, printNetworkVerbose, 0);
+        SCI_WRITE(&sci0, "\n");
+        break;
+    }
+
+}
+
+
+void toMusician(App *self, int unused){
+    if (network.conductorRank == network.rank){
+        SCI_WRITE(&sci0, "WARN: illegal musician change\n");
+    }
+    self->mode = MUSICIAN;
+}
+
+
+void toConductor(App *self, int unused){
+    if (network.conductorRank != network.rank){
+        SCI_WRITE(&sci0, "WARN: illegal condcutor change\n");
+    }
+    self->mode = CONDUCTOR;
+}
+
+void printAppVerbose(App *self, int unused){
+    char appInfo[128] = {};
+    snprintf(appInfo, 128,
+             "------------------------App------------------------\n"
+             "Mode: %d\n"
+             "------------------------App------------------------\n",
+             self->mode);
+    SCI_WRITE(&sci0, appInfo);
 }
 
 // initilize the application

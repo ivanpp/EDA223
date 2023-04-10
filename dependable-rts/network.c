@@ -93,3 +93,93 @@ void printNetwork(Network *self, int unused){
     }
     SCI_WRITE(&sci0, "|\n");
 }
+
+
+void claimConductorship(Network *self, int unused){
+    if (self->conductorRank == self->rank)
+        return;
+    self->lock = self->rank; // lock self
+    SCI_WRITE(&sci0, "[NETWORK]: Try to claim my conductorship\n");
+    CANMsg msg;
+    constructCanMessage(&msg, CLAIM_CONDUCTORSHIP, BROADCAST, 0);
+    CAN_SEND(&can0, &msg);
+}
+
+
+void handleConductorshipRequest(Network *self, int sender){
+    CANMsg msg;
+    if(self->lock == 0){
+        self->lock = sender; // lock acquired by conductor
+        constructCanMessage(&msg, ACK_CONDUCTORSHIP, sender, 1); // agree
+    } else {
+        char lockInfo[32];
+        snprintf(lockInfo, 32, "Lock already acquired by: %d\n", self->lock);
+        SCI_WRITE(&sci0, lockInfo);
+        constructCanMessage(&msg, ACK_CONDUCTORSHIP, sender, 0); // disagree
+    }
+    CAN_SEND(&can0, &msg);
+}
+
+
+void handleConductorshipAck(Network *self, int agree){
+    if(agree){
+        if(self->vote == self->numNodes - 1){ // all other agree
+            obtainConductorship(self, 0);
+        }else
+            self->vote++;
+    } else{ // disagree
+        self->lock = 0;
+        self->vote = 1;
+    }
+}
+
+
+void acknowledgeConductorship(Network *self, int conductor){
+    ;
+}
+
+
+// notify all other boards about the conductorship change
+void obtainConductorship(Network *self, int unused){
+    CANMsg msg;
+    constructCanMessage(&msg, OBT_CONDUCTORSHIP, BROADCAST, 0);
+    CAN_SEND(&can0, &msg);
+    self->conductorRank = self->rank;
+    self->lock = 0;
+    self->vote = 1;
+    ASYNC(&app, toConductor, 0);
+    SCI_WRITE(&sci0, "[NETWORK]: Claimed Conductorship\n");
+}
+
+
+void changeConductor(Network *self, int conductor){
+    if (app.mode == CONDUCTOR){
+        SCI_WRITE(&sci0, "[NETWORK]: Conductorship Void\n");
+    }
+    self->conductorRank = conductor;
+    self->lock = 0;
+    ASYNC(&app, toMusician, 0);
+}
+
+
+void voteConductorMinRank(Network *self, int unused){
+    ;
+}
+
+
+void voteConductorMaxRank(Network *self, int unused){
+    ;
+}
+
+
+void printNetworkVerbose(Network *self, int unused){
+    char networkInfo[256] = {};
+    snprintf(networkInfo, 256,
+             "----------------------NETWORK----------------------\n"
+             "rank: %d,  conductor: %d\n"
+             "lock: %d,  vote: %d\n",
+             self->rank, self->conductorRank, self->lock, self->vote);
+    SCI_WRITE(&sci0, networkInfo);
+    printNetwork(self, 0);
+    SCI_WRITE(&sci0, "----------------------NETWORK----------------------\n");
+}
