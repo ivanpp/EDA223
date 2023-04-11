@@ -98,10 +98,13 @@ void receiver(App *self, int unused) {
             SYNC(&musicPlayer, ensembleStart, arg);
             break;
         case MUSIC_PLAY_NOTE_IDX:
-            SYNC(&musicPlayer, playIndexTone, arg);
+            SYNC(&musicPlayer, playIndexTone2, arg);
             break;
         case MUSIC_STOP_ALL:
             SYNC(&musicPlayer, ensembleStop, arg);
+            break;
+        case _TG_RDY:
+            SYNC(&musicPlayer, ensembleReady, arg);
             break;
         default:;
             break;
@@ -155,14 +158,18 @@ void reader(App *self, int c) {
     case 'G':
         SYNC(&network, obtainConductorship, 0);
         break;
-    case 'd':
+    case 'd': // debug use
     case 'D':
+        SYNC(&musicPlayer, ensembleStartAll2, 0);
+        break;
+    case 's':
+    case 'S':
         arg = parseValue(self, /*unused*/0);
-        SYNC(&musicPlayer, playIndexTone, arg);
+        SYNC(&musicPlayer, playIndexTone2, arg);
         break;
     case 'e':
     case 'E':
-        SYNC(&musicPlayer, ensembleStartAll, 0);
+        SYNC(&musicPlayer, ensembleStartAll2, 0);
         break;
     case 'f':
     case 'F':
@@ -203,7 +210,7 @@ void reader(App *self, int c) {
         case 'k':
         case 'K':;
 
-            
+
             break;
         case 'r': // reset key and tempo
         case 'R':;
@@ -211,13 +218,13 @@ void reader(App *self, int c) {
         /* MUSIC */
         case 's':
         case 'S':;
-            char musicStopInfo [32] = { };
-            int stopStatus = SYNC(&musicPlayer, musicStopStart, 0);
-            if (stopStatus)
-                snprintf(musicStopInfo, 32, " X  Music Stoped\n");
-            else 
-                snprintf(musicStopInfo, 32, " >  Music Started\n");
-            SCI_WRITE(&sci0, musicStopInfo);
+            // char musicStopInfo [32] = { };
+            // int stopStatus = SYNC(&musicPlayer, musicStopStart, 0);
+            // if (stopStatus)
+            //     snprintf(musicStopInfo, 32, " X  Music Stoped\n");
+            // else 
+            //     snprintf(musicStopInfo, 32, " >  Music Started\n");
+            // SCI_WRITE(&sci0, musicStopInfo);
             break;
         /* DEBUG */
         case 'd':
