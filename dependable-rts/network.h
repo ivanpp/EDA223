@@ -46,5 +46,7 @@ void handleConductorshipAck(Network*, int);
 void obtainConductorship(Network*, int);
 void changeConductor(Network *, int);
 void printNetworkVerbose(Network *, int);
+int getNodeIndex(Network *, int);
+int getNextNode(Network *, int);
 
 #endif

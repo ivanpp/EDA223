@@ -66,36 +66,46 @@ void receiver(App *self, int unused) {
     if (msg.length != 7) return;
     if (ending != 193) return;
     // CORE PARSER
-        switch(op)
-        {
-            case DEBUG_OP:
-                SCI_WRITE(&sci0, "Operation: DEBUG\n");
-                snprintf(canInfo, 32, "Arg: %d\n", arg);
-                SCI_WRITE(&sci0, canInfo);
-                int nodeId = msg.nodeId;
-                snprintf(canInfo, 64, "msg from nodeId: %d\n", nodeId);
-                SCI_WRITE(&sci0, canInfo);
-                //break;
-            /* NETWORK */
-            case SEARCH_NETWORK:
-                SYNC(&network, handleJoinRequest, sender);
-                break;
-            case CLAIM_EXISTENCE:
-                // TODO: maybe a new method
-                SYNC(&network, handleJoinRequest, sender);
-                break;
-            case CLAIM_CONDUCTORSHIP:
-                SYNC(&network, handleConductorshipRequest, sender);
-                break;
-            case ACK_CONDUCTORSHIP:
-                SYNC(&network, handleConductorshipAck, arg);
-                break;
-            case OBT_CONDUCTORSHIP:
-                SYNC(&network, changeConductor, sender);
-                break;
-            default:;
-                break;
-        }
+    switch(op)
+    {
+        case DEBUG_OP:
+            SCI_WRITE(&sci0, "Operation: DEBUG\n");
+            snprintf(canInfo, 32, "Arg: %d\n", arg);
+            SCI_WRITE(&sci0, canInfo);
+            int nodeId = msg.nodeId;
+            snprintf(canInfo, 64, "msg from nodeId: %d\n", nodeId);
+            SCI_WRITE(&sci0, canInfo);
+            //break;
+        /* NETWORK */
+        case SEARCH_NETWORK:
+            SYNC(&network, handleJoinRequest, sender);
+            break;
+        case CLAIM_EXISTENCE:
+            // TODO: maybe a new method
+            SYNC(&network, handleJoinRequest, sender);
+            break;
+        case CLAIM_CONDUCTORSHIP:
+            SYNC(&network, handleConductorshipRequest, sender);
+            break;
+        case ACK_CONDUCTORSHIP:
+            SYNC(&network, handleConductorshipAck, arg);
+            break;
+        case OBT_CONDUCTORSHIP:
+            SYNC(&network, changeConductor, sender);
+            break;
+        /* MUSIC */
+        case MUSIC_START_ALL:
+            SYNC(&musicPlayer, ensembleStart, arg);
+            break;
+        case MUSIC_PLAY_NOTE_IDX:
+            SYNC(&musicPlayer, playIndexTone, arg);
+            break;
+        case MUSIC_STOP_ALL:
+            SYNC(&musicPlayer, ensembleStop, arg);
+            break;
+        default:;
+            break;
+    }
 }
 
 
@@ -116,9 +126,53 @@ int parseValue(App *self, int unused) {
 
 /* SCI reader */
 void reader(App *self, int c) {
+    int arg;
+    CANMsg msg;
+    // For both modes
+    switch (c)
+    {
+    /* buffered keyboard input */
+    case '-':
+    case '0' ... '9':;
+        SCI_WRITE(&sci0, "Input stored in buffer: \'");
+        SCI_WRITECHAR(&sci0, c);
+        SCI_WRITE(&sci0, "\'\n");
+        self->buffer[self->index] = c;
+        self->index = (self->index + 1) % MAX_BUFFER_SIZE;
+        break;
+    /* verbose info */
+    case 'v':
+    case 'V':
+        printAppVerbose(self, 0);
+        SCI_WRITE(&sci0, "\n");
+        SYNC(&network, printNetworkVerbose, 0);
+        SCI_WRITE(&sci0, "\n");
+        SYNC(&musicPlayer, printMusicPlayerVerbose, 0);
+        SCI_WRITE(&sci0, "\n");
+        break;
+    /* Get conductorship, brutely, like KIM */
+    case 'g':
+    case 'G':
+        SYNC(&network, obtainConductorship, 0);
+        break;
+    case 'd':
+    case 'D':
+        arg = parseValue(self, /*unused*/0);
+        SYNC(&musicPlayer, playIndexTone, arg);
+        break;
+    case 'e':
+    case 'E':
+        SYNC(&musicPlayer, ensembleStartAll, 0);
+        break;
+    case 'f':
+    case 'F':
+        SYNC(&musicPlayer, ensembleStopAll, 0);
+        break;
+    default:
+        break;
+    }
+    // CONDUCTOR or MUSICIAN
     if (self->mode == CONDUCTOR){
-        CANMsg msg;
-        int arg;
         switch (c)
         {
         /* display helper */
@@ -133,11 +187,6 @@ void reader(App *self, int c) {
         /* buffered keyboard input */
         case '-':
         case '0' ... '9':;
-            SCI_WRITE(&sci0, "Input stored in buffer: \'");
-            SCI_WRITECHAR(&sci0, c);
-            SCI_WRITE(&sci0, "\'\n");
-            self->buffer[self->index] = c;
-            self->index = (self->index + 1) % MAX_BUFFER_SIZE;
             break;
         /* backspace */
         case '\b':
@@ -153,6 +202,8 @@ void reader(App *self, int c) {
             break;
         case 'k':
         case 'K':;
+
+            
             break;
         case 'r': // reset key and tempo
         case 'R':;
@@ -171,34 +222,23 @@ void reader(App *self, int c) {
         /* DEBUG */
         case 'd':
         case 'D':
-            arg = parseValue(self, /*unused*/0);
-            constructCanMessage(&msg, DEBUG_OP, 0, arg);
-            SYNC(&musicPlayer, musicReady, 0);
-            SYNC(&musicPlayer, playIndexTone, arg);
-            SYNC(&musicPlayer, printMusicStats, 0);
-            CAN_SEND(&can0, &msg);
-            break;
-        case 'c':
-        case 'C':;
-            CANMsg test;
-            test.nodeId = network.rank;
-            test.buff[0] = 0;
-            test.buff[1] = 255;
-            test.length = 7;
-            CAN_SEND(&can0, &test);
+            //arg = parseValue(self, /*unused*/0);
+            //constructCanMessage(&msg, DEBUG_OP, 0, arg);
             break;
         /* verbose print */
         case 'h':
         case 'H':
             break;
         }
-    } else{ // Musician
+    } 
+    else{ // Musician
         switch (c)
         {
         // case PRESS USER BUTTON
         case 't': // toggle mute
         case 'T':
             break;
+        /* Claim conductorship, ask others for vote */
         case 'c':
         case 'C':
             SYNC(&network, claimConductorship, 0);
@@ -208,16 +248,7 @@ void reader(App *self, int c) {
         }
     }
     // if 1
-    switch (c)
-    {
-    case 'v':
-    case 'V':
-        printAppVerbose(self, 0);
-        SCI_WRITE(&sci0, "\n");
-        SYNC(&network, printNetworkVerbose, 0);
-        SCI_WRITE(&sci0, "\n");
-        break;
-    }
+    
 
 }
 

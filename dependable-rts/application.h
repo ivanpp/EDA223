@@ -50,10 +50,12 @@ typedef enum {
     /* MUSIC PLAYER */
     MUSIC_RESTART,
     MUSIC_START,
+    MUSIC_START_ALL,
     MUSIC_STOP,
+    MUSIC_STOP_ALL,
     MUSIC_PAUSE,
     MUSIC_UNPAUSE,
-    MUSIC_PLAY_NOTE, // with arg
+    MUSIC_PLAY_NOTE_IDX, // with arg
     MUSIC_PLAY_NEXT_NOTE,
     MUSIC_MUTE,
     MUSIC_VOL_UP,

@@ -6,6 +6,8 @@
 MusicPlayer musicPlayer = initMusicPlayer();
 
 
+/* Single-player */
+
 // set Key
 int setKey(MusicPlayer *self, int key){
     key = key < KEY_MIN ? KEY_MIN : key;
@@ -42,6 +44,7 @@ int musicPauseUnpause(MusicPlayer *self, int unused){
     return self->isStop;
 }
 
+
 int musicUnpause(MusicPlayer *self, int unused){
     if (self->hardStopped) {
         self->isStop = 0;
@@ -52,6 +55,7 @@ int musicUnpause(MusicPlayer *self, int unused){
     }
     return self->isStop;
 }
+
 
 int musicPause(MusicPlayer *self, int unused){
     if (!self->hardStopped) {
@@ -81,6 +85,7 @@ int musicStopStart(MusicPlayer *self, int unused){
     return self->isStop;
 }
 
+
 int musicStart(MusicPlayer *self, int unused){
     if (self->hardStopped) {
         self->isStop = 0;
@@ -93,6 +98,7 @@ int musicStart(MusicPlayer *self, int unused){
     return self->isStop;
 }
 
+
 int musicStop(MusicPlayer *self, int unused){
     if (!self->hardStopped){
         self->isStop = 1;
@@ -101,6 +107,7 @@ int musicStop(MusicPlayer *self, int unused){
     }
     return self->isStop;
 }
+
 
 int musicUnready(MusicPlayer *self, int unused){
     if (!self->hardStopped) {
@@ -112,34 +119,17 @@ int musicUnready(MusicPlayer *self, int unused){
     return self->isStop;
 }
 
+
 int musicReady(MusicPlayer *self, int unused){
     if (self->hardStopped) {
         self->isStop = 0;
         self->hardStopped = 0;
         SYNC(&toneGenerator, startToneGen, 0);
-        self->index = 0;
         SYNC(&toneGenerator, playTone, 0);
     }
     return self->isStop;
 }
 
-
-void playIndexTone(MusicPlayer *self, int idx){
-    int period, tempo, beatLen;
-    period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
-    tempo = tempos[idx];
-    beatLen = self->beatMult * tempo;
-    char debug[64] = {};
-    snprintf(debug, 64, "period: %d, beatLen: %d\n", period, beatLen);
-    SCI_WRITE(&sci0, debug);
-    //SCI_WRITECHAR(&sci0, period);
-    //SCI_WRITECHAR(&sci0, beatLen);
-    ASYNC(&toneGenerator, blankTone, 0);
-    ASYNC(&toneGenerator, setPeriod, period);
-    AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
-    AFTER(MSEC(beatLen), self, musicUnready, 0);
-    //AFTER(MSEC(beatLen), &toneGenerator, stopToneGen, 0);
-}
 
 // scheduler
 void playMusic(MusicPlayer *self, int unused){
@@ -182,12 +172,130 @@ void playMusic(MusicPlayer *self, int unused){
     AFTER(MSEC(beatLen), self, playMusic, 0);
 }
 
+
+/* Multi-player */
+
+// 1. play the Tone at given idx
+// 2. (playIndexToneNxt) ask next node to play next index
+void playIndexTone(MusicPlayer *self, int idx){
+    musicReady(self, 0);
+    int period, tempo, beatLen;
+    period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
+    tempo = tempos[idx];
+    beatLen = self->beatMult * tempo;
+#ifdef DEBUG
+    char debug[64] = {};
+    snprintf(debug, 64, "period: %d, beatLen: %d\n", period, beatLen);
+    SCI_WRITE(&sci0, debug);
+#endif
+    ASYNC(&toneGenerator, blankTone, 0);
+    ASYNC(&toneGenerator, setPeriod, period);
+    AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
+    AFTER(MSEC(beatLen), self, musicUnready, 0);
+    // next tone
+    AFTER(MSEC(beatLen), self, playIndexToneNxt, idx);
+}
+
+
+// ask next node to play next index
+void playIndexToneNxt(MusicPlayer *self, int idx){
+    if(self->ensembleStop)
+        return;
+    int nextTone, nextNode;
+    nextTone = (idx + 1) % 32;
+    nextNode = SYNC(&network, getNextNode, 0);
+    CANMsg msg;
+    constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
+    CAN_SEND(&can0, &msg);
+}
+
+
+// TODO: alternative way
+// schedule the block
+// DON'T stop music player
+void playIndexTone2(MusicPlayer *self, int idx){
+    ;
+}
+
+
+void ensembleStop(MusicPlayer *self, int unused){
+    self->ensembleStop = 1;
+}
+
+
+void ensembleStart(MusicPlayer *self, int unused){
+    self->ensembleStop = 0;
+}
+
+
+// CONDUCTOR: start playing music the round-robin way
+void ensembleStartAll(MusicPlayer *self, int unused){
+    if(app.mode != CONDUCTOR){
+        SCI_WRITE(&sci0, "[PLAYER ERR]: Ensemble can be only started by CONDUCTOR ");
+        return;
+    }
+    // TODO: SYNC tempo, key, volume, make sure unmute all
+    
+    // TODO: maybe check LOOPBACK mode etc.
+    
+    // every player ready
+    CANMsg msg;
+    constructCanMessage(&msg, MUSIC_START_ALL, BROADCAST, 0);
+    CAN_SEND(&can0, &msg);
+    // start from first node in network
+    self->ensembleStop = 0;
+    int firstNode = network.nodes[0];
+    if (firstNode == network.rank)
+        playIndexTone(self, 0);
+    else{
+        CANMsg msg;
+        constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, firstNode, 0);
+        CAN_SEND(&can0, &msg);
+    }
+}
+
+
+// CONDUCTOR: stop ensemble
+void ensembleStopAll(MusicPlayer *self, int unused){
+    CANMsg msg;
+    constructCanMessage(&msg, MUSIC_STOP_ALL, BROADCAST, 0);
+    CAN_SEND(&can0, &msg);
+    self->ensembleStop = 1;
+}
+
+
+// CONDUCTOR: restart ensemble
+void ensembleRestartAll(MusicPlayer *self, int unused){
+    ensembleStopAll(self, 0);
+    ensembleStartAll(self, 0);
+}
+
+
+/* TODO the masked way*/
 void playMusicMasked(MusicPlayer *self, int unused){
     ;
 }
 
-void printMusicStats(MusicPlayer *self, int unused){
-    char statsInfo[64] = {};
-    snprintf(statsInfo, 64, "isStop: %d, hardStopped:%d\n", self->isStop, self->hardStopped);
+
+/* Information */
+
+void debugStopStatus(MusicPlayer *self, int unused){
+    char statsInfo[32] = {};
+    snprintf(statsInfo, 32, "isStop: %d, hardStopped:%d\n", self->isStop, self->hardStopped);
     SCI_WRITE(&sci0, statsInfo);
+}
+
+
+void printMusicPlayerVerbose(MusicPlayer *self, int unused){
+    char musicPlayerInfo[256] = {};
+    snprintf(musicPlayerInfo, 256,
+             "--------------------MUSICPLAYER--------------------\n"
+             "isStoped: %d,  hardStopped: %d\n"
+             "index(last): %d,  key(last): %d,  tempo(last): %d\n",
+             self->isStop, self->hardStopped, 
+             self->index, self->key, self->tempo);
+    SCI_WRITE(&sci0, musicPlayerInfo);
+    // print volumn
+    // print mute info
+    SCI_WRITE(&sci0, "--------------------MUSICPLAYER--------------------\n");
 }

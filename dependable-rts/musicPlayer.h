@@ -2,6 +2,7 @@
 #define MUSICPLAYER_H
 
 #include "TinyTimber.h"
+#include "network.h"
 
 #define KEY_MAX 5
 #define KEY_MIN -5
@@ -18,13 +19,23 @@ typedef struct{
     int key; // offset to the freq index
     int tempo; // bpm: beat per minute
     int beatMult; // ms
-	int isStop; // be able to stop
+    int isStop; // be able to stop
     int hardStopped;
+    int ensembleStop;
 } MusicPlayer;
 
-#define initMusicPlayer() \
-    { initObject(), /*index*/0, /*key*/0, /*tempo*/TEMPO_DEFAULT, /*beatMult*/BEATMULT_DEFAULT, /*stop*/1, 1} 
+#define initMusicPlayer() { \
+    initObject(), \
+    /*index*/ 0, \
+    /*key*/ 0, \
+    /*tempo*/ TEMPO_DEFAULT, \
+    /*beatMult*/ BEATMULT_DEFAULT, \
+    /*stop*/ 1, \
+    /*hardStop*/ 1, \
+    /*ensembleStop*/ 1, \
+} 
 
+extern App app;
 extern MusicPlayer musicPlayer;
 
 int setKey(MusicPlayer *, int);
@@ -38,8 +49,22 @@ int musicStart(MusicPlayer *, int);
 int musicReady(MusicPlayer *, int);
 int musicUnready(MusicPlayer *, int);
 void playIndexTone(MusicPlayer *, int);
+
+void playIndexTone2(MusicPlayer *, int);
+
+void playIndexToneNxt(MusicPlayer *, int);
+
 void playMusic(MusicPlayer *, int);
+
+void ensembleStartAll(MusicPlayer *, int);
+void ensembleStopAll(MusicPlayer *, int);
+void ensembleRestartAll(MusicPlayer *, int);
+
+void ensembleStart(MusicPlayer *, int);
+void ensembleStop(MusicPlayer *, int);
+
 void playMusicMasked(MusicPlayer *, int);
-void printMusicStats(MusicPlayer *, int);
+void debugStopStatus(MusicPlayer *, int);
+void printMusicPlayerVerbose(MusicPlayer *, int);
 
 #endif

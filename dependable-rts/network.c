@@ -96,8 +96,10 @@ void printNetwork(Network *self, int unused){
 
 
 void claimConductorship(Network *self, int unused){
-    if (self->conductorRank == self->rank)
+    if (self->conductorRank == self->rank){
+        SCI_WRITE(&sci0, "[NETWORK]: Already have conductorship\n");
         return;
+    }
     self->lock = self->rank; // lock self
     SCI_WRITE(&sci0, "[NETWORK]: Try to claim my conductorship\n");
     CANMsg msg;
@@ -159,6 +161,34 @@ void changeConductor(Network *self, int conductor){
     self->conductorRank = conductor;
     self->lock = 0;
     ASYNC(&app, toMusician, 0);
+}
+
+
+// get the index of node based on its rank
+int getNodeIndex(Network *self, int rank){
+    for (size_t i = 0; i < self->numNodes; i++){
+        if (self->nodes[i] == rank)
+            return i;
+    }
+    SCI_WRITE(&sci0, "WARN: get node index failed\n");
+    return -1; // failed search
+}
+
+
+// get the rank of node given its index
+int getNodeByIndex(Network *self, int idx){
+    if (idx > self->numNodes - 1 || idx < 0){
+        SCI_WRITE(&sci0, "WARN: invalid index\n");
+        return -1;
+    }
+    return self->nodes[idx];
+}
+
+int getNextNode(Network *self, int unused){
+    int idx, next;
+    idx = getNodeIndex(self, self->rank);
+    next = (idx + 1) % self->numNodes;
+    return self->nodes[next];
 }
 
 
