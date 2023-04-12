@@ -259,6 +259,24 @@ void playMusicMasked(MusicPlayer *self, int unused){
 }
 
 
+int setKeyAll(MusicPlayer *self, int key){
+    key = setKey(self, key);
+    CANMsg msg;
+    constructCanMessage(&msg, MUSIC_SET_KEY_ALL, BROADCAST, key);
+    CAN_SEND(&can0, &msg); // >> setKey(key)
+    return key;
+}
+
+
+int setTempoAll(MusicPlayer *self, int tempo){
+    tempo = setTempo(self, tempo);
+    CANMsg msg;
+    constructCanMessage(&msg, MUSIC_SET_TEMPO_ALL, BROADCAST, tempo);
+    CAN_SEND(&can0, &msg); // >> setTempo(tempo)
+    return tempo;
+}
+
+
 /* Information */
 
 void debugStopStatus(MusicPlayer *self, int unused){

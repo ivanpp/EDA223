@@ -61,6 +61,8 @@ void ensembleRestartAll(MusicPlayer *, int);
 
 void ensembleReady(MusicPlayer *, int);
 
+int setKeyAll(MusicPlayer *, int);
+int setTempoAll(MusicPlayer *, int);
 
 void playMusicMasked(MusicPlayer *, int);
 

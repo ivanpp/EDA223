@@ -62,8 +62,8 @@ typedef enum {
     MUSIC_VOL_UP,
     MUSIC_VOL_DOWN,
     MUSIC_SET_VOL, // with arg
-    MUSIC_SET_KEY, // with arg
-    MUSIC_SET_TEMPO, // with arg
+    MUSIC_SET_KEY_ALL, // with arg
+    MUSIC_SET_TEMPO_ALL, // with arg
 
     DEBUG_OP
 } CAN_OPCODE;

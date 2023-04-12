@@ -103,6 +103,12 @@ void receiver(App *self, int unused) {
         case MUSIC_STOP_ALL:
             SYNC(&musicPlayer, ensembleStop, arg);
             break;
+        case MUSIC_SET_KEY_ALL:
+            SYNC(&musicPlayer, setKey, arg);
+            break;
+        case MUSIC_SET_TEMPO_ALL:
+            SYNC(&musicPlayer, setTempo, arg);
+            break;
         default:;
             break;
     }
@@ -188,6 +194,16 @@ void reader(App *self, int c) {
         case 'd': // stop
         case 'D':
             SYNC(&musicPlayer, ensembleStopAll, 0);
+            break;
+        case 'k':
+        case 'K':
+            arg = parseValue(self, 0);
+            SYNC(&musicPlayer, setKeyAll, arg);
+            break;
+        case 'j':
+        case 'J':
+            arg = parseValue(self, 0);
+            SYNC(&musicPlayer, setTempoAll, arg);
             break;
         case 'r':
         case 'R':
