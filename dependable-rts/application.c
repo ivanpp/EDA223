@@ -95,16 +95,13 @@ void receiver(App *self, int unused) {
             break;
         /* MUSIC */
         case MUSIC_START_ALL:
-            SYNC(&musicPlayer, ensembleStart, arg);
+            SYNC(&musicPlayer, ensembleReady, arg);
             break;
         case MUSIC_PLAY_NOTE_IDX:
-            SYNC(&musicPlayer, playIndexTone2, arg);
+            SYNC(&musicPlayer, playIndexTone, arg);
             break;
         case MUSIC_STOP_ALL:
             SYNC(&musicPlayer, ensembleStop, arg);
-            break;
-        case _TG_RDY:
-            SYNC(&musicPlayer, ensembleReady, arg);
             break;
         default:;
             break;
@@ -143,6 +140,11 @@ void reader(App *self, int c) {
         self->buffer[self->index] = c;
         self->index = (self->index + 1) % MAX_BUFFER_SIZE;
         break;
+    /* backspace */
+    case '\b':
+        clearbuffer(self, 0);
+        SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
+        break;
     /* verbose info */
     case 'v':
     case 'V':
@@ -154,26 +156,9 @@ void reader(App *self, int c) {
         SCI_WRITE(&sci0, "\n");
         break;
     /* Get conductorship, brutely, like KIM */
-    case 'g':
-    case 'G':
+    case 'x':
+    case 'X':
         SYNC(&network, obtainConductorship, 0);
-        break;
-    case 'd': // debug use
-    case 'D':
-        SYNC(&musicPlayer, ensembleStartAll2, 0);
-        break;
-    case 's':
-    case 'S':
-        arg = parseValue(self, /*unused*/0);
-        SYNC(&musicPlayer, playIndexTone2, arg);
-        break;
-    case 'e':
-    case 'E':
-        SYNC(&musicPlayer, ensembleStartAll2, 0);
-        break;
-    case 'f':
-    case 'F':
-        SYNC(&musicPlayer, ensembleStopAll, 0);
         break;
     default:
         break;
@@ -191,50 +176,21 @@ void reader(App *self, int c) {
             break;
         case '\r':
             break;
-        /* buffered keyboard input */
-        case '-':
-        case '0' ... '9':;
-            break;
-        /* backspace */
-        case '\b':
-            clearbuffer(self, 0);
-            SCI_WRITE(&sci0, "Input buffer cleared, nothing saved\n");
-            break;
-        /* VOLUME CONTROL: mute/unmute, vol-down, vol-up*/
-        //case ''
-
-        /* key & tempo */
-        case 't': // tempo
-        case 'T':;
-            break;
-        case 'k':
-        case 'K':;
-
-
-            break;
-        case 'r': // reset key and tempo
-        case 'R':;
-            break;
         /* MUSIC */
-        case 's':
-        case 'S':;
-            // char musicStopInfo [32] = { };
-            // int stopStatus = SYNC(&musicPlayer, musicStopStart, 0);
-            // if (stopStatus)
-            //     snprintf(musicStopInfo, 32, " X  Music Stoped\n");
-            // else 
-            //     snprintf(musicStopInfo, 32, " >  Music Started\n");
-            // SCI_WRITE(&sci0, musicStopInfo);
+        case 'a': // restart
+        case 'A':
+            SYNC(&network, ensembleRestartAll, 0);
             break;
-        /* DEBUG */
-        case 'd':
+        case 's': // start
+        case 'S':
+            SYNC(&musicPlayer, ensembleStartAll, 0);
+            break;
+        case 'd': // stop
         case 'D':
-            //arg = parseValue(self, /*unused*/0);
-            //constructCanMessage(&msg, DEBUG_OP, 0, arg);
+            SYNC(&musicPlayer, ensembleStopAll, 0);
             break;
-        /* verbose print */
-        case 'h':
-        case 'H':
+        case 'r':
+        case 'R':
             break;
         }
     } 
@@ -254,9 +210,6 @@ void reader(App *self, int c) {
             break;
         }
     }
-    // if 1
-    
-
 }
 
 

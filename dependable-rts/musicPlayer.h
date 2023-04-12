@@ -38,6 +38,7 @@ typedef struct{
 extern App app;
 extern MusicPlayer musicPlayer;
 
+
 int setKey(MusicPlayer *, int);
 int setTempo(MusicPlayer *, int);
 int musicPauseUnpause(MusicPlayer *, int);
@@ -48,8 +49,7 @@ int musicStop(MusicPlayer *, int);
 int musicStart(MusicPlayer *, int);
 void playMusic(MusicPlayer *, int);
 
-int musicReady(MusicPlayer *, int);
-int musicUnready(MusicPlayer *, int);
+
 void playIndexTone(MusicPlayer *, int);
 void playIndexToneNxt(MusicPlayer *, int);
 
@@ -59,9 +59,6 @@ void ensembleStartAll(MusicPlayer *, int);
 void ensembleStopAll(MusicPlayer *, int);
 void ensembleRestartAll(MusicPlayer *, int);
 
-void playIndexTone2(MusicPlayer *, int);
-void ensembleStartAll2(MusicPlayer *, int);
-void playIndexToneNxt2(MusicPlayer *, int);
 void ensembleReady(MusicPlayer *, int);
 
 
@@ -69,5 +66,6 @@ void playMusicMasked(MusicPlayer *, int);
 
 void debugStopStatus(MusicPlayer *, int);
 void printMusicPlayerVerbose(MusicPlayer *, int);
+void printVolumeInfo(MusicPlayer *, int);
 
 #endif

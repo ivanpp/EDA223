@@ -109,28 +109,6 @@ int musicStop(MusicPlayer *self, int unused){
 }
 
 
-int musicUnready(MusicPlayer *self, int unused){
-    if (!self->hardStopped) {
-        self->isStop = 1;
-        SYNC(&toneGenerator, stopToneGen, 0);
-        self->index = 0;
-    }
-    self->hardStopped = 1;
-    return self->isStop;
-}
-
-
-int musicReady(MusicPlayer *self, int unused){
-    if (self->hardStopped) {
-        self->isStop = 0;
-        self->hardStopped = 0;
-        SYNC(&toneGenerator, startToneGen, 0);
-        SYNC(&toneGenerator, playTone, 0);
-    }
-    return self->isStop;
-}
-
-
 // scheduler
 void playMusic(MusicPlayer *self, int unused){
     // get next tone info
@@ -175,10 +153,10 @@ void playMusic(MusicPlayer *self, int unused){
 
 /* Multi-player */
 
-// 1. play the Tone at given idx
-// 2. (playIndexToneNxt) ask next node to play next index
+// 1. set period
+// 2. unblank
+// 3. blank, send can msg to next node
 void playIndexTone(MusicPlayer *self, int idx){
-    musicReady(self, 0);
     int period, tempo, beatLen;
     period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
     tempo = tempos[idx];
@@ -188,16 +166,15 @@ void playIndexTone(MusicPlayer *self, int idx){
     snprintf(debug, 64, "period: %d, beatLen: %d\n", period, beatLen);
     SCI_WRITE(&sci0, debug);
 #endif
-    ASYNC(&toneGenerator, blankTone, 0);
     ASYNC(&toneGenerator, setPeriod, period);
     AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
-    AFTER(MSEC(beatLen), self, musicUnready, 0);
+    AFTER(MSEC(beatLen), &toneGenerator, blankTone, 0);
     // next tone
     AFTER(MSEC(beatLen), self, playIndexToneNxt, idx);
 }
 
 
-// ask next node to play next index
+// send idx (which note to play) to next node
 void playIndexToneNxt(MusicPlayer *self, int idx){
     if(self->ensembleStop)
         return;
@@ -206,15 +183,27 @@ void playIndexToneNxt(MusicPlayer *self, int idx){
     nextNode = SYNC(&network, getNextNode, 0);
     CANMsg msg;
     constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
-    CAN_SEND(&can0, &msg);
+    CAN_SEND(&can0, &msg); // >> playIndexTone(idx++)
+}
+
+
+void ensembleReady(MusicPlayer *self, int unused){
+    // setup ToneGenerator, ready to play, then blank it
+    SYNC(&toneGenerator, startToneGen, 0);
+    SYNC(&toneGenerator, playTone, 0);
+    SYNC(&toneGenerator, blankTone, 0);
+    // ready to send can msg
+    self->ensembleStop = 0;
 }
 
 
 void ensembleStop(MusicPlayer *self, int unused){
+    SYNC(&toneGenerator, stopToneGen, 0);
     self->ensembleStop = 1;
 }
 
 
+// use ready instead
 void ensembleStart(MusicPlayer *self, int unused){
     self->ensembleStop = 0;
 }
@@ -230,19 +219,19 @@ void ensembleStartAll(MusicPlayer *self, int unused){
     
     // TODO: maybe check LOOPBACK mode etc.
     
-    // every player ready
+    // get ready
+    ensembleReady(self, 0);
     CANMsg msg;
     constructCanMessage(&msg, MUSIC_START_ALL, BROADCAST, 0);
-    CAN_SEND(&can0, &msg);
-    // start from first node in network
-    self->ensembleStop = 0;
+    CAN_SEND(&can0, &msg); // >> ensembleReady()
+    // start from first node
     int firstNode = network.nodes[0];
     if (firstNode == network.rank)
         playIndexTone(self, 0);
     else{
         CANMsg msg;
         constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, firstNode, 0);
-        CAN_SEND(&can0, &msg);
+        CAN_SEND(&can0, &msg); // >> playIndexTone(0)
     }
 }
 
@@ -251,85 +240,16 @@ void ensembleStartAll(MusicPlayer *self, int unused){
 void ensembleStopAll(MusicPlayer *self, int unused){
     CANMsg msg;
     constructCanMessage(&msg, MUSIC_STOP_ALL, BROADCAST, 0);
-    CAN_SEND(&can0, &msg);
-    self->ensembleStop = 1;
+    CAN_SEND(&can0, &msg); // >> ensembleStop()
+    ensembleStop(self, 0);
 }
 
 
 // CONDUCTOR: restart ensemble
 void ensembleRestartAll(MusicPlayer *self, int unused){
     ensembleStopAll(self, 0);
-    ensembleStartAll(self, 0);
-}
-
-
-// TODO: alternative way
-// schedule the block
-// DON'T stop music player
-void playIndexTone2(MusicPlayer *self, int idx){
-    int period, tempo, beatLen;
-    period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
-    tempo = tempos[idx];
-    beatLen = self->beatMult * tempo;
-#ifdef DEBUG
-    char debug[64] = {};
-    snprintf(debug, 64, "period: %d, beatLen: %d\n", period, beatLen);
-    SCI_WRITE(&sci0, debug);
-#endif
-    ASYNC(&toneGenerator, setPeriod, period);
-    AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
-    AFTER(MSEC(beatLen), &toneGenerator, blankTone, 0);
-    // next tone
-    AFTER(MSEC(beatLen), self, playIndexToneNxt2, idx);
-}
-
-
-void playIndexToneNxt2(MusicPlayer *self, int idx){
-    if(self->ensembleStop)
-        return;
-    int nextTone, nextNode;
-    nextTone = (idx + 1) % 32;
-    nextNode = SYNC(&network, getNextNode, 0);
-    CANMsg msg;
-    constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
-    CAN_SEND(&can0, &msg);
-}
-
-
-// Setup ToneGenerator, ready to play, then blank it
-void ensembleReady(MusicPlayer *self, int unused){
-    SYNC(&toneGenerator, startToneGen, 0);
-    SYNC(&toneGenerator, playTone, 0);
-    SYNC(&toneGenerator, blankTone, 0);
-}
-
-void ensembleStartAll2(MusicPlayer *self, int unused){
-    if(app.mode != CONDUCTOR){
-        SCI_WRITE(&sci0, "[PLAYER ERR]: Ensemble can be only started by CONDUCTOR");
-        return;
-    }
-    // TODO: SYNC tempo, key, volume, make sure unmute all
-    
-    // TODO: maybe check LOOPBACK mode etc.
-    
-    // every player ready
-    ensembleReady(self, 0);
-    CANMsg msg;
-    constructCanMessage(&msg, _TG_RDY, BROADCAST, 0); // -> ensembleReady
-    CAN_SEND(&can0, &msg);
-
-    self->ensembleStop = 0;
-    constructCanMessage(&msg, MUSIC_START_ALL, BROADCAST, 0);
-    CAN_SEND(&can0, &msg);
-    // 
-    int firstNode = network.nodes[0];
-    if (firstNode == network.rank)
-        playIndexTone(self, 0);
-    else{
-        CANMsg msg;
-        constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, firstNode, 0);
-        CAN_SEND(&can0, &msg);
-    }
+    // FIXME: use elegant way
+    AFTER(SEC(1), &musicPlayer, ensembleStartAll, 0);
 }
 
 
@@ -347,6 +267,10 @@ void debugStopStatus(MusicPlayer *self, int unused){
     SCI_WRITE(&sci0, statsInfo);
 }
 
+
+void printVolumeInfo(MusicPlayer *self, int unused){
+    ;
+}
 
 void printMusicPlayerVerbose(MusicPlayer *self, int unused){
     char musicPlayerInfo[256] = {};
