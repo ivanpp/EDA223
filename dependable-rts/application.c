@@ -35,6 +35,7 @@ void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
     msg->buff[6] = 193;
 }
 
+
 void receiver(App *self, int unused) {
     CANMsg msg;
     CAN_RECEIVE(&can0, &msg);
@@ -47,12 +48,6 @@ void receiver(App *self, int unused) {
              msg.buff[6]);
     SCI_WRITE(&sci0, debugInfo);
 #endif
-    // vintage CAN message, just print it
-    if (msg.buff[msg.length - 1] == 0){
-        SCI_WRITE(&sci0, "Can msg received: ");
-        SCI_WRITE(&sci0, msg.buff);
-        SCI_WRITE(&sci0, "\n");
-    }
     // INFO from message
     int sender    = msg.nodeId;
     CAN_OPCODE op = msg.buff[0];
@@ -62,20 +57,13 @@ void receiver(App *self, int unused) {
                    (msg.buff[4] & 0xFF) << 8  | \
                    (msg.buff[5] & 0xFF);
     int ending    = msg.buff[6];
-    char canInfo[64] = {};
+    // Check
     if (msg.length != 7) return;
-    if (ending != 193) return;
+    if (receiver != 0 && receiver != network.rank) return;
+    //if (ending != 193) return;
     // CORE PARSER
     switch(op)
     {
-        case DEBUG_OP:
-            SCI_WRITE(&sci0, "Operation: DEBUG\n");
-            snprintf(canInfo, 32, "Arg: %d\n", arg);
-            SCI_WRITE(&sci0, canInfo);
-            int nodeId = msg.nodeId;
-            snprintf(canInfo, 64, "msg from nodeId: %d\n", nodeId);
-            SCI_WRITE(&sci0, canInfo);
-            //break;
         /* NETWORK */
         case SEARCH_NETWORK:
             SYNC(&network, handleJoinRequest, sender);
@@ -123,6 +111,7 @@ void clearbuffer(App *self, int unused) {
     self->index = 0;
 }
 
+
 int parseValue(App *self, int unused) {
     self->buffer[self->index] = '\0';
     self->index = 0;
@@ -133,7 +122,6 @@ int parseValue(App *self, int unused) {
 /* SCI reader */
 void reader(App *self, int c) {
     int arg;
-    CANMsg msg;
     // For both modes
     switch (c)
     {
@@ -244,6 +232,8 @@ void toConductor(App *self, int unused){
     self->mode = CONDUCTOR;
 }
 
+
+/* Information */
 void printAppVerbose(App *self, int unused){
     char appInfo[128] = {};
     snprintf(appInfo, 128,
@@ -253,6 +243,7 @@ void printAppVerbose(App *self, int unused){
              self->mode);
     SCI_WRITE(&sci0, appInfo);
 }
+
 
 // initilize the application
 void startApp(App *self, int arg) {
@@ -265,6 +256,7 @@ void startApp(App *self, int arg) {
     SYNC(&network, printNetwork, 0);
     SYNC(&network, searchNetwork, 0);
 }
+
 
 int main() {
     INSTALL(&sci0, sci_interrupt, SCI_IRQ0);

@@ -145,7 +145,7 @@ void playMusic(MusicPlayer *self, int unused){
     AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
     // next tone
     self->index++;
-    self->index = self->index%32;
+    self->index = self->index % MUSIC_LENGTH;
     // call it self?
     AFTER(MSEC(beatLen), self, playMusic, 0);
 }
@@ -157,6 +157,13 @@ void playMusic(MusicPlayer *self, int unused){
 // 2. unblank
 // 3. blank, send can msg to next node
 void playIndexTone(MusicPlayer *self, int idx){
+    // check index first
+    if (idx < 0 || idx > MUSIC_LENGTH - 1) {
+        char debugInfo[32] = {};
+        snprintf(debugInfo, 32, "WARN: invalid idx for song: %d\n", idx);
+        SCI_WRITE(&sci0, debugInfo);
+        return;
+    }
     int period, tempo, beatLen;
     period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
     tempo = tempos[idx];
@@ -179,7 +186,7 @@ void playIndexToneNxt(MusicPlayer *self, int idx){
     if(self->ensembleStop)
         return;
     int nextTone, nextNode;
-    nextTone = (idx + 1) % 32;
+    nextTone = (idx + 1) % MUSIC_LENGTH;
     nextNode = SYNC(&network, getNextNode, 0);
     CANMsg msg;
     constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
@@ -289,6 +296,7 @@ void debugStopStatus(MusicPlayer *self, int unused){
 void printVolumeInfo(MusicPlayer *self, int unused){
     ;
 }
+
 
 void printMusicPlayerVerbose(MusicPlayer *self, int unused){
     char musicPlayerInfo[256] = {};
