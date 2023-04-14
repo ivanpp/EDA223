@@ -13,12 +13,12 @@ UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
-SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButton);
+SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButton2);
 
 
 /* CAN MSG */
 void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
-    // Construct a CAN message of length 6: ['OP'|'ARG'(4)|'ENDING']
+    // Construct a CAN message of length 7: ['OP'|'RE'|'ARG'(4)|'ENDING']
     // msgId, if needed
     msg->nodeId = network.rank;
     msg->length = 7;
@@ -96,6 +96,9 @@ void receiver(App *self, int unused) {
             break;
         case MUSIC_SET_TEMPO_ALL:
             SYNC(&musicPlayer, setTempo, arg);
+            break;
+        case MUSIC_SYNC_LED:
+            SYNC(&musicPlayer, LEDcontroller, arg);
             break;
         default:;
             break;
@@ -249,7 +252,7 @@ void printAppVerbose(App *self, int unused){
 void startApp(App *self, int arg) {
     CAN_INIT(&can0);
     SCI_INIT(&sci0);
-    // sio
+    SIO_INIT(&sio0);
     SCI_WRITE(&sci0, "Hello from DRTS Group 15\n\n");
     BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
     // init network
@@ -261,6 +264,7 @@ void startApp(App *self, int arg) {
 int main() {
     INSTALL(&sci0, sci_interrupt, SCI_IRQ0);
     INSTALL(&can0, can_interrupt, CAN_IRQ0);
+    INSTALL(&sio0, sio_interrupt, SIO_IRQ0);
     TINYTIMBER(&app, startApp, 0);
     return 0;
 }

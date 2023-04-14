@@ -57,6 +57,7 @@ typedef enum {
     MUSIC_UNPAUSE,
     MUSIC_PLAY_NOTE_IDX, // with arg
     MUSIC_PLAY_NEXT_NOTE,
+    MUSIC_SYNC_LED, // with arg, to CONDUCTOR
     MUSIC_MUTE,
     MUSIC_VOL_UP,
     MUSIC_VOL_DOWN,
