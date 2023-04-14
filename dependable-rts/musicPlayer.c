@@ -318,6 +318,18 @@ int setTempoAll(MusicPlayer *self, int tempo){
 }
 
 
+int toggleMusic(MusicPlayer *self, int unused){
+    SYNC(&toneGenerator, toggleAudio, 0);
+    int muteStatus = toneGenerator.isMuted;
+    if (muteStatus) {
+        SIO_WRITE(&sio0, 1); // unlit LED
+    } else {
+        SIO_WRITE(&sio0, 0); // lit LED
+    }
+    return muteStatus;
+}
+
+
 /* Information */
 
 void debugStopStatus(MusicPlayer *self, int unused){

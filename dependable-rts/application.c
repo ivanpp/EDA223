@@ -13,7 +13,7 @@ UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
-SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButton2);
+SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButton);
 
 
 /* CAN MSG */
@@ -207,6 +207,7 @@ void reader(App *self, int c) {
         // case PRESS USER BUTTON
         case 't': // toggle mute
         case 'T':
+            SYNC(&musicPlayer, toggleMusic, 0);
             break;
         /* Claim conductorship, ask others for vote */
         case 'c':

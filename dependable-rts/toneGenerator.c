@@ -85,6 +85,15 @@ int toggleAudio(ToneGenerator *self, int unused) {
     return self->volume;
 }
 
+int muteAudio(ToneGenerator *self, int unused) {
+    self->isMuted = 1;
+    return self->isMuted;
+}
+
+int unmuteAudio(ToneGenerator *self, int unused) {
+    self->isMuted = 0;
+    return self->isMuted;
+}
 
 /* gap of silience */
 // small gap of silience between note, for better sound quality

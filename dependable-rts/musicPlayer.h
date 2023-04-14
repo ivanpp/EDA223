@@ -66,6 +66,8 @@ void LEDcontroller(MusicPlayer *, int);
 int setKeyAll(MusicPlayer *, int);
 int setTempoAll(MusicPlayer *, int);
 
+int toggleMusic(MusicPlayer *, int);
+
 void playMusicMasked(MusicPlayer *, int);
 
 void debugStopStatus(MusicPlayer *, int);
