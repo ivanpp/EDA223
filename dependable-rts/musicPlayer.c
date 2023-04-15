@@ -170,7 +170,7 @@ void playIndexTone(MusicPlayer *self, int idx){
     beatLen = self->beatMult * tempo;
 #ifdef DEBUG
     char debug[64] = {};
-    snprintf(debug, 64, "period: %d, beatLen: %d\n", period, beatLen);
+    snprintf(debug, 64, "[%d]: period: %d, beatLen: %d\n", idx, period, beatLen);
     SCI_WRITE(&sci0, debug);
 #endif
     if (app.mode == CONDUCTOR) 
@@ -185,6 +185,19 @@ void playIndexTone(MusicPlayer *self, int idx){
     AFTER(MSEC(beatLen), &toneGenerator, blankTone, 0);
     // next tone
     AFTER(MSEC(beatLen), self, playIndexToneNxt, idx);
+}
+
+
+// send idx (which note to play) to next node
+void playIndexToneNxt(MusicPlayer *self, int idx){
+    if(self->ensembleStop)
+        return;
+    int nextTone, nextNode;
+    nextTone = (idx + 1) % MUSIC_LENGTH;
+    nextNode = SYNC(&network, getNextNode, 0);
+    CANMsg msg;
+    constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
+    CAN_SEND(&can0, &msg); // >> playIndexTone(idx++)
 }
 
 
@@ -206,25 +219,10 @@ void LEDcontroller(MusicPlayer *self, int tempo){
             AFTER(MSEC(3*beatLen/4), &sio0, sio_toggle, 0);
             break;
         default:
+            SCI_WRITE(&sci0, "WARN: undefined beat length for LED controller\n");
             break;
         }
     }
-    else{
-        ;
-    }
-}
-
-
-// send idx (which note to play) to next node
-void playIndexToneNxt(MusicPlayer *self, int idx){
-    if(self->ensembleStop)
-        return;
-    int nextTone, nextNode;
-    nextTone = (idx + 1) % MUSIC_LENGTH;
-    nextNode = SYNC(&network, getNextNode, 0);
-    CANMsg msg;
-    constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
-    CAN_SEND(&can0, &msg); // >> playIndexTone(idx++)
 }
 
 
@@ -244,27 +242,21 @@ void ensembleStop(MusicPlayer *self, int unused){
 }
 
 
-// use ready instead
-void ensembleStart(MusicPlayer *self, int unused){
-    self->ensembleStop = 0;
-}
-
-
 // CONDUCTOR: start playing music the round-robin way
 void ensembleStartAll(MusicPlayer *self, int unused){
     if(app.mode != CONDUCTOR){
         SCI_WRITE(&sci0, "[PLAYER ERR]: Ensemble can be only started by CONDUCTOR");
         return;
     }
-    // TODO: SYNC tempo, key, volume, make sure unmute all
-    
     // TODO: maybe check LOOPBACK mode etc.
-    
     // get ready
     ensembleReady(self, 0);
     CANMsg msg;
     constructCanMessage(&msg, MUSIC_START_ALL, BROADCAST, 0);
     CAN_SEND(&can0, &msg); // >> ensembleReady()
+    // sync tempo, key
+    setTempoAll(self, self->tempo);
+    setKeyAll(self, self->key);
     // start from first node
     int firstNode = network.nodes[0];
     if (firstNode == network.rank)
@@ -318,15 +310,29 @@ int setTempoAll(MusicPlayer *self, int tempo){
 }
 
 
+// reset key, tempo for all boards
+void resetAll(MusicPlayer *self, int unused){
+    if(app.mode == CONDUCTOR){
+        setTempoAll(self, TEMPO_DEFAULT);
+        setKeyAll(self, KEY_DEFAULT);
+    }else
+        SCI_WRITE(&sci0, "[PLAYER ERR]: resetAll only allowed by CONDUCTOR\n");
+}
+
+
 int toggleMusic(MusicPlayer *self, int unused){
-    SYNC(&toneGenerator, toggleAudio, 0);
-    int muteStatus = toneGenerator.isMuted;
-    if (muteStatus) {
-        SIO_WRITE(&sio0, 1); // unlit LED
-    } else {
-        SIO_WRITE(&sio0, 0); // lit LED
+    if(app.mode == MUSICIAN){
+        SYNC(&toneGenerator, toggleAudio, 0);
+        int muteStatus = toneGenerator.isMuted;
+        if (muteStatus) {
+            SIO_WRITE(&sio0, 1); // unlit LED
+        } else {
+            SIO_WRITE(&sio0, 0); // lit LED
+        }
+        return muteStatus;
+    }else{
+        SCI_WRITE(&sci0, "[PLAYER ERR]: toggleMusic only allowed by MUSICIAN\n");
     }
-    return muteStatus;
 }
 
 
