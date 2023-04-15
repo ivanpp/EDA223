@@ -3,6 +3,7 @@
 #include "musicPlayer.h"
 #include "userButton.h"
 #include "network.h"
+#include "heartbeat.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -199,6 +200,15 @@ void reader(App *self, int c) {
         case 'r':
         case 'R':
             break;
+        case 'h':
+        case 'H':
+            SYNC(&heartbeatCon, toggleHeartbeat, 0);
+            break;
+        case 'g':
+        case 'G':
+            arg = parseValue(self, 0);
+            SYNC(&heartbeatCon, setHeartbeatPeriod, arg);
+            break;
         }
     } 
     else{ // Musician
@@ -213,6 +223,15 @@ void reader(App *self, int c) {
         case 'c':
         case 'C':
             SYNC(&network, claimConductorship, 0);
+            break;
+        case 'h':
+        case 'H':
+            SYNC(&heartbeatMus, toggleHeartbeat, 0);
+            break;
+        case 'g':
+        case 'G':
+            arg = parseValue(self, 0);
+            SYNC(&heartbeatMus, setHeartbeatPeriod, arg);
             break;
         default:
             break;
