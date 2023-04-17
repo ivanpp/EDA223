@@ -113,7 +113,64 @@ void reactUserButtonP1(UserButton *self, int unused){
     
     if (app.mode == MUSICIAN) 
     {
+        if (currentStatus == PRESSED)
+        { 
+            SYNC(&musicPlayer, toggleMusic, 0);
+        }
+        else 
+        {
+            
+        }
         SYNC(&musicPlayer, toggleMusic, 0);
+    }
+
+    if (app.mode == CONDUCTOR)
+    {
+        if (currentStatus == PRESSED)
+        { 
+            self->abortMessage = AFTER(SEC(1), self, checkPressAndHold, 0);
+            int interval_sec, interval_msec, interval_avg;
+            T_RESET(&self->timerPressRelease);
+            // tempo-setting burst
+            interval_sec = SEC_OF(T_SAMPLE(&self->timerLastPress));
+            interval_msec = MSEC_OF(T_SAMPLE(&self->timerLastPress)) + interval_sec * 1000;
+            snprintf(pressedInfo, 64, "[UserButton ↧]: pressed, interval: %d ms\n", interval_msec);
+            SCI_WRITE(&sci0, pressedInfo);
+            if (self->index == 0)
+                self->intervals[self->index] = interval_msec; // store for the first, but not moving index
+            // comparable: no interval differs from another interval by 100 ms (that is strict...)
+            //             also interval should no more than 366 ms
+            if ((interval_msec > 366) && 0) { // LIMITATION 1
+                clearIntervalHistory(self, /*unused*/0);
+            } else if ((interval_msec < 100) || 0){
+                clearIntervalHistory(self, /*unused*/0);
+                //SCI_WRITE(&sci0, "CLR for too large value\n");
+            } else if(compareIntervalHistory(self, interval_msec) || 0){ // LIMITATION 2
+                clearIntervalHistory(self, /*unused*/0);
+                //SCI_WRITE(&sci0, "CLR for interval diff\n");
+            }else {
+                self->intervals[self->index % MAX_BURST] = interval_msec;
+                self->index = self->index + 1;
+                if (self->index >= MAX_BURST){
+                    interval_avg = treAverage(self, /*unused*/0);
+                    int tempo1 = 60 * 1000 / interval_avg;
+                    int tempo = SYNC(&musicPlayer, setTempo, tempo1);
+                    //int tempo = SYNC(&musicPlayer, setTempo, interval_avg);
+                    snprintf(pressedInfo, 64, "[UserButton]: Tempo set to %d, (attempt: %d)\n", 
+                            tempo, tempo1);
+                    //snprintf(pressedInfo, 64, "[UserButton]: Tempo set to %d, (attempt: %d)\n", 
+                    //        tempo, interval_avg);
+                    SCI_WRITE(&sci0, pressedInfo);
+                }
+            }
+            printoutIntervals(self, /*unused*/0);
+            T_RESET(&self->timerLastPress);
+            SIO_TRIG(&sio0, 1);
+        }
+        else
+        {
+            
+        }
     }
 
     // PRESS_MOMENTARY mode
