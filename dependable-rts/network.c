@@ -21,8 +21,8 @@ void handleJoinRequest(Network *self, int sender){
         return;
     }
     if (sender == self->rank) {
-#ifdef __CAN_LOOPBACK
-        SCI_WRITE(&sci0, "[NETWORK]: Join request ignored for LOOPBACK mode\n")
+#ifdef CAN_LOOPBACK
+        SCI_WRITE(&sci0, "[NETWORK]: Join request ignored for LOOPBACK mode\n");
         return;
 #else
         SCI_WRITE(&sci0, "[NETWORK ERR]: Node with same rank wants to join\n");
@@ -100,6 +100,10 @@ void claimConductorship(Network *self, int unused){
         SCI_WRITE(&sci0, "[NETWORK]: Already have conductorship\n");
         return;
     }
+#ifdef CAN_LOOPBACK
+    obtainConductorship(self, 0);
+    return;
+#endif
     self->lock = self->rank; // lock self
     SCI_WRITE(&sci0, "[NETWORK]: Try to claim my conductorship\n");
     CANMsg msg;
@@ -155,6 +159,10 @@ void obtainConductorship(Network *self, int unused){
 
 
 void changeConductor(Network *self, int conductor){
+#ifdef CAN_LOOPBACK
+    if (self->conductorRank == self->rank)
+        return;
+#endif
     if (app.mode == CONDUCTOR){
         SCI_WRITE(&sci0, "[NETWORK]: Conductorship Void\n");
     }
