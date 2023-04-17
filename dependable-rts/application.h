@@ -42,29 +42,29 @@ extern App app;
 /* CAN OPCODE */
 typedef enum {
     /* NETWORK */
-    CLAIM_EXISTENCE,
     SEARCH_NETWORK,
+    CLAIM_EXISTENCE,
     CLAIM_CONDUCTORSHIP,
     ACK_CONDUCTORSHIP,
     OBT_CONDUCTORSHIP,
     /* MUSIC PLAYER */
-    MUSIC_RESTART,
-    MUSIC_START,
     MUSIC_START_ALL,
-    MUSIC_STOP,
     MUSIC_STOP_ALL,
+    MUSIC_PLAY_NOTE_IDX, // with arg
+    MUSIC_SYNC_LED, // with arg, to CONDUCTOR
+    MUSIC_SET_KEY_ALL, // @CON, with arg
+    MUSIC_SET_TEMPO_ALL, // @CON, with arg
+    /* unused */
+    MUSIC_START,
+    MUSIC_RESTART,
+    MUSIC_STOP,
     MUSIC_PAUSE,
     MUSIC_UNPAUSE,
-    MUSIC_PLAY_NOTE_IDX, // with arg
     MUSIC_PLAY_NEXT_NOTE,
-    MUSIC_SYNC_LED, // with arg, to CONDUCTOR
     MUSIC_MUTE,
     MUSIC_VOL_UP,
     MUSIC_VOL_DOWN,
     MUSIC_SET_VOL, // TODO: with arg
-    MUSIC_SET_KEY_ALL, // @CON, with arg
-    MUSIC_SET_TEMPO_ALL, // @CON, with arg
-
     DEBUG_OP
 } CAN_OPCODE;
 

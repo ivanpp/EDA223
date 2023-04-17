@@ -86,20 +86,20 @@ void receiver(App *self, int unused) {
         case MUSIC_START_ALL:
             SYNC(&musicPlayer, ensembleReady, arg);
             break;
+        case MUSIC_STOP_ALL:
+            SYNC(&musicPlayer, ensembleStop, arg);
+            break;
         case MUSIC_PLAY_NOTE_IDX:
             SYNC(&musicPlayer, playIndexTone, arg);
             break;
-        case MUSIC_STOP_ALL:
-            SYNC(&musicPlayer, ensembleStop, arg);
+        case MUSIC_SYNC_LED:
+            SYNC(&musicPlayer, LEDcontroller, arg);
             break;
         case MUSIC_SET_KEY_ALL:
             SYNC(&musicPlayer, setKey, arg);
             break;
         case MUSIC_SET_TEMPO_ALL:
             SYNC(&musicPlayer, setTempo, arg);
-            break;
-        case MUSIC_SYNC_LED:
-            SYNC(&musicPlayer, LEDcontroller, arg);
             break;
         default:;
             break;
