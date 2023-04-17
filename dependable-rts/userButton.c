@@ -114,13 +114,13 @@ void reactUserButtonP1(UserButton *self, int unused){
         int duration_sec, duration_msec;
         duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
         duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
-        if (app.mode == CONDUCTOR)
+        if (app.mode == CONDUCTOR && duration_msec > 1999)
         {
-            
+            SYNC(&musicPlayer, resetAll, 0);
         }
         if (app.mode == MUSICIAN)
         {
-
+            SYNC(&musicPlayer, toggleMusic, 0);
         }
         SIO_TRIG(&sio0, PRESSED);
     }
