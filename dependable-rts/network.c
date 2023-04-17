@@ -31,7 +31,9 @@ void handleJoinRequest(Network *self, int sender){
         // check if already joined
         for (size_t i = 0; i < self->numNodes; i++){
             if (self->nodes[i] == sender){
-                SCI_WRITE(&sci0, "[NETWORK]: Node already in netwrok\n");
+                char debugInfo[48];
+                snprintf(debugInfo, 48, "[NETWORK]: Node %d already in netwrok\n", sender);
+                SCI_WRITE(&sci0, debugInfo);
                 return;
             }
         }
@@ -55,7 +57,7 @@ void addNodeAscending(Network *self, int sender){
         else{
             self->nodes[i+1] = sender;
             self->numNodes++;
-            snprintf(nodeInfo, 32, "[NETWORK]: node %d added\n", sender);
+            snprintf(nodeInfo, 32, "[NETWORK]: node %d added here\n", sender);
             SCI_WRITE(&sci0, nodeInfo);
             return;
         }

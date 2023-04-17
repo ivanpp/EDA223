@@ -199,6 +199,7 @@ void reader(App *self, int c) {
             break;
         case 'r':
         case 'R':
+            
             break;
         case 'h':
         case 'H':
@@ -222,7 +223,8 @@ void reader(App *self, int c) {
         /* Claim conductorship, ask others for vote */
         case 'c':
         case 'C':
-            SYNC(&network, claimConductorship, 0);
+            SYNC(&network, obtainConductorship, 0);
+            //SYNC(&network, claimConductorship, 0);
             break;
         case 'h':
         case 'H':
