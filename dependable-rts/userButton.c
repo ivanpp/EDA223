@@ -114,14 +114,13 @@ void reactUserButtonP1(UserButton *self, int unused){
     {
         if (app.mode == CONDUCTOR) 
         {
-            self->abortMessage = AFTER(SEC(2), self, resetAll, 0);
+            self->abortMessage = AFTER(SEC(2), self, resetAllfromButton, 0);
         }
         T_RESET(&self->timerPressRelease);
         SIO_TRIG(&sio0, RELEASED);
     } 
     else // release
     { 
-
         int duration_sec, duration_msec;
         duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
         duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
@@ -151,7 +150,7 @@ void checkPressAndHold(UserButton *self, int unused){
     return;
 }
 
-void resetAll(UserButton *self, int unused){
+void resetAllfromButton(UserButton *self, int unused){
     SYNC(&musicPlayer, resetAll, 0);
     SCI_WRITE(&sci0, "Two seconds passed.\n Reset key and tempo.\n");
     return;

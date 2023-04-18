@@ -31,6 +31,7 @@ typedef struct {
 
 void reactUserButton(UserButton*, int);
 void reactUserButtonP1(UserButton*, int);
+void resetAllfromButton(UserButton*, int);
 void clearIntervalHistory(UserButton*, int);
 int compareIntervalHistory(UserButton*, int);
 int treAverage(UserButton*, int);
