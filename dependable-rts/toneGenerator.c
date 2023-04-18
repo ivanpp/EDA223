@@ -1,5 +1,6 @@
 #include "toneGenerator.h"
 #include <stdlib.h>
+#include "systemPorts.h"
 
 ToneGenerator toneGenerator = initToneGenerator();
 
@@ -77,11 +78,13 @@ int adjustVolume(ToneGenerator *self, int volume) {
     int max = (((adjusted)>(0)) ? (adjusted) : (0));
     int min = (((max)<(SAFE_VOLUME)) ? (max) : (SAFE_VOLUME));
     self->volume = min;
+    printVolumeInfo(self, 0);
     return self->volume;
 }
 
 int toggleAudio(ToneGenerator *self, int unused) {
     self ->isMuted = self->isMuted ? 0 : 1;
+    printVolumeInfo(self, 0);
     return self->volume;
 }
 
@@ -120,4 +123,21 @@ void stopToneGen(ToneGenerator *self, int unused) {
 int toggleDeadlineTG(ToneGenerator *self, int unused) {
     self->isDeadlineEnabled = !self->isDeadlineEnabled;
     return self->isDeadlineEnabled;
+}
+
+
+/* Information */
+void printVolumeInfo(ToneGenerator *self, int unused){
+    int muteStatus, volume, volPercentage;
+    muteStatus = self->isMuted;
+    volume = self->volume;
+    volPercentage = (10 * volume) / SAFE_VOLUME;
+    if(muteStatus){
+        SCI_WRITE(&sci0, "vol: <x  muted\n");
+    }else{
+        char volInfo[32] = {};
+        snprintf(volInfo, 32, "vol: <)  [-----------]%d/%d\n", volume, SAFE_VOLUME);
+        volInfo[volPercentage+10] = '|';
+        SCI_WRITE(&sci0, volInfo);
+    }
 }

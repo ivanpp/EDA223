@@ -71,7 +71,7 @@ void receiver(App *self, int unused) {
             SYNC(&network, handleJoinRequest, sender);
             break;
         case CLAIM_EXISTENCE:
-            // TODO: maybe a new method
+            // TODO: maybe a new method, to reduce communication
             SYNC(&network, handleJoinRequest, sender);
             break;
         case CLAIM_CONDUCTORSHIP:
@@ -147,12 +147,7 @@ void reader(App *self, int c) {
     /* verbose info */
     case 'v':
     case 'V':
-        printAppVerbose(self, 0);
-        SCI_WRITE(&sci0, "\n");
-        SYNC(&network, printNetworkVerbose, 0);
-        SCI_WRITE(&sci0, "\n");
-        SYNC(&musicPlayer, printMusicPlayerVerbose, 0);
-        SCI_WRITE(&sci0, "\n");
+        printVerbose(self, 0);
         break;
     /* Get conductorship, brutely, like KIM */
     case 'x':
@@ -164,6 +159,14 @@ void reader(App *self, int c) {
     case 'Z':
         SYNC(&network, searchNetwork, 0);
         break;
+    /* arrow-up: volume-up */
+    case 0x1e:
+        SYNC(&toneGenerator, adjustVolume, 1);
+        break;
+    /* arrow-down: volume-down */
+    case 0x1f:
+        SYNC(&toneGenerator, adjustVolume, -1);
+        break;
     default:
         break;
     }
@@ -173,10 +176,7 @@ void reader(App *self, int c) {
         {
         /* display helper */
         case '\n':;
-            char guide [64] = {};
-            snprintf(guide, 64,
-                "rank: %d\n", network.rank);
-            SCI_WRITE(&sci0, guide);
+            helperConductor(self, 0);
             break;
         case '\r':
             break;
@@ -194,43 +194,49 @@ void reader(App *self, int c) {
             SYNC(&musicPlayer, ensembleStopAll, 0);
             break;
         case 'k':
-        case 'K':
+        case 'K': // key
             arg = parseValue(self, 0);
             SYNC(&musicPlayer, setKeyAll, arg);
             break;
         case 'j':
-        case 'J':
+        case 'J': // tempo
             arg = parseValue(self, 0);
             SYNC(&musicPlayer, setTempoAll, arg);
             break;
         case 'r':
-        case 'R':
+        case 'R': // reset: key, tempo
             SYNC(&musicPlayer, resetAll, 0);
             break;
         case 'h':
-        case 'H':
+        case 'H': // toggle heartbeat
             SYNC(&heartbeatCon, toggleHeartbeat, 0);
             break;
         case 'g':
-        case 'G':
+        case 'G': // set heartbeat period (s)
             arg = parseValue(self, 0);
             SYNC(&heartbeatCon, setHeartbeatPeriod, arg);
+            break;
+        default:
             break;
         }
     } 
     else{ // Musician
         switch (c)
         {
-        // case PRESS USER BUTTON
+        /* display helper */
+        case '\n':;
+            helperMusician(self, 0);
+            break;
+        case '\r':
+            break;
         case 't': // toggle mute
         case 'T':
             SYNC(&musicPlayer, toggleMusic, 0);
             break;
         /* Claim conductorship, ask others for vote */
         case 'c':
-        case 'C':
-            SYNC(&network, obtainConductorship, 0);
-            //SYNC(&network, claimConductorship, 0);
+        case 'C': // problem 2
+            SYNC(&network, claimConductorship, 0);
             break;
         case 'h':
         case 'H':
@@ -266,13 +272,66 @@ void toConductor(App *self, int unused){
 
 /* Information */
 void printAppVerbose(App *self, int unused){
-    char appInfo[128] = {};
-    snprintf(appInfo, 128,
-             "------------------------App------------------------\n"
-             "Mode: %d\n"
-             "------------------------App------------------------\n",
-             self->mode);
-    SCI_WRITE(&sci0, appInfo);
+    SCI_WRITE(&sci0, "------------------------App------------------------\n");
+    if(self->mode == MUSICIAN)
+        SCI_WRITE(&sci0, "Mode: MUSICIAN\n");
+    if(self->mode == CONDUCTOR)
+        SCI_WRITE(&sci0, "Mode: CONDUCTOR\n");
+    //SCI_WRITE(&sci0, "------------------------App------------------------\n");
+}
+
+
+void printVerbose(App *self, int unused){
+    printAppVerbose(self, 0);
+    //SCI_WRITE(&sci0, "\n");
+    SYNC(&network, printNetworkVerbose, 0);
+    //SCI_WRITE(&sci0, "\n");
+    SYNC(&musicPlayer, printMusicPlayerVerbose, 0);
+    //SCI_WRITE(&sci0, "\n");
+    SCI_WRITE(&sci0, "---------------------------------------------------\n");
+}
+
+
+void helperConductor(App *self, int unused){
+    char helper [768];
+    snprintf(helper, 768, 
+            "--------------------MUSICPLAYER--------------------\n"
+            "press \'a\' ⟳ to restart\n"
+            "press \'s\' ▶ to start\n"
+            "press \'d\' ▢ to stop\n"
+            "press \'j\' ♩ to set the tempo\n"
+            "press \'k\' ♯ to set the key\n"
+            "press \'r\' (or userButton for 2s) to reset\n"
+            "press \'↑\' to volumn-up\n"
+            "press \'↓\' to volumn-down\n"
+            "----------------------NETWORK----------------------\n"
+            "press \'z\' to search network\n"
+            "press \'x\' to get conductorship\n"
+            "---------------------HEARTBEAT---------------------\n"
+            "press \'h\' to toggle heartbeat\n"
+            "press \'g\' to set heartbeat period\n"
+            "press \'enter\' to display helper again\n\n"
+            );
+    SCI_WRITE(&sci0, helper);
+}
+
+
+void helperMusician(App *self, int unused){
+    char helper [512];
+    snprintf(helper, 512, 
+            "--------------------MUSICPLAYER--------------------\n"
+            "press \'t\' (or userButton) to mute/unmute\n"
+            "press \'↑\' to volumn-up\n"
+            "press \'↓\' to volumn-down\n"
+            "----------------------NETWORK----------------------\n"
+            "press \'z\' to search network\n"
+            "press \'x\' to get conductorship\n"
+            "---------------------HEARTBEAT---------------------\n"
+            "press \'h\' to toggle heartbeat\n"
+            "press \'g\' to set heartbeat period\n"
+            "press \'enter\' to display helper again\n\n"
+            );
+    SCI_WRITE(&sci0, helper);
 }
 
 

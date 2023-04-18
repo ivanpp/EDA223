@@ -222,5 +222,5 @@ void printNetworkVerbose(Network *self, int unused){
              self->rank, self->conductorRank, self->lock, self->vote);
     SCI_WRITE(&sci0, networkInfo);
     printNetwork(self, 0);
-    SCI_WRITE(&sci0, "----------------------NETWORK----------------------\n");
+    //SCI_WRITE(&sci0, "----------------------NETWORK----------------------\n");
 }

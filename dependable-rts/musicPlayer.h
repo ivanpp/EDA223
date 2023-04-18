@@ -67,7 +67,6 @@ void resetAll(MusicPlayer *, int);
 int toggleMusic(MusicPlayer *, int);
 /* Information */
 void printMusicPlayerVerbose(MusicPlayer *, int);
-void printVolumeInfo(MusicPlayer *, int);
 /* deprecated */
 void debugStopStatus(MusicPlayer *, int);
 

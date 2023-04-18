@@ -3,7 +3,47 @@
 #include "musicPlayer.h"
 #include <stdio.h>
 
-// bind to sci interrupt
+
+// UserButton interruption for problem 1
+void reactUserButtonP1(UserButton *self, int unused){
+    int currentStatus = SIO_READ(&sio0);
+    if (currentStatus == PRESSED) 
+    {
+        if (app.mode == CONDUCTOR) 
+        {
+            self->abortMessage = AFTER(SEC(2), self, resetAllfromButton, 0);
+        }
+        T_RESET(&self->timerPressRelease);
+        SIO_TRIG(&sio0, RELEASED);
+#ifdef DEBUG
+        SCI_WRITE(&sci0, "[UserButton ↧]: pressed\n");
+#endif
+    } 
+    else // release
+    { 
+        int duration_sec, duration_msec;
+        duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
+        duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
+        if (app.mode == CONDUCTOR && duration_msec < 1999)
+        {
+            ABORT(self->abortMessage);
+        }
+        if (app.mode == MUSICIAN)
+        {
+            SYNC(&musicPlayer, toggleMusic, 0);
+        }
+        SIO_TRIG(&sio0, PRESSED);
+#ifdef DEBUG
+        char releasedInfo[64];
+        snprintf(releasedInfo, 64,
+                "[UserButton ↥]: released, duration: %d ms\n", duration_msec);
+        SCI_WRITE(&sci0, releasedInfo);
+#endif
+    }
+}
+
+
+// UserButton interruption for EDA223
 void reactUserButton(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
     char releasedInfo [256] = {};
@@ -105,38 +145,7 @@ void reactUserButton(UserButton *self, int unused){
     }
 }
 
-
-// TODO: the real press-and-hold
-// TODO: print info (only for debug mode)
-void reactUserButtonP1(UserButton *self, int unused){
-    int currentStatus = SIO_READ(&sio0);
-    if (currentStatus == PRESSED) 
-    {
-        if (app.mode == CONDUCTOR) 
-        {
-            self->abortMessage = AFTER(SEC(2), self, resetAllfromButton, 0);
-        }
-        T_RESET(&self->timerPressRelease);
-        SIO_TRIG(&sio0, RELEASED);
-    } 
-    else // release
-    { 
-        int duration_sec, duration_msec;
-        duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
-        duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
-        if (app.mode == CONDUCTOR && duration_msec < 1999)
-        {
-            ABORT(self->abortMessage);
-        }
-        if (app.mode == MUSICIAN)
-        {
-            SYNC(&musicPlayer, toggleMusic, 0);
-        }
-        SIO_TRIG(&sio0, PRESSED);
-    }
-}
-
-
+/* UserButton utils */
 void clearIntervalHistory(UserButton *self, int unused){
     for (int i = 0; i < MAX_BURST; i++){
         self->intervals[i] = 0;
@@ -144,17 +153,20 @@ void clearIntervalHistory(UserButton *self, int unused){
     self->index = 0;
 }
 
+
 void checkPressAndHold(UserButton *self, int unused){
     self->mode = PRESS_AND_HOLD;
     SCI_WRITE(&sci0, "One second passed.\n entered PRESS_AND_HOLD MODE\n");
     return;
 }
 
+
 void resetAllfromButton(UserButton *self, int unused){
     SYNC(&musicPlayer, resetAll, 0);
-    SCI_WRITE(&sci0, "Two seconds passed.\n Reset key and tempo.\n");
+    SCI_WRITE(&sci0, "[UserButton]: 2 s passed, reset key and tempo.\n");
     return;
 }
+
 
 // compare the interval with intervals already stored in self->intervals[]
 // return 1 if difference is greater than tolerance
@@ -177,39 +189,10 @@ int treAverage(UserButton *self, int unused){
     return average;
 }
 
+
 void printoutIntervals(UserButton *self, int unused){
     char intervalsInfo [32] = {};
     snprintf(intervalsInfo, 32, "[%d, %d, %d], index: %d\n",
             self->intervals[0], self->intervals[1], self->intervals[2], self->index);
     SCI_WRITE(&sci0, intervalsInfo);
-}
-
-// DEPRECATED
-// 'background load' for button
-void buttonBackground(UserButton *self, int unused){
-    // sample the current state
-    int currentStatus = SIO_READ(&sio0);
-    if (self->mode == PRESS_MOMENTARY){
-        // pressed -> released
-        if (self->lastStatus == PRESSED && currentStatus == RELEASED){
-            char releasedInfo [64] = {};
-            self->lastStatus = currentStatus;
-            // sample the time
-            Time duration = T_SAMPLE(&self->timerPressRelease);
-            snprintf(releasedInfo, 64, "Button Released, duration: %d ms\n", MSEC_OF(duration));
-            SCI_WRITE(&sci0, releasedInfo);
-            // > 1s change mode
-        }
-        // released -> pressed
-        if (self->lastStatus == RELEASED && currentStatus == PRESSED){
-            //char pressedInfor [32] = {};
-            self->lastStatus = currentStatus;
-            T_RESET(&self->timerPressRelease);
-            SCI_WRITE(&sci0, "Button Pressed\n");
-        }
-    }
-    if (self->mode == PRESS_AND_HOLD){
-
-    }
-    SEND(BUTTON_BG_PERIODICITY, BUTTON_BG_DEADLINE, self, buttonBackground, unused);
 }

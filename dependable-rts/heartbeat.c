@@ -28,7 +28,7 @@ void heartbeatMusician(Heartbeat *self, int unused){
         return;
     if(app.mode == self->mode){
         int muteStatus = toneGenerator.isMuted;
-        int volume = toneGenerator.volume;
+        //int volume = toneGenerator.volume;
         if (muteStatus) {
             SCI_WRITE(&sci0, "[HB/MUS]: speaker muted\n");
         } else{

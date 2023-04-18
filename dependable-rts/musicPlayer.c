@@ -334,32 +334,28 @@ int toggleMusic(MusicPlayer *self, int unused){
         return muteStatus;
     }else{
         SCI_WRITE(&sci0, "[PLAYER ERR]: toggleMusic only allowed by MUSICIAN\n");
+        return -1;
     }
 }
 
 
 /* Information */
 
-void debugStopStatus(MusicPlayer *self, int unused){
-    char statsInfo[32] = {};
-    snprintf(statsInfo, 32, "isStop: %d, hardStopped: %d\n", self->isStop, self->hardStopped);
-    SCI_WRITE(&sci0, statsInfo);
-}
-
-
-void printVolumeInfo(MusicPlayer *self, int unused){
-    ;
-}
-
-
 void printMusicPlayerVerbose(MusicPlayer *self, int unused){
     char musicPlayerInfo[256] = {};
     snprintf(musicPlayerInfo, 256,
              "--------------------MUSICPLAYER--------------------\n"
-             "key(last): %d,  tempo(last): %d\n",
+             "key: %d,  tempo: %d, ",
              self->key, self->tempo);
     SCI_WRITE(&sci0, musicPlayerInfo);
     // print volumn
-    // print mute info
-    SCI_WRITE(&sci0, "--------------------MUSICPLAYER--------------------\n");
+    SYNC(&toneGenerator, printVolumeInfo, 0);
+    //SCI_WRITE(&sci0, "--------------------MUSICPLAYER--------------------\n");
+}
+
+
+void debugStopStatus(MusicPlayer *self, int unused){
+    char statsInfo[32] = {};
+    snprintf(statsInfo, 32, "isStop: %d, hardStopped: %d\n", self->isStop, self->hardStopped);
+    SCI_WRITE(&sci0, statsInfo);
 }

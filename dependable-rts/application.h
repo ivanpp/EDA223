@@ -54,17 +54,16 @@ typedef enum {
     MUSIC_SYNC_LED, // with arg, to CONDUCTOR
     MUSIC_SET_KEY_ALL, // @CON, with arg
     MUSIC_SET_TEMPO_ALL, // @CON, with arg
+    MUSIC_SET_VOL_ALL, // TODO: @CON, with arg
     /* unused */
     MUSIC_START,
     MUSIC_RESTART,
     MUSIC_STOP,
     MUSIC_PAUSE,
     MUSIC_UNPAUSE,
-    MUSIC_PLAY_NEXT_NOTE,
     MUSIC_MUTE,
     MUSIC_VOL_UP,
     MUSIC_VOL_DOWN,
-    MUSIC_SET_VOL, // TODO: with arg
     DEBUG_OP
 } CAN_OPCODE;
 
@@ -73,6 +72,9 @@ void receiver(App*, int);
 void toMusician(App*, int);
 void toConductor(App*, int);
 void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg);
-void printAppVerbose(App *self, int unused);
+void printAppVerbose(App *, int);
+void printVerbose(App *, int);
+void helperConductor(App *, int);
+void helperMusician(App *, int);
 
 #endif

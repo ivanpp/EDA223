@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 #define SAFE_VOLUME 25
+#define DEFAULT_VOLUME 12
 #define MAX_FREQ 20000
 #define MIN_FREQ 1
 #define TONE_GEN_DEADLINE USEC(100)
@@ -26,8 +27,17 @@ typedef struct
     int toneGenDeadline;
 } ToneGenerator;
 
-#define initToneGenerator() \
-    { initObject(), 0, /*freq*/1000, /*period*/500, /*volumn*/25, /*mute*/0, /*blank*/0, /*stop*/1, /*DDL*/0}
+#define initToneGenerator() { \
+    initObject(), \
+    0, \
+    /*freq*/ 1000, \
+    /*period*/ 500, \
+    /*volumn*/ DEFAULT_VOLUME, \
+    /*mute*/ 0, \
+    /*blank*/ 0, \
+    /*stop*/ 1, \
+    /*DDL*/ 0\
+}
 
 extern ToneGenerator toneGenerator;
 
@@ -42,5 +52,6 @@ void unblankTone(ToneGenerator *, int);
 void startToneGen(ToneGenerator *, int);
 void stopToneGen(ToneGenerator *, int);
 int toggleDeadlineTG(ToneGenerator *, int);
+void printVolumeInfo(ToneGenerator *, int);
 
 #endif
