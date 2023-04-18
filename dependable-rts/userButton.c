@@ -105,6 +105,9 @@ void reactUserButton(UserButton *self, int unused){
     }
 }
 
+
+// TODO: the real press-and-hold
+// TODO: print info (only for debug mode)
 void reactUserButtonP1(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
     if (currentStatus == PRESSED) {

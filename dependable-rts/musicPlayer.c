@@ -315,6 +315,7 @@ void resetAll(MusicPlayer *self, int unused){
     if(app.mode == CONDUCTOR){
         setTempoAll(self, TEMPO_DEFAULT);
         setKeyAll(self, KEY_DEFAULT);
+        SCI_WRITE(&sci0, "[PLAYER]: reset tempo and key\n");
     }else
         SCI_WRITE(&sci0, "[PLAYER ERR]: resetAll only allowed by CONDUCTOR\n");
 }
@@ -322,6 +323,7 @@ void resetAll(MusicPlayer *self, int unused){
 
 int toggleMusic(MusicPlayer *self, int unused){
     if(app.mode == MUSICIAN){
+        SCI_WRITE(&sci0, "[PLAYER]: toggled\n");
         SYNC(&toneGenerator, toggleAudio, 0);
         int muteStatus = toneGenerator.isMuted;
         if (muteStatus) {

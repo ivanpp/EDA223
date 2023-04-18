@@ -30,6 +30,7 @@ typedef struct {
     { initObject(), PRESS_MOMENTARY, RELEASED, initTimer(), initTimer(), 0, {},  }
 
 void reactUserButton(UserButton*, int);
+void reactUserButtonP1(UserButton*, int);
 void clearIntervalHistory(UserButton*, int);
 int compareIntervalHistory(UserButton*, int);
 int treAverage(UserButton*, int);

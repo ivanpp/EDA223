@@ -57,3 +57,4 @@ Debug
 .vscode
 *.project
 *.code-workspace
+.DS_Store
