@@ -110,16 +110,24 @@ void reactUserButton(UserButton *self, int unused){
 // TODO: print info (only for debug mode)
 void reactUserButtonP1(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
-    if (currentStatus == PRESSED) {
+    if (currentStatus == PRESSED) 
+    {
+        if (app.mode == CONDUCTOR) 
+        {
+            self->abortMessage = AFTER(SEC(2), self, resetAll, 0);
+        }
         T_RESET(&self->timerPressRelease);
         SIO_TRIG(&sio0, RELEASED);
-    } else { // release
+    } 
+    else // release
+    { 
+
         int duration_sec, duration_msec;
         duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
         duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
-        if (app.mode == CONDUCTOR && duration_msec > 1999)
+        if (app.mode == CONDUCTOR && duration_msec < 1999)
         {
-            SYNC(&musicPlayer, resetAll, 0);
+            ABORT(self->abortMessage);
         }
         if (app.mode == MUSICIAN)
         {
@@ -140,6 +148,12 @@ void clearIntervalHistory(UserButton *self, int unused){
 void checkPressAndHold(UserButton *self, int unused){
     self->mode = PRESS_AND_HOLD;
     SCI_WRITE(&sci0, "One second passed.\n entered PRESS_AND_HOLD MODE\n");
+    return;
+}
+
+void resetAll(UserButton *self, int unused){
+    SYNC(&musicPlayer, resetAll, 0);
+    SCI_WRITE(&sci0, "Two seconds passed.\n Reset key and tempo.\n");
     return;
 }
 
