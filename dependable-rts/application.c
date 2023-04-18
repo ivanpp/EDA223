@@ -40,15 +40,6 @@ void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
 void receiver(App *self, int unused) {
     CANMsg msg;
     CAN_RECEIVE(&can0, &msg);
-#ifdef DEBUG
-    char debugInfo[64] = {};
-    snprintf(debugInfo, 64, "OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
-             msg.buff[0],
-             msg.buff[1],
-             msg.buff[2], msg.buff[3], msg.buff[4], msg.buff[5],
-             msg.buff[6]);
-    SCI_WRITE(&sci0, debugInfo);
-#endif
     // INFO from message
     int sender    = msg.nodeId;
     CAN_OPCODE op = msg.buff[0];
@@ -58,6 +49,16 @@ void receiver(App *self, int unused) {
                    (msg.buff[4] & 0xFF) << 8  | \
                    (msg.buff[5] & 0xFF);
     int ending    = msg.buff[6];
+#ifdef DEBUG
+    char debugInfo[64] = {};
+    snprintf(debugInfo, 64, "[0x%02X]: OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
+             sender,
+             msg.buff[0],
+             msg.buff[1],
+             msg.buff[2], msg.buff[3], msg.buff[4], msg.buff[5],
+             ending);
+    SCI_WRITE(&sci0, debugInfo);
+#endif
     // Check
     if (msg.length != 7) return;
     if (receiver != 0 && receiver != network.rank) return;
@@ -158,6 +159,11 @@ void reader(App *self, int c) {
     case 'X':
         SYNC(&network, obtainConductorship, 0);
         break;
+    /* manually trigger searching of network */
+    case 'z':
+    case 'Z':
+        SYNC(&network, searchNetwork, 0);
+        break;
     default:
         break;
     }
@@ -199,7 +205,7 @@ void reader(App *self, int c) {
             break;
         case 'r':
         case 'R':
-            
+            SYNC(&musicPlayer, resetAll, 0);
             break;
         case 'h':
         case 'H':

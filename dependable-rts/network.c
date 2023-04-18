@@ -9,7 +9,7 @@ int searchNetwork(Network *self, int unused){
     SCI_WRITE(&sci0, "[NETWORK]: Searching other networks\n");
     CANMsg msg;
     constructCanMessage(&msg, SEARCH_NETWORK, BROADCAST, self->rank);
-    CAN_SEND(&can0, &msg);
+    CAN_SEND(&can0, &msg); // >> handleJoinRequest(sender)
     return 0;
 }
 
@@ -51,13 +51,14 @@ void handleJoinRequest(Network *self, int sender){
 // NOTE: no safety check in this method, should be applied before calling
 void addNodeAscending(Network *self, int sender){
     char nodeInfo[32] = {};
-    for(size_t i = self->numNodes - 1; i >= 0; i--){
-        if (sender < self->nodes[i])
-            self->nodes[i+1] = self->nodes[i];
+    for(size_t i = self->numNodes; i > 0; i--){
+        if (sender < self->nodes[i-1]){
+            self->nodes[i] = self->nodes[i-1];
+        }
         else{
-            self->nodes[i+1] = sender;
+            self->nodes[i] = sender;
             self->numNodes++;
-            snprintf(nodeInfo, 32, "[NETWORK]: node %d added here\n", sender);
+            snprintf(nodeInfo, 32, "[NETWORK]: node %d added\n", sender);
             SCI_WRITE(&sci0, nodeInfo);
             return;
         }

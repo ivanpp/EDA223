@@ -6,7 +6,7 @@
 // bind to sci interrupt
 void reactUserButton(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
-    char releasedInfo [128] = {};
+    char releasedInfo [256] = {};
     char pressedInfo [64] = {};
     // PRESS_MOMENTARY mode
     if (self->mode == PRESS_MOMENTARY){
@@ -82,7 +82,7 @@ void reactUserButton(UserButton *self, int unused){
             duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
             int difficulty = 10;
             int diff = duration_msec - 193;
-            snprintf(releasedInfo, 128,
+            snprintf(releasedInfo, 256,
                 "\nNow you're STUCKED in PRESS_AND_HOLD MODE\n"
                 "Hit BUTTON, get close to 193 ms (± %d ms) to QUIT\n"
                 "duration: %d ms, diff: %d ms\n",

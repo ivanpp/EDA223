@@ -356,10 +356,8 @@ void printMusicPlayerVerbose(MusicPlayer *self, int unused){
     char musicPlayerInfo[256] = {};
     snprintf(musicPlayerInfo, 256,
              "--------------------MUSICPLAYER--------------------\n"
-             "isStoped: %d,  hardStopped: %d\n"
-             "index(last): %d,  key(last): %d,  tempo(last): %d\n",
-             self->isStop, self->hardStopped, 
-             self->index, self->key, self->tempo);
+             "key(last): %d,  tempo(last): %d\n",
+             self->key, self->tempo);
     SCI_WRITE(&sci0, musicPlayerInfo);
     // print volumn
     // print mute info
