@@ -16,6 +16,7 @@ Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
 SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
 
+CanRegulator canRegulator = initCanRegulator();
 
 /* CAN MSG */
 void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
@@ -36,6 +37,30 @@ void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
     msg->buff[6] = 193;
 }
 
+void canRegulatorFcn(CanRegulator *self, int unused){
+    CANMsg msg;
+    int msgStatus = 1;
+
+    // read value from Sequence counter and update CAN MsgID field and Transmit 
+    msg.msgId = self->seqCounter;
+    msgStatus = CAN_SEND(&can0,&msg);
+    if(0 == msgStatus) /* Received Tx ACK, good to goto next steps */
+    {
+        if(self->isPrintEnabled){
+            char seqCntrPrint [32];
+            snprintf(seqCntrPrint, 32, "Sequence Num: %d sent\n",self->seqCounter);
+            SCI_WRITE(&sci0, seqCntrPrint);
+        }
+        ++self->seqCounter;
+        self->seqCounter = (self->seqCounter % 128);
+    }
+    if(self->isBurstMode == true) // 'n' is not yet pressed, so call yourself again
+    {      
+        AFTER(MSEC(50), self, canRegulatorFcn, 0);
+    }
+
+}
+
 
 void receiver(App *self, int unused) {
     CANMsg msg;
@@ -51,13 +76,18 @@ void receiver(App *self, int unused) {
     int ending    = msg.buff[6];
 #ifdef DEBUG
     char debugInfo[64] = {};
-    snprintf(debugInfo, 64, "[0x%02X]: OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
-             sender,
-             msg.buff[0],
-             msg.buff[1],
-             msg.buff[2], msg.buff[3], msg.buff[4], msg.buff[5],
-             ending);
-    SCI_WRITE(&sci0, debugInfo);
+    //snprintf(debugInfo, 64, "[0x%02X]: OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
+    //         sender,
+    //         msg.buff[0],
+    //         msg.buff[1],
+    //         msg.buff[2], msg.buff[3], msg.buff[4], msg.buff[5],
+    //         ending);
+    if(canRegulator.isPrintEnabled)
+    {
+        snprintf(debugInfo, 64, "Received MsgId:%d\n",msg.msgId);
+        SCI_WRITE(&sci0, debugInfo);
+    }
+    
 #endif
     // Check
     if (msg.length != 7) return;
@@ -167,6 +197,37 @@ void reader(App *self, int c) {
     case 0x1f:
         SYNC(&toneGenerator, adjustVolume, -1);
         break;
+    /* send 1 CAN Msg when 'o' is pressed */
+    case 'o':
+    case 'O':
+        if(canRegulator.isBurstMode == false)
+            SYNC(&canRegulator,canRegulatorFcn, 0);
+        else
+            SCI_WRITE(&sci0, "can't send single CAN msg due to BURST Mode, press \'n\' to come out\n");
+        break;
+    case 'b':
+    case 'B':
+        /* Check if CAN mode is already in BURST mode */
+        if(canRegulator.isBurstMode == false){
+            canRegulator.isBurstMode = true;
+            SYNC(&canRegulator,canRegulatorFcn, 0);
+        }
+        else
+            SCI_WRITE(&sci0, "Already in CAN BURST Mode\n");
+        break;
+    case 'n':
+    case 'N':
+        /* Come out of CAN Burst mode */
+        canRegulator.isBurstMode = false;
+        break;
+    case 'm':
+    case 'M':
+        /* disable prints for CAN Msg Tx */
+        canRegulator.isPrintEnabled = !(canRegulator.isPrintEnabled);
+        if(canRegulator.isPrintEnabled)
+            SCI_WRITE(&sci0, "CAN Msg Print enabled\n");
+        else
+            SCI_WRITE(&sci0, "CAN Msg Print disabled\n");
     default:
         break;
     }
@@ -317,6 +378,11 @@ void helperConductor(App *self, int unused){
             "---------------------HEARTBEAT---------------------\n"
             "press \'h\' to toggle heartbeat\n"
             "press \'g\' to set heartbeat period\n"
+            "---------------------Manual CAN Msg send ---------\n"
+            "press \'o\' to transmit single CAN Msg\n"
+            "press \'b\' to start Burst CAN Msgs\n"
+            "press \'n\' to stop Burst CAN Msgs\n"
+            "press \'m\' to enable or disable CAN Msg prints\n"
             "press \'enter\' to display helper again\n\n"
             );
     SCI_WRITE(&sci0, helper);
@@ -324,8 +390,8 @@ void helperConductor(App *self, int unused){
 
 
 void helperMusician(App *self, int unused){
-    char helper [512];
-    snprintf(helper, 512, 
+    char helper [768];
+    snprintf(helper, 768, 
             "--------------------MUSICPLAYER--------------------\n"
             "press \'t\' (or userButton) to mute/unmute\n"
             "press \'↑\' to volumn-up\n"
@@ -337,6 +403,11 @@ void helperMusician(App *self, int unused){
             "press \'h\' to toggle heartbeat\n"
             "press \'g\' to set heartbeat period\n"
             "press \'enter\' to display helper again\n\n"
+            "---------------------Manual CAN Msg send ---------\n"
+            "press \'o\' to transmit single CAN Msg\n"
+            "press \'b\' to start Burst CAN Msgs\n"
+            "press \'n\' to stop Burst CAN Msgs\n"
+            "press \'m\' to enable or disable CAN Msg prints\n"
             );
     SCI_WRITE(&sci0, helper);
 }
@@ -348,10 +419,11 @@ void startApp(App *self, int arg) {
     SCI_INIT(&sci0);
     SIO_INIT(&sio0);
     SCI_WRITE(&sci0, "Hello from DRTS Group 15\n\n");
-    BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
+    //BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
+    
     // init network
-    SYNC(&network, printNetwork, 0);
-    SYNC(&network, searchNetwork, 0);
+    //SYNC(&network, printNetwork, 0);
+    //SYNC(&network, searchNetwork, 0);
 }
 
 

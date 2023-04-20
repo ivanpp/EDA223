@@ -28,6 +28,22 @@ typedef struct {
     PlayerMode mode; // mode
 } App;
 
+typedef struct{
+    Object super;
+    int isPrintEnabled;
+    int isBurstMode;
+    uint8_t seqCounter; // sequence number counter
+    // TODO Buffer Handling
+} CanRegulator;
+
+// initialize CanRegulator 
+#define initCanRegulator() { \
+    initObject(),\
+    0,\
+    0,\
+    0,\
+}
+
 // initialize a MusicPlayer with its rank
 #define initApp() { \
     initObject(), \
@@ -37,7 +53,6 @@ typedef struct {
 }
 
 extern App app;
-
 
 /* CAN OPCODE */
 typedef enum {
@@ -76,5 +91,7 @@ void printAppVerbose(App *, int);
 void printVerbose(App *, int);
 void helperConductor(App *, int);
 void helperMusician(App *, int);
+
+void canRegulatorFcn(CanRegulator *, int);
 
 #endif
