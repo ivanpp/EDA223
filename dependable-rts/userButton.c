@@ -43,6 +43,36 @@ void reactUserButtonP1(UserButton *self, int unused){
 }
 
 
+void reactUserButtonP2(UserButton *self, int unused){
+    int currentStatus = SIO_READ(&sio0);
+    if (currentStatus == PRESSED) 
+    {
+#ifdef DEBUG
+        SCI_WRITE(&sci0, "[UserButton ↧]: pressed\n");
+#endif
+        T_RESET(&self->timerPressRelease);
+        SIO_TRIG(&sio0, RELEASED);
+        if (app.mode == MUSICIAN)
+            self->abortMessage = AFTER(SEC(5), self, claimConfromButton, 0);
+    }
+    else // release
+    {
+        int duration_sec, duration_msec;
+        duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
+        duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
+        SIO_TRIG(&sio0, PRESSED);
+#ifdef DEBUG
+        char releasedInfo[64];
+        snprintf(releasedInfo, 64,
+                "[UserButton ↥]: released, duration: %d ms\n", duration_msec);
+        SCI_WRITE(&sci0, releasedInfo);
+#endif
+        if (app.mode == MUSICIAN && duration_msec < 5000)
+            ABORT(self->abortMessage);
+    }
+}
+
+
 // UserButton interruption for EDA223
 void reactUserButton(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
@@ -145,6 +175,7 @@ void reactUserButton(UserButton *self, int unused){
     }
 }
 
+
 /* UserButton utils */
 void clearIntervalHistory(UserButton *self, int unused){
     for (int i = 0; i < MAX_BURST; i++){
@@ -161,10 +192,18 @@ void checkPressAndHold(UserButton *self, int unused){
 }
 
 
+// problem 1: @CONDUCTOR
 void resetAllfromButton(UserButton *self, int unused){
     SYNC(&musicPlayer, resetAll, 0);
     SCI_WRITE(&sci0, "[UserButton]: 2 s passed, reset key and tempo.\n");
     return;
+}
+
+
+// problem 2: @MUSICIAN
+void claimConfromButton(UserButton *self, int unused){
+    SYNC(&network, claimConductorship, 0);
+    SCI_WRITE(&sci0, "[Userbutton]: 5 s passed, claim conductorship\n");
 }
 
 

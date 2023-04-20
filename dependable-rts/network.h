@@ -39,14 +39,20 @@ int searchNetwork(Network*, int);
 void handleJoinRequest(Network*, int);
 void addNodeAscending(Network*, int);
 int sortNetwork(Network*, int);
-void printNetwork(Network*, int);
+/* Conductorship */
 void claimConductorship(Network*, int);
-void handleConductorshipRequest(Network*, int);
+void handleClaimRequest(Network*, int);
 void handleConductorshipAck(Network*, int);
 void obtainConductorship(Network*, int);
 void changeConductor(Network *, int);
-void printNetworkVerbose(Network *, int);
+/* Lock */
+void resetLock(Network *, int);
+/* Utils */
 int getNodeIndex(Network *, int);
 int getNextNode(Network *, int);
+/* Information */
+void printNetwork(Network*, int);
+void printNetworkVerbose(Network *, int);
+
 
 #endif

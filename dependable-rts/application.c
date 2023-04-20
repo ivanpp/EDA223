@@ -14,7 +14,7 @@ UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
-SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP1);
+SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
 
 
 /* CAN MSG */
@@ -75,7 +75,7 @@ void receiver(App *self, int unused) {
             SYNC(&network, handleJoinRequest, sender);
             break;
         case CLAIM_CONDUCTORSHIP:
-            SYNC(&network, handleConductorshipRequest, sender);
+            SYNC(&network, handleClaimRequest, sender);
             break;
         case ACK_CONDUCTORSHIP:
             SYNC(&network, handleConductorshipAck, arg);
@@ -259,6 +259,13 @@ void toMusician(App *self, int unused){
         SCI_WRITE(&sci0, "WARN: illegal musician change\n");
     }
     self->mode = MUSICIAN;
+    // LED
+    int muteStatus = toneGenerator.isMuted;
+    int safeTime = 4 * musicPlayer.beatMult;
+    if (muteStatus)
+        AFTER(MSEC(safeTime), &sio0, sio_write, 1); // unlit LED (safe)
+    else
+        AFTER(MSEC(safeTime), &sio0, sio_write, 0); // lit LED (safe)
 }
 
 

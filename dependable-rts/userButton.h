@@ -29,15 +29,17 @@ typedef struct {
 #define initUserButton() \
     { initObject(), PRESS_MOMENTARY, RELEASED, initTimer(), initTimer(), 0, {},  }
 
-void reactUserButton(UserButton*, int);
+
 void reactUserButtonP1(UserButton*, int);
+void reactUserButtonP2(UserButton*, int);
+void reactUserButton(UserButton*, int);
 void resetAllfromButton(UserButton*, int);
+void claimConfromButton(UserButton *, int);
 void clearIntervalHistory(UserButton*, int);
 int compareIntervalHistory(UserButton*, int);
 int treAverage(UserButton*, int);
 void printoutIntervals(UserButton *, int);
 void checkPressAndHold(UserButton *self, int unused);
 
-void buttonBackground(UserButton*, int);
 
 #endif

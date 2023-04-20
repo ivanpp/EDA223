@@ -85,18 +85,7 @@ int sortNetwork(Network *self, int unused){
 }
 
 
-// print network information, should be called whenever network changes
-void printNetwork(Network *self, int unused){
-    char networkInfo[64];
-    snprintf(networkInfo, 64, "Network(%d):\n", self->numNodes);
-    SCI_WRITE(&sci0, networkInfo);
-    for(size_t i = 0; i < 8; i++){
-        snprintf(networkInfo, 64, "| %d ", self->nodes[i]);
-        SCI_WRITE(&sci0, networkInfo);
-    }
-    SCI_WRITE(&sci0, "|\n");
-}
-
+/* Conductorship */
 
 void claimConductorship(Network *self, int unused){
     if (self->conductorRank == self->rank){
@@ -111,11 +100,14 @@ void claimConductorship(Network *self, int unused){
     SCI_WRITE(&sci0, "[NETWORK]: Try to claim my conductorship\n");
     CANMsg msg;
     constructCanMessage(&msg, CLAIM_CONDUCTORSHIP, BROADCAST, 0);
-    CAN_SEND(&can0, &msg);
+    if (CAN_SEND(&can0, &msg)){
+        SCI_WRITE(&sci0, "failed, reset\n");
+        resetLock(self, unused);
+    }
 }
 
 
-void handleConductorshipRequest(Network *self, int sender){
+void handleClaimRequest(Network *self, int sender){
     CANMsg msg;
     if(self->lock == 0){
         self->lock = sender; // lock acquired by conductor
@@ -175,6 +167,17 @@ void changeConductor(Network *self, int conductor){
 }
 
 
+/* Lock */
+
+// reset the lock, used when fail to get the conductorship
+void resetLock(Network *self, int unused){
+    self->lock = 0;
+    self->vote = 1;
+}
+
+
+/* Utils */
+
 // get the index of node based on its rank
 int getNodeIndex(Network *self, int rank){
     for (size_t i = 0; i < self->numNodes; i++){
@@ -210,6 +213,20 @@ void voteConductorMinRank(Network *self, int unused){
 
 void voteConductorMaxRank(Network *self, int unused){
     ;
+}
+
+/* Information */
+
+// print network information, should be called whenever network changes
+void printNetwork(Network *self, int unused){
+    char networkInfo[64];
+    snprintf(networkInfo, 64, "Network(%d):\n", self->numNodes);
+    SCI_WRITE(&sci0, networkInfo);
+    for(size_t i = 0; i < 8; i++){
+        snprintf(networkInfo, 64, "| %d ", self->nodes[i]);
+        SCI_WRITE(&sci0, networkInfo);
+    }
+    SCI_WRITE(&sci0, "|\n");
 }
 
 
