@@ -34,10 +34,13 @@ typedef struct {
 void can_init(Can *obj, int unused);
 int can_receive(Can *obj, CANMsg *msg);
 int can_send(Can *obj, CANMsg *msg);
+int can_send_with_retry(Can *obj, CANMsg *msg, int retry);
 
 #define CAN_INIT(can)               SYNC(can, can_init, 0)
 #define CAN_SEND(can, msgptr)       SYNC(can, can_send, msgptr)
 #define CAN_RECEIVE(can, msgptr)    SYNC(can, can_receive, msgptr)
+#define CAN_SEND_WR(can, msgptr)     can_send_with_retry(can, msgptr, 1)
+#define CAN_SEND_WRN(can, msgptr, n) can_send_with_retry(can, msgptr, n)
 
 void can_interrupt(Can *self, int unused);
 

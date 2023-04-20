@@ -77,8 +77,8 @@ void receiver(App *self, int unused) {
         case CLAIM_CONDUCTORSHIP:
             SYNC(&network, handleClaimRequest, sender);
             break;
-        case ACK_CONDUCTORSHIP:
-            SYNC(&network, handleConductorshipAck, arg);
+        case ANSWER_CLAIM_CONDUCTOR:
+            SYNC(&network, handleAnswerClaim, arg);
             break;
         case OBT_CONDUCTORSHIP:
             SYNC(&network, changeConductor, sender);

@@ -42,7 +42,7 @@ int sortNetwork(Network*, int);
 /* Conductorship */
 void claimConductorship(Network*, int);
 void handleClaimRequest(Network*, int);
-void handleConductorshipAck(Network*, int);
+void handleAnswerClaim(Network*, int);
 void obtainConductorship(Network*, int);
 void changeConductor(Network *, int);
 /* Lock */
@@ -53,6 +53,5 @@ int getNextNode(Network *, int);
 /* Information */
 void printNetwork(Network*, int);
 void printNetworkVerbose(Network *, int);
-
 
 #endif

@@ -9,7 +9,7 @@ int searchNetwork(Network *self, int unused){
     SCI_WRITE(&sci0, "[NETWORK]: Searching other networks\n");
     CANMsg msg;
     constructCanMessage(&msg, SEARCH_NETWORK, BROADCAST, self->rank);
-    CAN_SEND(&can0, &msg); // >> handleJoinRequest(sender)
+    CAN_SEND_WR(&can0, &msg); // >> handleJoinRequest(sender)
     return 0;
 }
 
@@ -75,7 +75,7 @@ void claimExistence(Network *self, int receiver){
     SCI_WRITE(&sci0, "[NETWORK]: Try to claim my Existence\n");
     CANMsg msg;
     constructCanMessage(&msg, CLAIM_EXISTENCE, receiver, self->rank);
-    CAN_SEND(&can0, &msg);
+    CAN_SEND_WR(&can0, &msg); // >> handleJoinRequest(sender)
 }
 
 
@@ -101,7 +101,7 @@ void claimConductorship(Network *self, int unused){
     CANMsg msg;
     constructCanMessage(&msg, CLAIM_CONDUCTORSHIP, BROADCAST, 0);
     if (CAN_SEND(&can0, &msg)){
-        SCI_WRITE(&sci0, "failed, reset\n");
+        SCI_WRITE(&sci0, "[NETWORK]: reset lock because can fail\n");
         resetLock(self, unused);
     }
 }
@@ -111,18 +111,18 @@ void handleClaimRequest(Network *self, int sender){
     CANMsg msg;
     if(self->lock == 0){
         self->lock = sender; // lock acquired by conductor
-        constructCanMessage(&msg, ACK_CONDUCTORSHIP, sender, 1); // agree
+        constructCanMessage(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 1); // agree
     } else {
         char lockInfo[32];
         snprintf(lockInfo, 32, "Lock already acquired by: %d\n", self->lock);
         SCI_WRITE(&sci0, lockInfo);
-        constructCanMessage(&msg, ACK_CONDUCTORSHIP, sender, 0); // disagree
+        constructCanMessage(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 0); // disagree
     }
-    CAN_SEND(&can0, &msg);
+    CAN_SEND_WR(&can0, &msg); // >> handleAnswerClaim(answer)
 }
 
 
-void handleConductorshipAck(Network *self, int agree){
+void handleAnswerClaim(Network *self, int agree){
     if(agree){
         if(self->vote == self->numNodes - 1){ // all other agree
             obtainConductorship(self, 0);
@@ -132,11 +132,6 @@ void handleConductorshipAck(Network *self, int agree){
         self->lock = 0;
         self->vote = 1;
     }
-}
-
-
-void acknowledgeConductorship(Network *self, int conductor){
-    ;
 }
 
 
