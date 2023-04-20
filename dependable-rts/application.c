@@ -56,7 +56,7 @@ void canRegulatorFcn(CanRegulator *self, int unused){
     }
     if(self->isBurstMode == true) // 'n' is not yet pressed, so call yourself again
     {      
-        AFTER(MSEC(50), self, canRegulatorFcn, 0);
+        AFTER(MSEC(500), self, canRegulatorFcn, 0);
     }
 
 }
