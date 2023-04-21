@@ -102,6 +102,9 @@ void receiver(App *self, int unused) {
         case MUSIC_SET_TEMPO_ALL:
             SYNC(&musicPlayer, setTempo, arg);
             break;
+        case TEST_COMPETE_CONDUCTOR:
+            SYNC(&network, claimConductorship, 0);
+            break;
         default:;
             break;
     }
@@ -166,6 +169,16 @@ void reader(App *self, int c) {
     /* arrow-down: volume-down */
     case 0x1f:
         SYNC(&toneGenerator, adjustVolume, -1);
+        break;
+    /* temp, for testing */
+    case 'b':
+    case 'B':
+        SYNC(&network, testCompeteConductor, 0);
+        break;
+    case 'n':
+    case 'N':
+        SYNC(&network, testResetCondutor, 0);
+        toMusician(self, 0);
         break;
     default:
         break;

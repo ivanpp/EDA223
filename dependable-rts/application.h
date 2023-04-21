@@ -55,6 +55,8 @@ typedef enum {
     MUSIC_SET_KEY_ALL, // @CON, with arg
     MUSIC_SET_TEMPO_ALL, // @CON, with arg
     MUSIC_SET_VOL_ALL, // TODO: @CON, with arg
+    /* TESTING */
+    TEST_COMPETE_CONDUCTOR,
     /* unused */
     MUSIC_START,
     MUSIC_RESTART,

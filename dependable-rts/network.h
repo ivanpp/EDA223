@@ -53,5 +53,8 @@ int getNextNode(Network *, int);
 /* Information */
 void printNetwork(Network*, int);
 void printNetworkVerbose(Network *, int);
+/* Testing */
+void testCompeteConductor(Network *, int);
+void testResetCondutor(Network *, int);
 
 #endif

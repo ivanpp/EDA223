@@ -109,12 +109,12 @@ void claimConductorship(Network *self, int unused){
 
 void handleClaimRequest(Network *self, int sender){
     CANMsg msg;
-    if(self->lock == 0){
+    if(self->lock < sender){
         self->lock = sender; // lock acquired by conductor
         constructCanMessage(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 1); // agree
     } else {
-        char lockInfo[32];
-        snprintf(lockInfo, 32, "Lock already acquired by: %d\n", self->lock);
+        char lockInfo[64];
+        snprintf(lockInfo, 64, "[LOCK]: My lock is already acquired by: %d\n", self->lock);
         SCI_WRITE(&sci0, lockInfo);
         constructCanMessage(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 0); // disagree
     }
@@ -137,12 +137,16 @@ void handleAnswerClaim(Network *self, int agree){
 
 // notify all other boards about the conductorship change
 void obtainConductorship(Network *self, int unused){
+    if(self->lock != self->rank){
+        // (◣_◢)
+        SCI_WRITE(&sci0, "[NETWORK]: Claim failed at last step, locked by higher\n");
+        resetLock(self, 0);
+    }
     CANMsg msg;
     constructCanMessage(&msg, OBT_CONDUCTORSHIP, BROADCAST, 0);
     CAN_SEND(&can0, &msg);
     self->conductorRank = self->rank;
-    self->lock = 0;
-    self->vote = 1;
+    resetLock(self, 0);
     ASYNC(&app, toConductor, 0);
     SCI_WRITE(&sci0, "[NETWORK]: Claimed Conductorship\n");
 }
@@ -235,4 +239,22 @@ void printNetworkVerbose(Network *self, int unused){
     SCI_WRITE(&sci0, networkInfo);
     printNetwork(self, 0);
     //SCI_WRITE(&sci0, "----------------------NETWORK----------------------\n");
+}
+
+
+/* Testing */
+
+void testCompeteConductor(Network *self, int unused){
+    CANMsg msg;
+    constructCanMessage(&msg, TEST_COMPETE_CONDUCTOR, BROADCAST, 0);
+    CAN_SEND(&can0, &msg); // >> claimConductorship()
+    claimConductorship(self, unused);
+}
+
+
+void testResetCondutor(Network *self, int unused){
+    self->lock = 0;
+    self->conductorRank = 0;
+    self->vote = 1;
+    SCI_WRITE(&sci0, "[TEST]: Conductorship re-initialized\n");
 }
