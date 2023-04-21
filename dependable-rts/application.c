@@ -4,6 +4,7 @@
 #include "userButton.h"
 #include "network.h"
 #include "heartbeat.h"
+#include "failureMonitor.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -179,6 +180,11 @@ void reader(App *self, int c) {
     case 'N':
         SYNC(&network, testResetCondutor, 0);
         toMusician(self, 0);
+        break;
+    case 'f':
+    case 'F':
+        arg = parseValue(self, 0);
+        SYNC(&failureMonitor, enter_failure_mode, arg);
         break;
     default:
         break;

@@ -56,6 +56,7 @@ OBJECTS= $(DEBUGDIR)dispatch.o \
          $(DEBUGDIR)musicPlayer.o \
          $(DEBUGDIR)userButton.o \
          $(DEBUGDIR)heartbeat.o \
+         $(DEBUGDIR)failureMonitor.o \
          $(DEBUGDIR)application.o
          #$(DEBUGDIR)playList.o 
 
@@ -132,6 +133,8 @@ $(DEBUGDIR)userButton.o: userButton.c userButton.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)heartbeat.o: heartbeat.c heartbeat.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
+$(DEBUGDIR)failureMonitor.o: failureMonitor.c failureMonitor.h
+	$(CC) -c $< -o $@ $(CCFLAGS)
 # network for different RANKS
 $(DEBUGDIR)networkR1.o: network.c network.h
 	$(CC) -c $< -o $@ $(CCFLAGS) -DRANK=1
@@ -142,7 +145,7 @@ $(DEBUGDIR)networkR3.o: network.c network.h
 # application
 DEPS=application.c TinyTimber.h sciTinyTimber.h canTinyTimber.h sioTinyTimber.h \
      application.h systemPorts.h toneGenerator.h musicPlayer.h brotherJohn.h \
-     userButton.h network.h heartbeat.h
+     userButton.h network.h heartbeat.h failureMonitor.h
 $(DEBUGDIR)application.o: $(DEPS)
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
