@@ -174,11 +174,11 @@ void playIndexTone(MusicPlayer *self, int idx){
     SCI_WRITE(&sci0, debug);
 #endif
     if (app.mode == CONDUCTOR) 
-        LEDcontroller(self, tempo);
+        LEDcontroller(self, idx);
     else {
         CANMsg msg;
-        constructCanMessage(&msg, MUSIC_SYNC_LED, network.conductorRank, tempo);
-        CAN_SEND(&can0, &msg); // >> LEDcontroller(tempo)
+        constructCanMessage(&msg, MUSIC_SYNC_LED, network.conductorRank, idx);
+        CAN_SEND(&can0, &msg); // >> LEDcontroller(idx)
     }
     ASYNC(&toneGenerator, setPeriod, period);
     AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
@@ -201,7 +201,10 @@ void playIndexToneNxt(MusicPlayer *self, int idx){
 }
 
 
-void LEDcontroller(MusicPlayer *self, int tempo){
+void LEDcontroller(MusicPlayer *self, int idx){
+    idx = idx < 0 ? 0 : idx;
+    idx = idx > (MUSIC_LENGTH - 1) ? (MUSIC_LENGTH - 1) : idx;
+    int tempo = tempos[idx];
     if (app.mode == CONDUCTOR){
         int beatLen = self->beatMult * tempo;
         switch(tempo){
