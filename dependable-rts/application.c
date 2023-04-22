@@ -61,6 +61,32 @@ void canRegulatorFcn(CanRegulator *self, int unused){
 
 }
 
+void trySendSingleCanMessage(App *self, int unused) {
+    if(canRegulator.isBurstMode == false)
+        SYNC(&canRegulator, canRegulatorFcn, 0);
+    else
+        SCI_WRITE(&sci0, "can't send single CAN msg due to BURST Mode, press \'n\' to come out\n");
+}
+
+void tryEnableBurstMode(App *self, int unused) {
+    /* Check if CAN mode is already in BURST mode */
+        
+    if(canRegulator.isBurstMode == false)
+    {
+        canRegulator.isBurstMode = true;
+        SYNC(&canRegulator,canRegulatorFcn, 0);
+    }
+    else
+    {
+        SCI_WRITE(&sci0, "Already in CAN BURST Mode\n");
+    }  
+}
+
+void disableBurstMode(App *self, int unused) 
+{
+    /* Come out of CAN Burst mode */
+    canRegulator.isBurstMode = false;
+}
 
 void receiver(App *self, int unused) {
     CANMsg msg;
@@ -200,25 +226,15 @@ void reader(App *self, int c) {
     /* send 1 CAN Msg when 'o' is pressed */
     case 'o':
     case 'O':
-        if(canRegulator.isBurstMode == false)
-            SYNC(&canRegulator,canRegulatorFcn, 0);
-        else
-            SCI_WRITE(&sci0, "can't send single CAN msg due to BURST Mode, press \'n\' to come out\n");
+        trySendSingleCanMessage(self, 0);
         break;
     case 'b':
     case 'B':
-        /* Check if CAN mode is already in BURST mode */
-        if(canRegulator.isBurstMode == false){
-            canRegulator.isBurstMode = true;
-            SYNC(&canRegulator,canRegulatorFcn, 0);
-        }
-        else
-            SCI_WRITE(&sci0, "Already in CAN BURST Mode\n");
+        tryEnableBurstMode(self, 0);
         break;
     case 'n':
     case 'N':
-        /* Come out of CAN Burst mode */
-        canRegulator.isBurstMode = false;
+        disableBurstMode(self, 0);
         break;
     case 'm':
     case 'M':

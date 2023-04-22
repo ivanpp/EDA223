@@ -72,6 +72,49 @@ void reactUserButtonP2(UserButton *self, int unused){
     }
 }
 
+void reactUserButtonP5(UserButton *self, int unused){
+    int currentStatus = SIO_READ(&sio0);
+    if (currentStatus == PRESSED) 
+    {
+#ifdef DEBUG
+        SCI_WRITE(&sci0, "[UserButton ↧]: pressed\n");
+#endif
+        self->abortMessage = AFTER(SEC(2), self, activateBurstMode, 0);
+
+        T_RESET(&self->timerPressRelease);
+        SIO_TRIG(&sio0, RELEASED);
+    }
+    else // release
+    {
+        int duration_sec, duration_msec;
+        duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
+        duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
+        SIO_TRIG(&sio0, PRESSED);
+        if (duration_msec < 2000)
+        {
+            ABORT(self->abortMessage);
+        } 
+        // TODO: I am not entierely confident in the following section. I will currently alway try to send 
+        // single message, even though we might be in PRESS_AND_HOLD, because I am not sure that the player
+        // has not disabled burst mode through the keyboard, at which point we should SHOULD send the message. 
+        // But it will likely result in a "can't send single CAN msg due to BURST Mode" message when releasing the button, 
+        // unless someone is trying to break it.
+        SYNC(&app, trySendSingleCanMessage, 0);
+        if (self->mode == PRESS_AND_HOLD) {
+            SYNC(&app, disableBurstMode, 0);
+            self->mode = PRESS_MOMENTARY;
+        }
+
+
+
+#ifdef DEBUG
+        char releasedInfo[64];
+        snprintf(releasedInfo, 64,
+                "[UserButton ↥]: released, duration: %d ms\n", duration_msec);
+        SCI_WRITE(&sci0, releasedInfo);
+#endif
+
+}
 
 // UserButton interruption for EDA223
 void reactUserButton(UserButton *self, int unused){
@@ -204,6 +247,13 @@ void resetAllfromButton(UserButton *self, int unused){
 void claimConfromButton(UserButton *self, int unused){
     SYNC(&network, claimConductorship, 0);
     SCI_WRITE(&sci0, "[Userbutton]: 5 s passed, claim conductorship\n");
+}
+
+// problem 5:
+void activateBurstMode(UserButton *self, int unused){
+    self->mode = PRESS_AND_HOLD;
+    SYNC(&app, tryEnableBurstMode, 0);
+    SCI_WRITE(&sci0, "[Userbutton]: 2 s passed, trying to enable burst mode.\n");
 }
 
 

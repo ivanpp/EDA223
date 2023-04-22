@@ -93,5 +93,8 @@ void helperConductor(App *, int);
 void helperMusician(App *, int);
 
 void canRegulatorFcn(CanRegulator *, int);
+void trySendSingleCanMessage(App *, int);
+void tryEnableBurstMode(App *, int);
+void disableBurstMode(App *, int);
 
 #endif

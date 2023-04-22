@@ -32,6 +32,7 @@ typedef struct {
 
 void reactUserButtonP1(UserButton*, int);
 void reactUserButtonP2(UserButton*, int);
+void reactUserButtonP5(UserButton*, int);
 void reactUserButton(UserButton*, int);
 void resetAllfromButton(UserButton*, int);
 void claimConfromButton(UserButton *, int);
@@ -40,6 +41,7 @@ int compareIntervalHistory(UserButton*, int);
 int treAverage(UserButton*, int);
 void printoutIntervals(UserButton *, int);
 void checkPressAndHold(UserButton *self, int unused);
+void activateBurstMode(UserButton *self, int unused);
 
 
 #endif
