@@ -104,15 +104,14 @@ void reactUserButtonP5(UserButton *self, int unused){
             SYNC(&app, disableBurstMode, 0);
             self->mode = PRESS_MOMENTARY;
         }
-
-
-
+    
 #ifdef DEBUG
         char releasedInfo[64];
         snprintf(releasedInfo, 64,
                 "[UserButton ↥]: released, duration: %d ms\n", duration_msec);
         SCI_WRITE(&sci0, releasedInfo);
 #endif
+    }
 
 }
 
