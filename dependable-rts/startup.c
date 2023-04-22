@@ -21,6 +21,7 @@
 #include "stm32f4xx_rcc.h"
 #include "stm32f4xx_syscfg.h"
 #include "stm32f4xx_exti.h"
+#include "stm32f4xx_rng.h"
 
 void startup(void) __attribute__((naked)) __attribute__((section (".start_section")) );
 
@@ -275,6 +276,12 @@ static void __timer_init() {
 	RCC_APB1PeriphClockLPModeCmd( RCC_APB1Periph_TIM5, ENABLE);
 }
 
+static void __rng_init() {
+	RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_RNG, ENABLE);
+	RNG_Cmd(ENABLE);
+
+}
+
 static void __bss_init() {
 asm volatile(
 	" ldr  r2, =_sbss\n"  
@@ -305,6 +312,7 @@ static void Init( void )
     __sio_init();
 	__sys_init();
 	__timer_init();
+	__rng_init();
 }
 
 static void Exit( void )

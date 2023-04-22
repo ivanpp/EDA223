@@ -51,6 +51,7 @@ OBJECTS= $(DEBUGDIR)dispatch.o \
          $(DEBUGDIR)stm32f4xx_syscfg.o \
          $(DEBUGDIR)stm32f4xx_tim.o \
          $(DEBUGDIR)stm32f4xx_usart.o \
+         $(DEBUGDIR)stm32f4xx_rng.o \
          $(DEBUGDIR)startup.o \
          $(DEBUGDIR)toneGenerator.o \
          $(DEBUGDIR)musicPlayer.o \
@@ -95,6 +96,7 @@ $(DEBUGDIR)rank3.s19: $(DEBUGDIR)rank3.elf
 
 $(DEBUGDIR)dispatch.o: dispatch.s
 	$(AS) $< -o $@ $(ASFLAGS)
+# drivers
 $(DEBUGDIR)stm32f4xx_can.o: $(DRIVERDIR)stm32f4xx_can.c
 	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)stm32f4xx_dac.o: $(DRIVERDIR)stm32f4xx_dac.c
@@ -111,6 +113,9 @@ $(DEBUGDIR)stm32f4xx_tim.o: $(DRIVERDIR)stm32f4xx_tim.c
 	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)stm32f4xx_usart.o: $(DRIVERDIR)stm32f4xx_usart.c
 	$(CC) -c $< -o $@ $(CCFLAGS)
+$(DEBUGDIR)stm32f4xx_rng.o: $(DRIVERDIR)stm32f4xx_rng.c
+	$(CC) -c $< -o $@ $(CCFLAGS)
+
 $(DEBUGDIR)startup.o: startup.c
 	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)TinyTimber.o: TinyTimber.c TinyTimber.h

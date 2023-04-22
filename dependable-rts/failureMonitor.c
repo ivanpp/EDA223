@@ -2,12 +2,14 @@
 #include <stdio.h>
 #include "failureMonitor.h"
 #include "systemPorts.h"
+#include "stm32f4xx_rng.h"
 
 #define CAN_PORT0   (CAN_TypeDef *)(CAN1)
 #define CAN_PORT1   (CAN_TypeDef *)(CAN2)
 
 
 FailureMonitor failureMonitor = initFailureMonitor();
+
 
 /* CAN */
 
@@ -38,8 +40,7 @@ void enter_failure1(FailureMonitor *self, int unused){
 
 
 void enter_failure2(FailureMonitor *self, int unused){
-    //int delay = gen_rand_num(10, 30);
-    int delay = 5;
+    int delay = gen_rand_num(10, 30);
     char failInfo[64];
     snprintf(failInfo, 64, "[FM]: Mode F2, restore automatcially in %d s\n", delay);
     SCI_WRITE(&sci0, failInfo);
@@ -79,8 +80,9 @@ void enter_failure_mode(FailureMonitor *self, int mode){
 /* Utils */
 
 int gen_rand_num(int min, int max){
-    //return min + rand() % (max - min + 1);
-    return 1;
+    while(RNG_GetFlagStatus(RNG_FLAG_DRDY) == RESET)
+        ;
+    return min + RNG_GetRandomNumber() % (max - min + 1);
 }
 
 
