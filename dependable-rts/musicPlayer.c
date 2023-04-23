@@ -34,12 +34,12 @@ int music_pause_unpause(MusicPlayer *self, int unused){
     if (self->hardStopped) {
         self->isStop = 0;
         self->hardStopped = 0;  
-        SYNC(&toneGenerator, startToneGen, 0);
-        SYNC(&toneGenerator, playTone, 0);
+        SYNC(&toneGenerator, start_toneGen, 0);
+        SYNC(&toneGenerator, play_tone, 0);
         play_music(self, 0);
     } else {
         self->isStop = 1;
-        SYNC(&toneGenerator, stopToneGen, 0);
+        SYNC(&toneGenerator, stop_toneGen, 0);
     }
     return self->isStop;
 }
@@ -49,8 +49,8 @@ int music_unpause(MusicPlayer *self, int unused){
     if (self->hardStopped) {
         self->isStop = 0;
         self->hardStopped = 0;  
-        SYNC(&toneGenerator, startToneGen, 0);
-        SYNC(&toneGenerator, playTone, 0);
+        SYNC(&toneGenerator, start_toneGen, 0);
+        SYNC(&toneGenerator, play_tone, 0);
         play_music(self, 0);
     }
     return self->isStop;
@@ -60,7 +60,7 @@ int music_unpause(MusicPlayer *self, int unused){
 int music_pause(MusicPlayer *self, int unused){
     if (!self->hardStopped) {
         self->isStop = 1;
-        SYNC(&toneGenerator, stopToneGen, 0);
+        SYNC(&toneGenerator, stop_toneGen, 0);
     }
     return self->isStop;
 }
@@ -73,13 +73,13 @@ int music_stop_start(MusicPlayer *self, int unused){
          // reset the index, start from the begining
         self->isStop = 0;
         self->hardStopped = 0;
-        SYNC(&toneGenerator, startToneGen, 0);
+        SYNC(&toneGenerator, start_toneGen, 0);
         self->index = 0;
-        SYNC(&toneGenerator, playTone, 0);
+        SYNC(&toneGenerator, play_tone, 0);
         play_music(self, 0);
     } else{
         self->isStop = 1;
-        SYNC(&toneGenerator, stopToneGen, 0);
+        SYNC(&toneGenerator, stop_toneGen, 0);
         self->index = 0;
     }
     return self->isStop;
@@ -90,9 +90,9 @@ int music_start(MusicPlayer *self, int unused){
     if (self->hardStopped) {
         self->isStop = 0;
         self->hardStopped = 0;
-        SYNC(&toneGenerator, startToneGen, 0);
+        SYNC(&toneGenerator, start_toneGen, 0);
         self->index = 0;
-        SYNC(&toneGenerator, playTone, 0);
+        SYNC(&toneGenerator, play_tone, 0);
         play_music(self, 0);
     }
     return self->isStop;
@@ -102,7 +102,7 @@ int music_start(MusicPlayer *self, int unused){
 int music_stop(MusicPlayer *self, int unused){
     if (!self->hardStopped){
         self->isStop = 1;
-        SYNC(&toneGenerator, stopToneGen, 0);
+        SYNC(&toneGenerator, stop_toneGen, 0);
         self->index = 0;
     }
     return self->isStop;
@@ -140,9 +140,9 @@ void play_music(MusicPlayer *self, int unused){
             break;
     }
     // set tone generator
-    ASYNC(&toneGenerator, blankTone, 0);
-    ASYNC(&toneGenerator, setPeriod, period);
-    AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
+    ASYNC(&toneGenerator, blank_tone, 0);
+    ASYNC(&toneGenerator, set_period, period);
+    AFTER(MSEC(50), &toneGenerator, unblank_tone, 0);
     // next tone
     self->index++;
     self->index = self->index % MUSIC_LENGTH;
@@ -180,9 +180,9 @@ void play_index_tone(MusicPlayer *self, int idx){
         construct_can_message(&msg, MUSIC_SYNC_LED, network.conductorRank, idx);
         CAN_SEND(&can0, &msg); // >> sync_LED(idx)
     }
-    ASYNC(&toneGenerator, setPeriod, period);
-    AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
-    AFTER(MSEC(beatLen), &toneGenerator, blankTone, 0);
+    ASYNC(&toneGenerator, set_period, period);
+    AFTER(MSEC(50), &toneGenerator, unblank_tone, 0);
+    AFTER(MSEC(beatLen), &toneGenerator, blank_tone, 0);
     // next tone
     AFTER(MSEC(beatLen), self, play_index_tone_next, idx);
 }
@@ -231,16 +231,16 @@ void sync_LED(MusicPlayer *self, int idx){
 
 void ensemble_ready(MusicPlayer *self, int unused){
     // setup ToneGenerator, ready to play, then blank it
-    SYNC(&toneGenerator, startToneGen, 0);
-    SYNC(&toneGenerator, playTone, 0);
-    SYNC(&toneGenerator, blankTone, 0);
+    SYNC(&toneGenerator, start_toneGen, 0);
+    SYNC(&toneGenerator, play_tone, 0);
+    SYNC(&toneGenerator, blank_tone, 0);
     // ready to send can msg
     self->ensemble_stop = 0;
 }
 
 
 void ensemble_stop(MusicPlayer *self, int unused){
-    SYNC(&toneGenerator, stopToneGen, 0);
+    SYNC(&toneGenerator, stop_toneGen, 0);
     self->ensemble_stop = 1;
 }
 
@@ -327,7 +327,7 @@ void reset_all(MusicPlayer *self, int unused){
 int toggle_music(MusicPlayer *self, int unused){
     if(app.mode == MUSICIAN){
         SCI_WRITE(&sci0, "[PLAYER]: toggled\n");
-        SYNC(&toneGenerator, toggleAudio, 0);
+        SYNC(&toneGenerator, toggle_audio, 0);
         int muteStatus = toneGenerator.isMuted;
         if (muteStatus) {
             SIO_WRITE(&sio0, 1); // unlit LED
@@ -352,7 +352,7 @@ void print_musicPlayer_verbose(MusicPlayer *self, int unused){
              self->key, self->tempo);
     SCI_WRITE(&sci0, musicPlayerInfo);
     // print volumn
-    SYNC(&toneGenerator, printVolumeInfo, 0);
+    SYNC(&toneGenerator, print_volume_info, 0);
     //SCI_WRITE(&sci0, "--------------------MUSICPLAYER--------------------\n");
 }
 

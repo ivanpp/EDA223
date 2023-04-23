@@ -30,15 +30,15 @@ typedef struct {
     { initObject(), PRESS_MOMENTARY, RELEASED, initTimer(), initTimer(), 0, {},  }
 
 
-void reactUserButtonP1(UserButton*, int);
-void reactUserButtonP2(UserButton*, int);
-void reactUserButton(UserButton*, int);
-void reset_allfromButton(UserButton*, int);
-void claimConfromButton(UserButton *, int);
-void clearIntervalHistory(UserButton*, int);
-int compareIntervalHistory(UserButton*, int);
-int treAverage(UserButton*, int);
-void printoutIntervals(UserButton *, int);
+void react_userButton_P1(UserButton*, int);
+void react_userButton_P2(UserButton*, int);
+void react_userButton(UserButton*, int);
+void reset_all_from_button(UserButton*, int);
+void claim_confrom_button(UserButton *, int);
+void clear_interval_history(UserButton*, int);
+int compare_interval_history(UserButton*, int);
+int tre_average(UserButton*, int);
+void printout_intervals(UserButton *, int);
 void checkPressAndHold(UserButton *self, int unused);
 
 

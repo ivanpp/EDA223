@@ -41,17 +41,17 @@ typedef struct
 
 extern ToneGenerator toneGenerator;
 
-void playTone(ToneGenerator *, int);
-int setFrequency(ToneGenerator *, int);
-int setPeriod(ToneGenerator *, int);
-int setVolume(ToneGenerator *, int);
-int adjustVolume(ToneGenerator *, int);
-int toggleAudio(ToneGenerator *, int);
-void blankTone(ToneGenerator *, int);
-void unblankTone(ToneGenerator *, int);
-void startToneGen(ToneGenerator *, int);
-void stopToneGen(ToneGenerator *, int);
-int toggleDeadlineTG(ToneGenerator *, int);
-void printVolumeInfo(ToneGenerator *, int);
+void play_tone(ToneGenerator *, int);
+int set_frequency(ToneGenerator *, int);
+int set_period(ToneGenerator *, int);
+int set_volume(ToneGenerator *, int);
+int adjust_volume(ToneGenerator *, int);
+int toggle_audio(ToneGenerator *, int);
+void blank_tone(ToneGenerator *, int);
+void unblank_tone(ToneGenerator *, int);
+void start_toneGen(ToneGenerator *, int);
+void stop_toneGen(ToneGenerator *, int);
+int toggle_deadline_toneGen(ToneGenerator *, int);
+void print_volume_info(ToneGenerator *, int);
 
 #endif

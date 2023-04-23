@@ -15,7 +15,7 @@ UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
-SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
+SysIO sio0 = initSysIO(SIO_PORT0, &userButton, react_userButton_P2);
 
 
 /* CAN MSG */
@@ -165,11 +165,11 @@ void reader(App *self, int c) {
         break;
     /* arrow-up: volume-up */
     case 0x1e:
-        SYNC(&toneGenerator, adjustVolume, 1);
+        SYNC(&toneGenerator, adjust_volume, 1);
         break;
     /* arrow-down: volume-down */
     case 0x1f:
-        SYNC(&toneGenerator, adjustVolume, -1);
+        SYNC(&toneGenerator, adjust_volume, -1);
         break;
     /* temp, for testing */
     case 'b':
@@ -367,7 +367,7 @@ void startApp(App *self, int arg) {
     SCI_INIT(&sci0);
     SIO_INIT(&sio0);
     SCI_WRITE(&sci0, "Hello from DRTS Group 15\n\n");
-    BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
+    BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, play_tone, /*unused*/0);
     // init network
     SYNC(&network, print_network, 0);
     SYNC(&network, search_network, 0);

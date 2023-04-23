@@ -4,7 +4,7 @@
 
 ToneGenerator toneGenerator = initToneGenerator();
 
-void playTone(ToneGenerator *self, int unused) { 
+void play_tone(ToneGenerator *self, int unused) { 
     int volatile * const p_reg = (int *) 0x4000741C;
     if (self->isStop)
         return;
@@ -23,13 +23,13 @@ void playTone(ToneGenerator *self, int unused) {
     if(true == self->isDeadlineEnabled) self->toneGenDeadline = TONE_GEN_DEADLINE;
     else self->toneGenDeadline = 0;
     /* periodic call, wi/wo ddl*/
-    SEND(USEC(self->period), USEC(self->toneGenDeadline), self, playTone, unused);
+    SEND(USEC(self->period), USEC(self->toneGenDeadline), self, play_tone, unused);
 }
 
 
 /* freq, period */
 // set freq and corresponding period
-int setFrequency(ToneGenerator *self, int frequency) {
+int set_frequency(ToneGenerator *self, int frequency) {
     // set freq
     if (frequency > MAX_FREQ) {
         self->toneFreq = MAX_FREQ;
@@ -44,7 +44,7 @@ int setFrequency(ToneGenerator *self, int frequency) {
 }
 
 // set period and corresponding freq
-int setPeriod(ToneGenerator *self, int period) {
+int set_period(ToneGenerator *self, int period) {
     // set period 
     int max_period, min_period;
     max_period = 5000000 / MIN_FREQ;
@@ -62,7 +62,7 @@ int setPeriod(ToneGenerator *self, int period) {
 
 
 /* volume [0, SAFE_VOLUME] */
-int setVolume(ToneGenerator *self, int volume) {
+int set_volume(ToneGenerator *self, int volume) {
     if (volume > SAFE_VOLUME) {
         self->volume = SAFE_VOLUME;
     } else if (volume < 1) {
@@ -73,18 +73,18 @@ int setVolume(ToneGenerator *self, int volume) {
     return self->volume;
 }
 
-int adjustVolume(ToneGenerator *self, int volume) {
+int adjust_volume(ToneGenerator *self, int volume) {
     int adjusted = self->volume + volume;
     int max = (((adjusted)>(0)) ? (adjusted) : (0));
     int min = (((max)<(SAFE_VOLUME)) ? (max) : (SAFE_VOLUME));
     self->volume = min;
-    printVolumeInfo(self, 0);
+    print_volume_info(self, 0);
     return self->volume;
 }
 
-int toggleAudio(ToneGenerator *self, int unused) {
+int toggle_audio(ToneGenerator *self, int unused) {
     self ->isMuted = self->isMuted ? 0 : 1;
-    printVolumeInfo(self, 0);
+    print_volume_info(self, 0);
     return self->volume;
 }
 
@@ -100,34 +100,34 @@ int unmuteAudio(ToneGenerator *self, int unused) {
 
 /* gap of silience */
 // small gap of silience between note, for better sound quality
-void blankTone(ToneGenerator *self, int unused) {
+void blank_tone(ToneGenerator *self, int unused) {
     self ->isBlank = 1;
 }
 
-void unblankTone(ToneGenerator *self, int unused) {
+void unblank_tone(ToneGenerator *self, int unused) {
     self ->isBlank = 0;
 }
 
 
 /* stop/start ToneGenerator from other object */
-void startToneGen(ToneGenerator *self, int unused) {
+void start_toneGen(ToneGenerator *self, int unused) {
     self->isStop = 0;
 }
 
-void stopToneGen(ToneGenerator *self, int unused) {
+void stop_toneGen(ToneGenerator *self, int unused) {
     self->isStop = 1;
 }
 
 
 /* deadline */
-int toggleDeadlineTG(ToneGenerator *self, int unused) {
+int toggle_deadline_toneGen(ToneGenerator *self, int unused) {
     self->isDeadlineEnabled = !self->isDeadlineEnabled;
     return self->isDeadlineEnabled;
 }
 
 
 /* Information */
-void printVolumeInfo(ToneGenerator *self, int unused){
+void print_volume_info(ToneGenerator *self, int unused){
     int muteStatus, volume, volPercentage;
     muteStatus = self->isMuted;
     volume = self->volume;

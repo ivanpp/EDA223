@@ -5,13 +5,13 @@
 
 
 // UserButton interruption for problem 1
-void reactUserButtonP1(UserButton *self, int unused){
+void react_userButton_P1(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
     if (currentStatus == PRESSED) 
     {
         if (app.mode == CONDUCTOR) 
         {
-            self->abortMessage = AFTER(SEC(2), self, reset_allfromButton, 0);
+            self->abortMessage = AFTER(SEC(2), self, reset_all_from_button, 0);
         }
         T_RESET(&self->timerPressRelease);
         SIO_TRIG(&sio0, RELEASED);
@@ -43,7 +43,7 @@ void reactUserButtonP1(UserButton *self, int unused){
 }
 
 
-void reactUserButtonP2(UserButton *self, int unused){
+void react_userButton_P2(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
     if (currentStatus == PRESSED) 
     {
@@ -53,7 +53,7 @@ void reactUserButtonP2(UserButton *self, int unused){
         T_RESET(&self->timerPressRelease);
         SIO_TRIG(&sio0, RELEASED);
         if (app.mode == MUSICIAN)
-            self->abortMessage = AFTER(SEC(5), self, claimConfromButton, 0);
+            self->abortMessage = AFTER(SEC(5), self, claim_confrom_button, 0);
     }
     else // release
     {
@@ -74,7 +74,7 @@ void reactUserButtonP2(UserButton *self, int unused){
 
 
 // UserButton interruption for EDA223
-void reactUserButton(UserButton *self, int unused){
+void react_userButton(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
     char releasedInfo [256] = {};
     char pressedInfo [64] = {};
@@ -94,18 +94,18 @@ void reactUserButton(UserButton *self, int unused){
             // comparable: no interval differs from another interval by 100 ms (that is strict...)
             //             also interval should no more than 366 ms
             if ((interval_msec > 366) && 0) { // LIMITATION 1
-                clearIntervalHistory(self, /*unused*/0);
+                clear_interval_history(self, /*unused*/0);
             } else if ((interval_msec < 100) || 0){
-                clearIntervalHistory(self, /*unused*/0);
+                clear_interval_history(self, /*unused*/0);
                 //SCI_WRITE(&sci0, "CLR for too large value\n");
-            } else if(compareIntervalHistory(self, interval_msec) || 0){ // LIMITATION 2
-                clearIntervalHistory(self, /*unused*/0);
+            } else if(compare_interval_history(self, interval_msec) || 0){ // LIMITATION 2
+                clear_interval_history(self, /*unused*/0);
                 //SCI_WRITE(&sci0, "CLR for interval diff\n");
             }else {
                 self->intervals[self->index % MAX_BURST] = interval_msec;
                 self->index = self->index + 1;
                 if (self->index >= MAX_BURST){
-                    interval_avg = treAverage(self, /*unused*/0);
+                    interval_avg = tre_average(self, /*unused*/0);
                     int tempo1 = 60 * 1000 / interval_avg;
                     int tempo = SYNC(&musicPlayer, set_tempo, tempo1);
                     //int tempo = SYNC(&musicPlayer, set_tempo, interval_avg);
@@ -116,7 +116,7 @@ void reactUserButton(UserButton *self, int unused){
                     SCI_WRITE(&sci0, pressedInfo);
                 }
             }
-            printoutIntervals(self, /*unused*/0);
+            printout_intervals(self, /*unused*/0);
             T_RESET(&self->timerLastPress);
             SIO_TRIG(&sio0, 1);
         } else {           //RELEASED
@@ -177,7 +177,7 @@ void reactUserButton(UserButton *self, int unused){
 
 
 /* UserButton utils */
-void clearIntervalHistory(UserButton *self, int unused){
+void clear_interval_history(UserButton *self, int unused){
     for (int i = 0; i < MAX_BURST; i++){
         self->intervals[i] = 0;
     }
@@ -193,7 +193,7 @@ void checkPressAndHold(UserButton *self, int unused){
 
 
 // problem 1: @CONDUCTOR
-void reset_allfromButton(UserButton *self, int unused){
+void reset_all_from_button(UserButton *self, int unused){
     SYNC(&musicPlayer, reset_all, 0);
     SCI_WRITE(&sci0, "[UserButton]: 2 s passed, reset key and tempo.\n");
     return;
@@ -201,7 +201,7 @@ void reset_allfromButton(UserButton *self, int unused){
 
 
 // problem 2: @MUSICIAN
-void claimConfromButton(UserButton *self, int unused){
+void claim_confrom_button(UserButton *self, int unused){
     SYNC(&network, claim_conductorship, 0);
     SCI_WRITE(&sci0, "[Userbutton]: 5 s passed, claim conductorship\n");
 }
@@ -209,7 +209,7 @@ void claimConfromButton(UserButton *self, int unused){
 
 // compare the interval with intervals already stored in self->intervals[]
 // return 1 if difference is greater than tolerance
-int compareIntervalHistory(UserButton *self, int interval){
+int compare_interval_history(UserButton *self, int interval){
     int tolerance = 100; // max diff 100 ms
     int diff, max_check;
     max_check = self->index > MAX_BURST ? MAX_BURST : self->index;
@@ -223,13 +223,13 @@ int compareIntervalHistory(UserButton *self, int interval){
 }
 
 
-int treAverage(UserButton *self, int unused){
+int tre_average(UserButton *self, int unused){
     int average = (self->intervals[0] + self->intervals[1] + self->intervals[2]) / 3;
     return average;
 }
 
 
-void printoutIntervals(UserButton *self, int unused){
+void printout_intervals(UserButton *self, int unused){
     char intervalsInfo [32] = {};
     snprintf(intervalsInfo, 32, "[%d, %d, %d], index: %d\n",
             self->intervals[0], self->intervals[1], self->intervals[2], self->index);
