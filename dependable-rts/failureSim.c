@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "failureMonitor.h"
+#include "failureSim.h"
 #include "systemPorts.h"
 #include "stm32f4xx_rng.h"
 
@@ -8,7 +8,7 @@
 #define CAN_PORT1   (CAN_TypeDef *)(CAN2)
 
 
-FailureMonitor failureMonitor = initFailureMonitor();
+FailureSim failureSim = initFailureSim();
 
 
 /* CAN */
@@ -25,21 +25,21 @@ void monitor_can_restore(Can *obj, int unused){
 
 /* Failure */
 
-void leave_failure_mode(FailureMonitor *self, int unused){
+void leave_failure_mode(FailureSim *self, int unused){
     SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
     self->failMode = 0;
     SYNC(&can0, monitor_can_restore, 0);
 }
 
 
-void enter_failure1(FailureMonitor *self, int unused){
+void enter_failure1(FailureSim *self, int unused){
     SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore mannually\n");
     self->failMode = 1;
     SYNC(&can0, monitor_can_failure, 0);
 }
 
 
-void enter_failure2(FailureMonitor *self, int unused){
+void enter_failure2(FailureSim *self, int unused){
     int delay = gen_rand_num(10, 30);
     char failInfo[64];
     snprintf(failInfo, 64, "[FM]: Mode F2, restore automatcially in %d s\n", delay);
@@ -50,13 +50,13 @@ void enter_failure2(FailureMonitor *self, int unused){
 }
 
 
-void enter_failure3(FailureMonitor *self, int unused){
+void enter_failure3(FailureSim *self, int unused){
     // unplugged your can cable
     // shoule be automatically restore if connect it again
 }
 
 
-void enter_failure_mode(FailureMonitor *self, int mode){
+void enter_failure_mode(FailureSim *self, int mode){
     switch (mode)
     {
     case 0:
@@ -88,6 +88,6 @@ int gen_rand_num(int min, int max){
 
 /* Information */
 
-void printFailureMonitorVerbose(FailureMonitor *self, int unused){
+void printFailureSimVerbose(FailureSim *self, int unused){
     // to implement
 }

@@ -8,26 +8,26 @@
 typedef struct{
     Object super;
     int failMode; // 0, 1, 2
-} FailureMonitor;
+} FailureSim;
 
-#define initFailureMonitor() { \
+#define initFailureSim() { \
     initObject(), \
     0, \
 }
 
-extern FailureMonitor failureMonitor;
+extern FailureSim failureSim;
 
 /* CAN */
 void monitor_can_failure(Can *obj, int unused);
 void monitor_can_restore(Can *obj, int unused);
 /* Failure */
-void enter_failure1(FailureMonitor *self, int unused);
-void enter_failure2(FailureMonitor *self, int unused);
-void enter_failure3(FailureMonitor *self, int unused);
-void enter_failure_mode(FailureMonitor *self, int mode);
+void enter_failure1(FailureSim *self, int unused);
+void enter_failure2(FailureSim *self, int unused);
+void enter_failure3(FailureSim *self, int unused);
+void enter_failure_mode(FailureSim *self, int mode);
 /* Utils */
 int gen_rand_num(int min, int max);
 /* Information */
-void printFailureMonitorVerbose(FailureMonitor *self, int unused);
+void printFailureSimVerbose(FailureSim *self, int unused);
 
 #endif

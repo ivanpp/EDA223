@@ -4,7 +4,7 @@
 #include "userButton.h"
 #include "network.h"
 #include "heartbeat.h"
-#include "failureMonitor.h"
+#include "failureSim.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -184,7 +184,7 @@ void reader(App *self, int c) {
     case 'f':
     case 'F':
         arg = parseValue(self, 0);
-        SYNC(&failureMonitor, enter_failure_mode, arg);
+        SYNC(&failureSim, enter_failure_mode, arg);
         break;
     default:
         break;
