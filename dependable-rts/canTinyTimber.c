@@ -172,7 +172,10 @@ int can_send(Can *self, CANMsg *msg){
 
 
 int can_send_with_retry(Can *obj, CANMsg *msg, int retry){
-    while(CAN_SEND(obj, msg) && retry)
-        retry--;
-    return 1;
+	int lastStatus = CAN_SEND(obj, msg);
+	while(retry && lastStatus){
+		lastStatus = CAN_SEND(obj, msg);
+		retry--;
+	}
+	return lastStatus;
 }

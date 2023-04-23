@@ -100,7 +100,7 @@ void claimConductorship(Network *self, int unused){
     SCI_WRITE(&sci0, "[NETWORK]: Try to claim my conductorship\n");
     CANMsg msg;
     constructCanMessage(&msg, CLAIM_CONDUCTORSHIP, BROADCAST, 0);
-    if (CAN_SEND(&can0, &msg)){
+    if (CAN_SEND_WRN(&can0, &msg, 2)){
         SCI_WRITE(&sci0, "[NETWORK]: reset lock because can fail\n");
         resetLock(self, unused);
     }
@@ -118,7 +118,7 @@ void handleClaimRequest(Network *self, int sender){
         SCI_WRITE(&sci0, lockInfo);
         constructCanMessage(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 0); // disagree
     }
-    CAN_SEND_WR(&can0, &msg); // >> handleAnswerClaim(answer)
+    CAN_SEND_WRN(&can0, &msg, 5); // >> handleAnswerClaim(answer)
 }
 
 
