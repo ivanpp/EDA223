@@ -33,7 +33,7 @@ typedef struct {
 void reactUserButtonP1(UserButton*, int);
 void reactUserButtonP2(UserButton*, int);
 void reactUserButton(UserButton*, int);
-void resetAllfromButton(UserButton*, int);
+void reset_allfromButton(UserButton*, int);
 void claimConfromButton(UserButton *, int);
 void clearIntervalHistory(UserButton*, int);
 int compareIntervalHistory(UserButton*, int);

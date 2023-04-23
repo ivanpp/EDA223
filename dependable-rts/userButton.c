@@ -11,7 +11,7 @@ void reactUserButtonP1(UserButton *self, int unused){
     {
         if (app.mode == CONDUCTOR) 
         {
-            self->abortMessage = AFTER(SEC(2), self, resetAllfromButton, 0);
+            self->abortMessage = AFTER(SEC(2), self, reset_allfromButton, 0);
         }
         T_RESET(&self->timerPressRelease);
         SIO_TRIG(&sio0, RELEASED);
@@ -30,7 +30,7 @@ void reactUserButtonP1(UserButton *self, int unused){
         }
         if (app.mode == MUSICIAN)
         {
-            SYNC(&musicPlayer, toggleMusic, 0);
+            SYNC(&musicPlayer, toggle_music, 0);
         }
         SIO_TRIG(&sio0, PRESSED);
 #ifdef DEBUG
@@ -107,8 +107,8 @@ void reactUserButton(UserButton *self, int unused){
                 if (self->index >= MAX_BURST){
                     interval_avg = treAverage(self, /*unused*/0);
                     int tempo1 = 60 * 1000 / interval_avg;
-                    int tempo = SYNC(&musicPlayer, setTempo, tempo1);
-                    //int tempo = SYNC(&musicPlayer, setTempo, interval_avg);
+                    int tempo = SYNC(&musicPlayer, set_tempo, tempo1);
+                    //int tempo = SYNC(&musicPlayer, set_tempo, interval_avg);
                     snprintf(pressedInfo, 64, "[UserButton]: Tempo set to %d, (attempt: %d)\n", 
                             tempo, tempo1);
                     //snprintf(pressedInfo, 64, "[UserButton]: Tempo set to %d, (attempt: %d)\n", 
@@ -129,7 +129,7 @@ void reactUserButton(UserButton *self, int unused){
             SIO_TRIG(&sio0, 0);
             // PRESS_MOMENTARY -> PRESS_AND_HOLD
             if (duration_msec > 1999){
-                int tempo = SYNC(&musicPlayer, setTempo, TEMPO_DEFAULT);
+                int tempo = SYNC(&musicPlayer, set_tempo, TEMPO_DEFAULT);
                 snprintf(releasedInfo, 64, "[UserButton]: Tempo reset to: %d)\n", tempo);
                 SCI_WRITE(&sci0, releasedInfo);
             }
@@ -193,8 +193,8 @@ void checkPressAndHold(UserButton *self, int unused){
 
 
 // problem 1: @CONDUCTOR
-void resetAllfromButton(UserButton *self, int unused){
-    SYNC(&musicPlayer, resetAll, 0);
+void reset_allfromButton(UserButton *self, int unused){
+    SYNC(&musicPlayer, reset_all, 0);
     SCI_WRITE(&sci0, "[UserButton]: 2 s passed, reset key and tempo.\n");
     return;
 }

@@ -86,22 +86,22 @@ void receiver(App *self, int unused) {
             break;
         /* MUSIC */
         case MUSIC_START_ALL:
-            SYNC(&musicPlayer, ensembleReady, arg);
+            SYNC(&musicPlayer, ensemble_ready, arg);
             break;
         case MUSIC_STOP_ALL:
-            SYNC(&musicPlayer, ensembleStop, arg);
+            SYNC(&musicPlayer, ensemble_stop, arg);
             break;
         case MUSIC_PLAY_NOTE_IDX:
-            SYNC(&musicPlayer, playIndexTone, arg);
+            SYNC(&musicPlayer, play_index_tone, arg);
             break;
         case MUSIC_SYNC_LED:
-            SYNC(&musicPlayer, LEDcontroller, arg);
+            SYNC(&musicPlayer, sync_LED, arg);
             break;
         case MUSIC_SET_KEY_ALL:
-            SYNC(&musicPlayer, setKey, arg);
+            SYNC(&musicPlayer, set_key, arg);
             break;
         case MUSIC_SET_TEMPO_ALL:
-            SYNC(&musicPlayer, setTempo, arg);
+            SYNC(&musicPlayer, set_tempo, arg);
             break;
         case TEST_COMPETE_CONDUCTOR:
             SYNC(&network, claim_conductorship, 0);
@@ -202,29 +202,29 @@ void reader(App *self, int c) {
         /* MUSIC */
         case 'a': // restart
         case 'A':
-            SYNC(&network, ensembleRestartAll, 0);
+            SYNC(&network, ensemble_restart_all, 0);
             break;
         case 's': // start
         case 'S':
-            SYNC(&musicPlayer, ensembleStartAll, 0);
+            SYNC(&musicPlayer, ensemble_start_all, 0);
             break;
         case 'd': // stop
         case 'D':
-            SYNC(&musicPlayer, ensembleStopAll, 0);
+            SYNC(&musicPlayer, ensemble_stop_all, 0);
             break;
         case 'k':
         case 'K': // key
             arg = parseValue(self, 0);
-            SYNC(&musicPlayer, setKeyAll, arg);
+            SYNC(&musicPlayer, set_key_all, arg);
             break;
         case 'j':
         case 'J': // tempo
             arg = parseValue(self, 0);
-            SYNC(&musicPlayer, setTempoAll, arg);
+            SYNC(&musicPlayer, set_tempo_all, arg);
             break;
         case 'r':
         case 'R': // reset: key, tempo
-            SYNC(&musicPlayer, resetAll, 0);
+            SYNC(&musicPlayer, reset_all, 0);
             break;
         case 'h':
         case 'H': // toggle heartbeat
@@ -250,7 +250,7 @@ void reader(App *self, int c) {
             break;
         case 't': // toggle mute
         case 'T':
-            SYNC(&musicPlayer, toggleMusic, 0);
+            SYNC(&musicPlayer, toggle_music, 0);
             break;
         /* Claim conductorship, ask others for vote */
         case 'c':
@@ -312,7 +312,7 @@ void print_verbose(App *self, int unused){
     //SCI_WRITE(&sci0, "\n");
     SYNC(&network, print_network_verbose, 0);
     //SCI_WRITE(&sci0, "\n");
-    SYNC(&musicPlayer, printMusicPlayerVerbose, 0);
+    SYNC(&musicPlayer, print_musicPlayer_verbose, 0);
     //SCI_WRITE(&sci0, "\n");
     SCI_WRITE(&sci0, "---------------------------------------------------\n");
 }

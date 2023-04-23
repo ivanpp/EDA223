@@ -9,7 +9,7 @@ MusicPlayer musicPlayer = initMusicPlayer();
 /* Single-player */
 
 // set Key
-int setKey(MusicPlayer *self, int key){
+int set_key(MusicPlayer *self, int key){
     key = key < KEY_MIN ? KEY_MIN : key;
     key = key > KEY_MAX ? KEY_MAX : key;
     self->key = key;
@@ -18,7 +18,7 @@ int setKey(MusicPlayer *self, int key){
 
 
 // set tempo (bpm) for 'a'
-int setTempo(MusicPlayer *self, int tempo){
+int set_tempo(MusicPlayer *self, int tempo){
     tempo = tempo < TEMPO_MIN ? TEMPO_MIN : tempo;
     tempo = tempo > TEMPO_MAX ? TEMPO_MAX : tempo;
     int beatMult = 30 * 1000 / tempo;
@@ -29,14 +29,14 @@ int setTempo(MusicPlayer *self, int tempo){
 
 
 // pause/unpause
-int musicPauseUnpause(MusicPlayer *self, int unused){
+int music_pause_unpause(MusicPlayer *self, int unused){
     // if music is stop
     if (self->hardStopped) {
         self->isStop = 0;
         self->hardStopped = 0;  
         SYNC(&toneGenerator, startToneGen, 0);
         SYNC(&toneGenerator, playTone, 0);
-        playMusic(self, 0);
+        play_music(self, 0);
     } else {
         self->isStop = 1;
         SYNC(&toneGenerator, stopToneGen, 0);
@@ -45,19 +45,19 @@ int musicPauseUnpause(MusicPlayer *self, int unused){
 }
 
 
-int musicUnpause(MusicPlayer *self, int unused){
+int music_unpause(MusicPlayer *self, int unused){
     if (self->hardStopped) {
         self->isStop = 0;
         self->hardStopped = 0;  
         SYNC(&toneGenerator, startToneGen, 0);
         SYNC(&toneGenerator, playTone, 0);
-        playMusic(self, 0);
+        play_music(self, 0);
     }
     return self->isStop;
 }
 
 
-int musicPause(MusicPlayer *self, int unused){
+int music_pause(MusicPlayer *self, int unused){
     if (!self->hardStopped) {
         self->isStop = 1;
         SYNC(&toneGenerator, stopToneGen, 0);
@@ -67,7 +67,7 @@ int musicPause(MusicPlayer *self, int unused){
 
 
 // stop/restart
-int musicStopStart(MusicPlayer *self, int unused){
+int music_stop_start(MusicPlayer *self, int unused){
     // if music is stop
     if (self->hardStopped) {
          // reset the index, start from the begining
@@ -76,7 +76,7 @@ int musicStopStart(MusicPlayer *self, int unused){
         SYNC(&toneGenerator, startToneGen, 0);
         self->index = 0;
         SYNC(&toneGenerator, playTone, 0);
-        playMusic(self, 0);
+        play_music(self, 0);
     } else{
         self->isStop = 1;
         SYNC(&toneGenerator, stopToneGen, 0);
@@ -86,20 +86,20 @@ int musicStopStart(MusicPlayer *self, int unused){
 }
 
 
-int musicStart(MusicPlayer *self, int unused){
+int music_start(MusicPlayer *self, int unused){
     if (self->hardStopped) {
         self->isStop = 0;
         self->hardStopped = 0;
         SYNC(&toneGenerator, startToneGen, 0);
         self->index = 0;
         SYNC(&toneGenerator, playTone, 0);
-        playMusic(self, 0);
+        play_music(self, 0);
     }
     return self->isStop;
 }
 
 
-int musicStop(MusicPlayer *self, int unused){
+int music_stop(MusicPlayer *self, int unused){
     if (!self->hardStopped){
         self->isStop = 1;
         SYNC(&toneGenerator, stopToneGen, 0);
@@ -110,7 +110,7 @@ int musicStop(MusicPlayer *self, int unused){
 
 
 // scheduler
-void playMusic(MusicPlayer *self, int unused){
+void play_music(MusicPlayer *self, int unused){
     // get next tone info
     if (self->isStop) {
         self->hardStopped = 1;
@@ -147,7 +147,7 @@ void playMusic(MusicPlayer *self, int unused){
     self->index++;
     self->index = self->index % MUSIC_LENGTH;
     // call it self?
-    AFTER(MSEC(beatLen), self, playMusic, 0);
+    AFTER(MSEC(beatLen), self, play_music, 0);
 }
 
 
@@ -156,7 +156,7 @@ void playMusic(MusicPlayer *self, int unused){
 // 1. set period
 // 2. unblank
 // 3. blank, send can msg to next node
-void playIndexTone(MusicPlayer *self, int idx){
+void play_index_tone(MusicPlayer *self, int idx){
     // check index first
     if (idx < 0 || idx > MUSIC_LENGTH - 1) {
         char debugInfo[32] = {};
@@ -174,34 +174,34 @@ void playIndexTone(MusicPlayer *self, int idx){
     SCI_WRITE(&sci0, debug);
 #endif
     if (app.mode == CONDUCTOR) 
-        LEDcontroller(self, idx);
+        sync_LED(self, idx);
     else {
         CANMsg msg;
         construct_can_message(&msg, MUSIC_SYNC_LED, network.conductorRank, idx);
-        CAN_SEND(&can0, &msg); // >> LEDcontroller(idx)
+        CAN_SEND(&can0, &msg); // >> sync_LED(idx)
     }
     ASYNC(&toneGenerator, setPeriod, period);
     AFTER(MSEC(50), &toneGenerator, unblankTone, 0);
     AFTER(MSEC(beatLen), &toneGenerator, blankTone, 0);
     // next tone
-    AFTER(MSEC(beatLen), self, playIndexToneNxt, idx);
+    AFTER(MSEC(beatLen), self, play_index_tone_next, idx);
 }
 
 
 // send idx (which note to play) to next node
-void playIndexToneNxt(MusicPlayer *self, int idx){
-    if(self->ensembleStop)
+void play_index_tone_next(MusicPlayer *self, int idx){
+    if(self->ensemble_stop)
         return;
     int nextTone, nextNode;
     nextTone = (idx + 1) % MUSIC_LENGTH;
     nextNode = SYNC(&network, get_next_node, 0);
     CANMsg msg;
     construct_can_message(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
-    CAN_SEND(&can0, &msg); // >> playIndexTone(idx++)
+    CAN_SEND(&can0, &msg); // >> play_index_tone(idx++)
 }
 
 
-void LEDcontroller(MusicPlayer *self, int idx){
+void sync_LED(MusicPlayer *self, int idx){
     idx = idx < 0 ? 0 : idx;
     idx = idx > (MUSIC_LENGTH - 1) ? (MUSIC_LENGTH - 1) : idx;
     int tempo = tempos[idx];
@@ -229,102 +229,102 @@ void LEDcontroller(MusicPlayer *self, int idx){
 }
 
 
-void ensembleReady(MusicPlayer *self, int unused){
+void ensemble_ready(MusicPlayer *self, int unused){
     // setup ToneGenerator, ready to play, then blank it
     SYNC(&toneGenerator, startToneGen, 0);
     SYNC(&toneGenerator, playTone, 0);
     SYNC(&toneGenerator, blankTone, 0);
     // ready to send can msg
-    self->ensembleStop = 0;
+    self->ensemble_stop = 0;
 }
 
 
-void ensembleStop(MusicPlayer *self, int unused){
+void ensemble_stop(MusicPlayer *self, int unused){
     SYNC(&toneGenerator, stopToneGen, 0);
-    self->ensembleStop = 1;
+    self->ensemble_stop = 1;
 }
 
 
 // CONDUCTOR: start playing music the round-robin way
-void ensembleStartAll(MusicPlayer *self, int unused){
+void ensemble_start_all(MusicPlayer *self, int unused){
     if(app.mode != CONDUCTOR){
         SCI_WRITE(&sci0, "[PLAYER ERR]: Ensemble can be only started by CONDUCTOR");
         return;
     }
     // TODO: maybe check LOOPBACK mode etc.
     // get ready
-    ensembleReady(self, 0);
+    ensemble_ready(self, 0);
     CANMsg msg;
     construct_can_message(&msg, MUSIC_START_ALL, BROADCAST, 0);
-    CAN_SEND(&can0, &msg); // >> ensembleReady()
+    CAN_SEND(&can0, &msg); // >> ensemble_ready()
     // sync tempo, key
-    setTempoAll(self, self->tempo);
-    setKeyAll(self, self->key);
+    set_tempo_all(self, self->tempo);
+    set_key_all(self, self->key);
     // start from first node
     int firstNode = network.nodes[0];
     if (firstNode == network.rank)
-        playIndexTone(self, 0);
+        play_index_tone(self, 0);
     else{
         CANMsg msg;
         construct_can_message(&msg, MUSIC_PLAY_NOTE_IDX, firstNode, 0);
-        CAN_SEND(&can0, &msg); // >> playIndexTone(0)
+        CAN_SEND(&can0, &msg); // >> play_index_tone(0)
     }
 }
 
 
 // CONDUCTOR: stop ensemble
-void ensembleStopAll(MusicPlayer *self, int unused){
+void ensemble_stop_all(MusicPlayer *self, int unused){
     CANMsg msg;
     construct_can_message(&msg, MUSIC_STOP_ALL, BROADCAST, 0);
-    CAN_SEND(&can0, &msg); // >> ensembleStop()
-    ensembleStop(self, 0);
+    CAN_SEND(&can0, &msg); // >> ensemble_stop()
+    ensemble_stop(self, 0);
 }
 
 
 // CONDUCTOR: restart ensemble
-void ensembleRestartAll(MusicPlayer *self, int unused){
-    ensembleStopAll(self, 0);
+void ensemble_restart_all(MusicPlayer *self, int unused){
+    ensemble_stop_all(self, 0);
     // FIXME: use elegant way
-    AFTER(SEC(1), &musicPlayer, ensembleStartAll, 0);
+    AFTER(SEC(1), &musicPlayer, ensemble_start_all, 0);
 }
 
 
 /* TODO the masked way*/
-void playMusicMasked(MusicPlayer *self, int unused){
+void play_music_masked(MusicPlayer *self, int unused){
     ;
 }
 
 
-int setKeyAll(MusicPlayer *self, int key){
-    key = setKey(self, key);
+int set_key_all(MusicPlayer *self, int key){
+    key = set_key(self, key);
     CANMsg msg;
     construct_can_message(&msg, MUSIC_SET_KEY_ALL, BROADCAST, key);
-    CAN_SEND(&can0, &msg); // >> setKey(key)
+    CAN_SEND(&can0, &msg); // >> set_key(key)
     return key;
 }
 
 
-int setTempoAll(MusicPlayer *self, int tempo){
-    tempo = setTempo(self, tempo);
+int set_tempo_all(MusicPlayer *self, int tempo){
+    tempo = set_tempo(self, tempo);
     CANMsg msg;
     construct_can_message(&msg, MUSIC_SET_TEMPO_ALL, BROADCAST, tempo);
-    CAN_SEND(&can0, &msg); // >> setTempo(tempo)
+    CAN_SEND(&can0, &msg); // >> set_tempo(tempo)
     return tempo;
 }
 
 
 // reset key, tempo for all boards
-void resetAll(MusicPlayer *self, int unused){
+void reset_all(MusicPlayer *self, int unused){
     if(app.mode == CONDUCTOR){
-        setTempoAll(self, TEMPO_DEFAULT);
-        setKeyAll(self, KEY_DEFAULT);
+        set_tempo_all(self, TEMPO_DEFAULT);
+        set_key_all(self, KEY_DEFAULT);
         SCI_WRITE(&sci0, "[PLAYER]: reset tempo and key\n");
     }else
-        SCI_WRITE(&sci0, "[PLAYER ERR]: resetAll only allowed by CONDUCTOR\n");
+        SCI_WRITE(&sci0, "[PLAYER ERR]: reset_all only allowed by CONDUCTOR\n");
 }
 
 
-int toggleMusic(MusicPlayer *self, int unused){
+int toggle_music(MusicPlayer *self, int unused){
     if(app.mode == MUSICIAN){
         SCI_WRITE(&sci0, "[PLAYER]: toggled\n");
         SYNC(&toneGenerator, toggleAudio, 0);
@@ -336,7 +336,7 @@ int toggleMusic(MusicPlayer *self, int unused){
         }
         return muteStatus;
     }else{
-        SCI_WRITE(&sci0, "[PLAYER ERR]: toggleMusic only allowed by MUSICIAN\n");
+        SCI_WRITE(&sci0, "[PLAYER ERR]: toggle_music only allowed by MUSICIAN\n");
         return -1;
     }
 }
@@ -344,7 +344,7 @@ int toggleMusic(MusicPlayer *self, int unused){
 
 /* Information */
 
-void printMusicPlayerVerbose(MusicPlayer *self, int unused){
+void print_musicPlayer_verbose(MusicPlayer *self, int unused){
     char musicPlayerInfo[256] = {};
     snprintf(musicPlayerInfo, 256,
              "--------------------MUSICPLAYER--------------------\n"

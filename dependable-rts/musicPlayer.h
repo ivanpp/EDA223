@@ -22,7 +22,7 @@ typedef struct{
     int beatMult; // ms
     int isStop; // be able to stop
     int hardStopped;
-    int ensembleStop;
+    int ensemble_stop;
 } MusicPlayer;
 
 #define initMusicPlayer() { \
@@ -33,7 +33,7 @@ typedef struct{
     /*beatMult*/ BEATMULT_DEFAULT, \
     /*SP: stop*/ 1, \
     /*SP: hardStop*/ 1, \
-    /*MP: ensembleStop*/ 1, \
+    /*MP: ensemble_stop*/ 1, \
 } 
 
 extern App app;
@@ -41,32 +41,32 @@ extern MusicPlayer musicPlayer;
 
 
 /* Single-player */
-int setKey(MusicPlayer *, int);
-int setTempo(MusicPlayer *, int);
-int musicPauseUnpause(MusicPlayer *, int);
-int musicPause(MusicPlayer *, int);
-int musicUnpause(MusicPlayer *, int);
-int musicStopStart(MusicPlayer *, int);
-int musicStop(MusicPlayer *, int);
-int musicStart(MusicPlayer *, int);
-void playMusic(MusicPlayer *, int);
+int set_key(MusicPlayer *, int);
+int set_tempo(MusicPlayer *, int);
+int music_pause_unpause(MusicPlayer *, int);
+int music_pause(MusicPlayer *, int);
+int music_unpause(MusicPlayer *, int);
+int music_stop_start(MusicPlayer *, int);
+int music_stop(MusicPlayer *, int);
+int music_start(MusicPlayer *, int);
+void play_music(MusicPlayer *, int);
 /* Multi-player */
-void playIndexTone(MusicPlayer *, int);
-void playIndexToneNxt(MusicPlayer *, int);
-void LEDcontroller(MusicPlayer *, int);
-void ensembleReady(MusicPlayer *, int);
-void ensembleStop(MusicPlayer *, int);
-void ensembleStartAll(MusicPlayer *, int);
-void ensembleStopAll(MusicPlayer *, int);
-void ensembleRestartAll(MusicPlayer *, int);
-void playMusicMasked(MusicPlayer *, int);
+void play_index_tone(MusicPlayer *, int);
+void play_index_tone_next(MusicPlayer *, int);
+void sync_LED(MusicPlayer *, int);
+void ensemble_ready(MusicPlayer *, int);
+void ensemble_stop(MusicPlayer *, int);
+void ensemble_start_all(MusicPlayer *, int);
+void ensemble_stop_all(MusicPlayer *, int);
+void ensemble_restart_all(MusicPlayer *, int);
+void play_music_masked(MusicPlayer *, int);
 /* MP: key, tempo, mute*/
-int setKeyAll(MusicPlayer *, int);
-int setTempoAll(MusicPlayer *, int);
-void resetAll(MusicPlayer *, int);
-int toggleMusic(MusicPlayer *, int);
+int set_key_all(MusicPlayer *, int);
+int set_tempo_all(MusicPlayer *, int);
+void reset_all(MusicPlayer *, int);
+int toggle_music(MusicPlayer *, int);
 /* Information */
-void printMusicPlayerVerbose(MusicPlayer *, int);
+void print_musicPlayer_verbose(MusicPlayer *, int);
 /* deprecated */
 void debugStopStatus(MusicPlayer *, int);
 
