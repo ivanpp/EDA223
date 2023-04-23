@@ -5,17 +5,17 @@ Network network = initNetwork(RANK);
 
 
 // search for existing network by broadcasting a CANMsg
-int searchNetwork(Network *self, int unused){
+int search_network(Network *self, int unused){
     SCI_WRITE(&sci0, "[NETWORK]: Searching other networks\n");
     CANMsg msg;
     constructCanMessage(&msg, SEARCH_NETWORK, BROADCAST, self->rank);
-    CAN_SEND_WR(&can0, &msg); // >> handleJoinRequest(sender)
+    CAN_SEND_WR(&can0, &msg); // >> handle_join_request(sender)
     return 0;
 }
 
 
 // to handle join request, with safety check
-void handleJoinRequest(Network *self, int sender){
+void handle_join_request(Network *self, int sender){
     if (self->numNodes == MAX_NODES){
         SCI_WRITE(&sci0, "[NETWORK]: MAX nodes in network already achieved\n");
         return;
@@ -38,18 +38,18 @@ void handleJoinRequest(Network *self, int sender){
             }
         }
         // confirm joining, force order
-        addNodeAscending(self, sender);
+        add_node_ascending(self, sender);
         // claim existence to sender too
-        claimExistence(self, sender);
+        claim_existence(self, sender);
         // print network
-        printNetwork(self, 0);
+        print_network(self, 0);
     }
 }
 
 
 // add a node into the network
 // NOTE: no safety check in this method, should be applied before calling
-void addNodeAscending(Network *self, int sender){
+void add_node_ascending(Network *self, int sender){
     char nodeInfo[32] = {};
     for(size_t i = self->numNodes; i > 0; i--){
         if (sender < self->nodes[i-1]){
@@ -57,6 +57,7 @@ void addNodeAscending(Network *self, int sender){
         }
         else{
             self->nodes[i] = sender;
+            self->nodeStatus[i] = NODE_ONLINE;
             self->numNodes++;
             snprintf(nodeInfo, 32, "[NETWORK]: node %d added\n", sender);
             SCI_WRITE(&sci0, nodeInfo);
@@ -64,6 +65,7 @@ void addNodeAscending(Network *self, int sender){
         }
     }
     self->nodes[0] = sender;
+    self->nodeStatus[0] = NODE_ONLINE;
     self->numNodes++;
     snprintf(nodeInfo, 32, "[NETWORK]: node %d added\n", sender);
     SCI_WRITE(&sci0, nodeInfo);
@@ -71,29 +73,29 @@ void addNodeAscending(Network *self, int sender){
 }
 
 
-void claimExistence(Network *self, int receiver){
+void claim_existence(Network *self, int receiver){
     SCI_WRITE(&sci0, "[NETWORK]: Try to claim my Existence\n");
     CANMsg msg;
     constructCanMessage(&msg, CLAIM_EXISTENCE, receiver, self->rank);
-    CAN_SEND_WR(&can0, &msg); // >> handleJoinRequest(sender)
+    CAN_SEND_WR(&can0, &msg); // >> handle_join_request(sender)
 }
 
 
 // sort the nodes of the network by rank, no need if we force the order
-int sortNetwork(Network *self, int unused){
+int sort_network(Network *self, int unused){
     return 0;
 }
 
 
 /* Conductorship */
 
-void claimConductorship(Network *self, int unused){
+void claim_conductorship(Network *self, int unused){
     if (self->conductorRank == self->rank){
         SCI_WRITE(&sci0, "[NETWORK]: Already have conductorship\n");
         return;
     }
 #ifdef CAN_LOOPBACK
-    obtainConductorship(self, 0);
+    obtain_conductorship(self, 0);
     return;
 #endif
     self->lock = self->rank; // lock self
@@ -102,12 +104,12 @@ void claimConductorship(Network *self, int unused){
     constructCanMessage(&msg, CLAIM_CONDUCTORSHIP, BROADCAST, 0);
     if (CAN_SEND_WRN(&can0, &msg, 2)){
         SCI_WRITE(&sci0, "[NETWORK]: reset lock because can fail\n");
-        resetLock(self, unused);
+        reset_lock(self, unused);
     }
 }
 
 
-void handleClaimRequest(Network *self, int sender){
+void handle_claim_request(Network *self, int sender){
     CANMsg msg;
     if(self->lock < sender){
         self->lock = sender; // lock acquired by conductor
@@ -118,14 +120,14 @@ void handleClaimRequest(Network *self, int sender){
         SCI_WRITE(&sci0, lockInfo);
         constructCanMessage(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 0); // disagree
     }
-    CAN_SEND_WRN(&can0, &msg, 5); // >> handleAnswerClaim(answer)
+    CAN_SEND_WRN(&can0, &msg, 5); // >> handle_answer_to_claim(answer)
 }
 
 
-void handleAnswerClaim(Network *self, int agree){
+void handle_answer_to_claim(Network *self, int agree){
     if(agree){
         if(self->vote == self->numNodes - 1){ // all other agree
-            obtainConductorship(self, 0);
+            obtain_conductorship(self, 0);
         }else
             self->vote++;
     } else{ // disagree
@@ -136,23 +138,23 @@ void handleAnswerClaim(Network *self, int agree){
 
 
 // notify all other boards about the conductorship change
-void obtainConductorship(Network *self, int unused){
+void obtain_conductorship(Network *self, int unused){
     if(self->lock != self->rank){
         // (◣_◢)
         SCI_WRITE(&sci0, "[NETWORK]: Claim failed at last step, locked by higher\n");
-        resetLock(self, 0);
+        reset_lock(self, 0);
     }
     CANMsg msg;
     constructCanMessage(&msg, OBT_CONDUCTORSHIP, BROADCAST, 0);
     CAN_SEND(&can0, &msg);
     self->conductorRank = self->rank;
-    resetLock(self, 0);
+    reset_lock(self, 0);
     ASYNC(&app, toConductor, 0);
     SCI_WRITE(&sci0, "[NETWORK]: Claimed Conductorship\n");
 }
 
 
-void changeConductor(Network *self, int conductor){
+void change_conductor(Network *self, int conductor){
 #ifdef CAN_LOOPBACK
     if (self->conductorRank == self->rank)
         return;
@@ -169,7 +171,7 @@ void changeConductor(Network *self, int conductor){
 /* Lock */
 
 // reset the lock, used when fail to get the conductorship
-void resetLock(Network *self, int unused){
+void reset_lock(Network *self, int unused){
     self->lock = 0;
     self->vote = 1;
 }
@@ -178,7 +180,7 @@ void resetLock(Network *self, int unused){
 /* Utils */
 
 // get the index of node based on its rank
-int getNodeIndex(Network *self, int rank){
+int get_node_index(Network *self, int rank){
     for (size_t i = 0; i < self->numNodes; i++){
         if (self->nodes[i] == rank)
             return i;
@@ -197,9 +199,10 @@ int getNodeByIndex(Network *self, int idx){
     return self->nodes[idx];
 }
 
-int getNextNode(Network *self, int unused){
+
+int get_next_node(Network *self, int unused){
     int idx, next;
-    idx = getNodeIndex(self, self->rank);
+    idx = get_node_index(self, self->rank);
     next = (idx + 1) % self->numNodes;
     return self->nodes[next];
 }
@@ -217,11 +220,11 @@ void voteConductorMaxRank(Network *self, int unused){
 /* Information */
 
 // print network information, should be called whenever network changes
-void printNetwork(Network *self, int unused){
+void print_network(Network *self, int unused){
     char networkInfo[64];
     snprintf(networkInfo, 64, "Network(%d):\n", self->numNodes);
     SCI_WRITE(&sci0, networkInfo);
-    for(size_t i = 0; i < 8; i++){
+    for(size_t i = 0; i < self->numNodes; i++){
         snprintf(networkInfo, 64, "| %d ", self->nodes[i]);
         SCI_WRITE(&sci0, networkInfo);
     }
@@ -229,7 +232,19 @@ void printNetwork(Network *self, int unused){
 }
 
 
-void printNetworkVerbose(Network *self, int unused){
+void print_membership(Network *self, int unused){
+    char networkInfo[64];
+    snprintf(networkInfo, 64, "Membership(%d):\n", self->numNodes);
+    SCI_WRITE(&sci0, networkInfo);
+    for(size_t i = 0; i < self->numNodes; i++){
+        snprintf(networkInfo, 64, "| %d ", self->nodeStatus[i]);
+        SCI_WRITE(&sci0, networkInfo);
+    }
+    SCI_WRITE(&sci0, "|\n");
+}
+
+
+void print_network_verbose(Network *self, int unused){
     char networkInfo[256] = {};
     snprintf(networkInfo, 256,
              "----------------------NETWORK----------------------\n"
@@ -237,22 +252,23 @@ void printNetworkVerbose(Network *self, int unused){
              "lock: %d,  vote: %d\n",
              self->rank, self->conductorRank, self->lock, self->vote);
     SCI_WRITE(&sci0, networkInfo);
-    printNetwork(self, 0);
+    print_network(self, 0);
+    print_membership(self, 0);
     //SCI_WRITE(&sci0, "----------------------NETWORK----------------------\n");
 }
 
 
 /* Testing */
 
-void testCompeteConductor(Network *self, int unused){
+void test_compete_conductor(Network *self, int unused){
     CANMsg msg;
     constructCanMessage(&msg, TEST_COMPETE_CONDUCTOR, BROADCAST, 0);
-    CAN_SEND(&can0, &msg); // >> claimConductorship()
-    claimConductorship(self, unused);
+    CAN_SEND(&can0, &msg); // >> claim_conductorship()
+    claim_conductorship(self, unused);
 }
 
 
-void testResetCondutor(Network *self, int unused){
+void test_reset_condutor(Network *self, int unused){
     self->lock = 0;
     self->conductorRank = 0;
     self->vote = 1;

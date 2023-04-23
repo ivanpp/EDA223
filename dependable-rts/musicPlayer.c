@@ -194,7 +194,7 @@ void playIndexToneNxt(MusicPlayer *self, int idx){
         return;
     int nextTone, nextNode;
     nextTone = (idx + 1) % MUSIC_LENGTH;
-    nextNode = SYNC(&network, getNextNode, 0);
+    nextNode = SYNC(&network, get_next_node, 0);
     CANMsg msg;
     constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
     CAN_SEND(&can0, &msg); // >> playIndexTone(idx++)

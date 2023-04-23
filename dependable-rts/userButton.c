@@ -202,7 +202,7 @@ void resetAllfromButton(UserButton *self, int unused){
 
 // problem 2: @MUSICIAN
 void claimConfromButton(UserButton *self, int unused){
-    SYNC(&network, claimConductorship, 0);
+    SYNC(&network, claim_conductorship, 0);
     SCI_WRITE(&sci0, "[Userbutton]: 5 s passed, claim conductorship\n");
 }
 

@@ -69,20 +69,20 @@ void receiver(App *self, int unused) {
     {
         /* NETWORK */
         case SEARCH_NETWORK:
-            SYNC(&network, handleJoinRequest, sender);
+            SYNC(&network, handle_join_request, sender);
             break;
         case CLAIM_EXISTENCE:
             // TODO: maybe a new method, to reduce communication
-            SYNC(&network, handleJoinRequest, sender);
+            SYNC(&network, handle_join_request, sender);
             break;
         case CLAIM_CONDUCTORSHIP:
-            SYNC(&network, handleClaimRequest, sender);
+            SYNC(&network, handle_claim_request, sender);
             break;
         case ANSWER_CLAIM_CONDUCTOR:
-            SYNC(&network, handleAnswerClaim, arg);
+            SYNC(&network, handle_answer_to_claim, arg);
             break;
         case OBT_CONDUCTORSHIP:
-            SYNC(&network, changeConductor, sender);
+            SYNC(&network, change_conductor, sender);
             break;
         /* MUSIC */
         case MUSIC_START_ALL:
@@ -104,7 +104,7 @@ void receiver(App *self, int unused) {
             SYNC(&musicPlayer, setTempo, arg);
             break;
         case TEST_COMPETE_CONDUCTOR:
-            SYNC(&network, claimConductorship, 0);
+            SYNC(&network, claim_conductorship, 0);
             break;
         default:;
             break;
@@ -156,12 +156,12 @@ void reader(App *self, int c) {
     /* Get conductorship, brutely, like KIM */
     case 'x':
     case 'X':
-        SYNC(&network, obtainConductorship, 0);
+        SYNC(&network, obtain_conductorship, 0);
         break;
     /* manually trigger searching of network */
     case 'z':
     case 'Z':
-        SYNC(&network, searchNetwork, 0);
+        SYNC(&network, search_network, 0);
         break;
     /* arrow-up: volume-up */
     case 0x1e:
@@ -174,11 +174,11 @@ void reader(App *self, int c) {
     /* temp, for testing */
     case 'b':
     case 'B':
-        SYNC(&network, testCompeteConductor, 0);
+        SYNC(&network, test_compete_conductor, 0);
         break;
     case 'n':
     case 'N':
-        SYNC(&network, testResetCondutor, 0);
+        SYNC(&network, test_reset_condutor, 0);
         toMusician(self, 0);
         break;
     case 'f':
@@ -255,7 +255,7 @@ void reader(App *self, int c) {
         /* Claim conductorship, ask others for vote */
         case 'c':
         case 'C': // problem 2
-            SYNC(&network, claimConductorship, 0);
+            SYNC(&network, claim_conductorship, 0);
             break;
         case 'h':
         case 'H':
@@ -310,7 +310,7 @@ void printAppVerbose(App *self, int unused){
 void printVerbose(App *self, int unused){
     printAppVerbose(self, 0);
     //SCI_WRITE(&sci0, "\n");
-    SYNC(&network, printNetworkVerbose, 0);
+    SYNC(&network, print_network_verbose, 0);
     //SCI_WRITE(&sci0, "\n");
     SYNC(&musicPlayer, printMusicPlayerVerbose, 0);
     //SCI_WRITE(&sci0, "\n");
@@ -369,8 +369,8 @@ void startApp(App *self, int arg) {
     SCI_WRITE(&sci0, "Hello from DRTS Group 15\n\n");
     BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
     // init network
-    SYNC(&network, printNetwork, 0);
-    SYNC(&network, searchNetwork, 0);
+    SYNC(&network, print_network, 0);
+    SYNC(&network, search_network, 0);
 }
 
 

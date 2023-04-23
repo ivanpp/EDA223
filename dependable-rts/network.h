@@ -11,12 +11,15 @@
     #define RANK 1
 #endif
 #define NO_CONDUCTOR 0
+#define NODE_ONLINE 0
+#define NODE_OFFLINE 1
 
 typedef struct{
     Object super;
     const int rank; // my rank
     int numNodes;
     int nodes[MAX_NODES];
+    int nodeStatus[MAX_NODES];
     int conductorRank;
     int lock;
     int vote;
@@ -27,6 +30,7 @@ typedef struct{
     rank, \
     1, \
     {rank}, \
+    {NODE_ONLINE}, \
     NO_CONDUCTOR, \
     0, \
     1, \
@@ -34,27 +38,28 @@ typedef struct{
 
 extern Network network;
 
-void claimExistence(Network*, int);
-int searchNetwork(Network*, int);
-void handleJoinRequest(Network*, int);
-void addNodeAscending(Network*, int);
-int sortNetwork(Network*, int);
+void claim_existence(Network*, int);
+int search_network(Network*, int);
+void handle_join_request(Network*, int);
+void add_node_ascending(Network*, int);
+int sort_network(Network*, int);
 /* Conductorship */
-void claimConductorship(Network*, int);
-void handleClaimRequest(Network*, int);
-void handleAnswerClaim(Network*, int);
-void obtainConductorship(Network*, int);
-void changeConductor(Network *, int);
+void claim_conductorship(Network*, int);
+void handle_claim_request(Network*, int);
+void handle_answer_to_claim(Network*, int);
+void obtain_conductorship(Network*, int);
+void change_conductor(Network *, int);
 /* Lock */
-void resetLock(Network *, int);
+void reset_lock(Network *, int);
 /* Utils */
-int getNodeIndex(Network *, int);
-int getNextNode(Network *, int);
+int get_node_index(Network *, int);
+int get_next_node(Network *, int);
 /* Information */
-void printNetwork(Network*, int);
-void printNetworkVerbose(Network *, int);
+void print_network(Network*, int);
+void print_membership(Network *, int);
+void print_network_verbose(Network *, int);
 /* Testing */
-void testCompeteConductor(Network *, int);
-void testResetCondutor(Network *, int);
+void test_compete_conductor(Network *, int);
+void test_reset_condutor(Network *, int);
 
 #endif
