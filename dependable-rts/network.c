@@ -8,7 +8,7 @@ Network network = initNetwork(RANK);
 int search_network(Network *self, int unused){
     SCI_WRITE(&sci0, "[NETWORK]: Searching other networks\n");
     CANMsg msg;
-    constructCanMessage(&msg, SEARCH_NETWORK, BROADCAST, self->rank);
+    construct_can_message(&msg, SEARCH_NETWORK, BROADCAST, self->rank);
     CAN_SEND_WR(&can0, &msg); // >> handle_join_request(sender)
     return 0;
 }
@@ -76,7 +76,7 @@ void add_node_ascending(Network *self, int sender){
 void claim_existence(Network *self, int receiver){
     SCI_WRITE(&sci0, "[NETWORK]: Try to claim my Existence\n");
     CANMsg msg;
-    constructCanMessage(&msg, CLAIM_EXISTENCE, receiver, self->rank);
+    construct_can_message(&msg, CLAIM_EXISTENCE, receiver, self->rank);
     CAN_SEND_WR(&can0, &msg); // >> handle_join_request(sender)
 }
 
@@ -101,7 +101,7 @@ void claim_conductorship(Network *self, int unused){
     self->lock = self->rank; // lock self
     SCI_WRITE(&sci0, "[NETWORK]: Try to claim my conductorship\n");
     CANMsg msg;
-    constructCanMessage(&msg, CLAIM_CONDUCTORSHIP, BROADCAST, 0);
+    construct_can_message(&msg, CLAIM_CONDUCTORSHIP, BROADCAST, 0);
     if (CAN_SEND_WRN(&can0, &msg, 2)){
         SCI_WRITE(&sci0, "[NETWORK]: reset lock because can fail\n");
         reset_lock(self, unused);
@@ -113,12 +113,12 @@ void handle_claim_request(Network *self, int sender){
     CANMsg msg;
     if(self->lock < sender){
         self->lock = sender; // lock acquired by conductor
-        constructCanMessage(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 1); // agree
+        construct_can_message(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 1); // agree
     } else {
         char lockInfo[64];
         snprintf(lockInfo, 64, "[LOCK]: My lock is already acquired by: %d\n", self->lock);
         SCI_WRITE(&sci0, lockInfo);
-        constructCanMessage(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 0); // disagree
+        construct_can_message(&msg, ANSWER_CLAIM_CONDUCTOR, sender, 0); // disagree
     }
     CAN_SEND_WRN(&can0, &msg, 5); // >> handle_answer_to_claim(answer)
 }
@@ -145,11 +145,11 @@ void obtain_conductorship(Network *self, int unused){
         reset_lock(self, 0);
     }
     CANMsg msg;
-    constructCanMessage(&msg, OBT_CONDUCTORSHIP, BROADCAST, 0);
+    construct_can_message(&msg, OBT_CONDUCTORSHIP, BROADCAST, 0);
     CAN_SEND(&can0, &msg);
     self->conductorRank = self->rank;
     reset_lock(self, 0);
-    ASYNC(&app, toConductor, 0);
+    ASYNC(&app, to_conductor, 0);
     SCI_WRITE(&sci0, "[NETWORK]: Claimed Conductorship\n");
 }
 
@@ -164,7 +164,7 @@ void change_conductor(Network *self, int conductor){
     }
     self->conductorRank = conductor;
     self->lock = 0;
-    ASYNC(&app, toMusician, 0);
+    ASYNC(&app, to_musician, 0);
 }
 
 
@@ -262,7 +262,7 @@ void print_network_verbose(Network *self, int unused){
 
 void test_compete_conductor(Network *self, int unused){
     CANMsg msg;
-    constructCanMessage(&msg, TEST_COMPETE_CONDUCTOR, BROADCAST, 0);
+    construct_can_message(&msg, TEST_COMPETE_CONDUCTOR, BROADCAST, 0);
     CAN_SEND(&can0, &msg); // >> claim_conductorship()
     claim_conductorship(self, unused);
 }

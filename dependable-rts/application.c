@@ -19,7 +19,7 @@ SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
 
 
 /* CAN MSG */
-void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
+void construct_can_message(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
     // Construct a CAN message of length 7: ['OP'|'RE'|'ARG'(4)|'ENDING']
     // msgId, if needed
     msg->nodeId = network.rank;
@@ -151,7 +151,7 @@ void reader(App *self, int c) {
     /* verbose info */
     case 'v':
     case 'V':
-        printVerbose(self, 0);
+        print_verbose(self, 0);
         break;
     /* Get conductorship, brutely, like KIM */
     case 'x':
@@ -179,7 +179,7 @@ void reader(App *self, int c) {
     case 'n':
     case 'N':
         SYNC(&network, test_reset_condutor, 0);
-        toMusician(self, 0);
+        to_musician(self, 0);
         break;
     case 'f':
     case 'F':
@@ -195,7 +195,7 @@ void reader(App *self, int c) {
         {
         /* display helper */
         case '\n':;
-            helperConductor(self, 0);
+            helper_conductor(self, 0);
             break;
         case '\r':
             break;
@@ -244,7 +244,7 @@ void reader(App *self, int c) {
         {
         /* display helper */
         case '\n':;
-            helperMusician(self, 0);
+            helper_musician(self, 0);
             break;
         case '\r':
             break;
@@ -273,7 +273,7 @@ void reader(App *self, int c) {
 }
 
 
-void toMusician(App *self, int unused){
+void to_musician(App *self, int unused){
     if (network.conductorRank == network.rank){
         SCI_WRITE(&sci0, "WARN: illegal musician change\n");
     }
@@ -288,7 +288,7 @@ void toMusician(App *self, int unused){
 }
 
 
-void toConductor(App *self, int unused){
+void to_conductor(App *self, int unused){
     if (network.conductorRank != network.rank){
         SCI_WRITE(&sci0, "WARN: illegal condcutor change\n");
     }
@@ -297,7 +297,7 @@ void toConductor(App *self, int unused){
 
 
 /* Information */
-void printAppVerbose(App *self, int unused){
+void print_app_verbose(App *self, int unused){
     SCI_WRITE(&sci0, "------------------------App------------------------\n");
     if(self->mode == MUSICIAN)
         SCI_WRITE(&sci0, "Mode: MUSICIAN\n");
@@ -307,8 +307,8 @@ void printAppVerbose(App *self, int unused){
 }
 
 
-void printVerbose(App *self, int unused){
-    printAppVerbose(self, 0);
+void print_verbose(App *self, int unused){
+    print_app_verbose(self, 0);
     //SCI_WRITE(&sci0, "\n");
     SYNC(&network, print_network_verbose, 0);
     //SCI_WRITE(&sci0, "\n");
@@ -318,7 +318,7 @@ void printVerbose(App *self, int unused){
 }
 
 
-void helperConductor(App *self, int unused){
+void helper_conductor(App *self, int unused){
     char helper [768];
     snprintf(helper, 768, 
             "--------------------MUSICPLAYER--------------------\n"
@@ -342,7 +342,7 @@ void helperConductor(App *self, int unused){
 }
 
 
-void helperMusician(App *self, int unused){
+void helper_musician(App *self, int unused){
     char helper [512];
     snprintf(helper, 512, 
             "--------------------MUSICPLAYER--------------------\n"

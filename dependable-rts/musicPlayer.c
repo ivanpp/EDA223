@@ -177,7 +177,7 @@ void playIndexTone(MusicPlayer *self, int idx){
         LEDcontroller(self, idx);
     else {
         CANMsg msg;
-        constructCanMessage(&msg, MUSIC_SYNC_LED, network.conductorRank, idx);
+        construct_can_message(&msg, MUSIC_SYNC_LED, network.conductorRank, idx);
         CAN_SEND(&can0, &msg); // >> LEDcontroller(idx)
     }
     ASYNC(&toneGenerator, setPeriod, period);
@@ -196,7 +196,7 @@ void playIndexToneNxt(MusicPlayer *self, int idx){
     nextTone = (idx + 1) % MUSIC_LENGTH;
     nextNode = SYNC(&network, get_next_node, 0);
     CANMsg msg;
-    constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
+    construct_can_message(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
     CAN_SEND(&can0, &msg); // >> playIndexTone(idx++)
 }
 
@@ -255,7 +255,7 @@ void ensembleStartAll(MusicPlayer *self, int unused){
     // get ready
     ensembleReady(self, 0);
     CANMsg msg;
-    constructCanMessage(&msg, MUSIC_START_ALL, BROADCAST, 0);
+    construct_can_message(&msg, MUSIC_START_ALL, BROADCAST, 0);
     CAN_SEND(&can0, &msg); // >> ensembleReady()
     // sync tempo, key
     setTempoAll(self, self->tempo);
@@ -266,7 +266,7 @@ void ensembleStartAll(MusicPlayer *self, int unused){
         playIndexTone(self, 0);
     else{
         CANMsg msg;
-        constructCanMessage(&msg, MUSIC_PLAY_NOTE_IDX, firstNode, 0);
+        construct_can_message(&msg, MUSIC_PLAY_NOTE_IDX, firstNode, 0);
         CAN_SEND(&can0, &msg); // >> playIndexTone(0)
     }
 }
@@ -275,7 +275,7 @@ void ensembleStartAll(MusicPlayer *self, int unused){
 // CONDUCTOR: stop ensemble
 void ensembleStopAll(MusicPlayer *self, int unused){
     CANMsg msg;
-    constructCanMessage(&msg, MUSIC_STOP_ALL, BROADCAST, 0);
+    construct_can_message(&msg, MUSIC_STOP_ALL, BROADCAST, 0);
     CAN_SEND(&can0, &msg); // >> ensembleStop()
     ensembleStop(self, 0);
 }
@@ -298,7 +298,7 @@ void playMusicMasked(MusicPlayer *self, int unused){
 int setKeyAll(MusicPlayer *self, int key){
     key = setKey(self, key);
     CANMsg msg;
-    constructCanMessage(&msg, MUSIC_SET_KEY_ALL, BROADCAST, key);
+    construct_can_message(&msg, MUSIC_SET_KEY_ALL, BROADCAST, key);
     CAN_SEND(&can0, &msg); // >> setKey(key)
     return key;
 }
@@ -307,7 +307,7 @@ int setKeyAll(MusicPlayer *self, int key){
 int setTempoAll(MusicPlayer *self, int tempo){
     tempo = setTempo(self, tempo);
     CANMsg msg;
-    constructCanMessage(&msg, MUSIC_SET_TEMPO_ALL, BROADCAST, tempo);
+    construct_can_message(&msg, MUSIC_SET_TEMPO_ALL, BROADCAST, tempo);
     CAN_SEND(&can0, &msg); // >> setTempo(tempo)
     return tempo;
 }

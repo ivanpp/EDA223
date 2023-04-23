@@ -71,12 +71,12 @@ typedef enum {
 
 void reader(App*, int);
 void receiver(App*, int);
-void toMusician(App*, int);
-void toConductor(App*, int);
-void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg);
-void printAppVerbose(App *, int);
-void printVerbose(App *, int);
-void helperConductor(App *, int);
-void helperMusician(App *, int);
+void to_musician(App*, int);
+void to_conductor(App*, int);
+void construct_can_message(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg);
+void print_app_verbose(App *, int);
+void print_verbose(App *, int);
+void helper_conductor(App *, int);
+void helper_musician(App *, int);
 
 #endif
