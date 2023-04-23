@@ -30,14 +30,14 @@ struct Heartbeat{
     func, \
 }
 
-void heartbeatConductor(Heartbeat *, int);
-void heartbeatMusician(Heartbeat *, int);
-void enableHeartbeat(Heartbeat *, int);
-void disableHeartbeat(Heartbeat *, int);
-int toggleHeartbeat(Heartbeat *, int);
-int setHeartbeatPeriod(Heartbeat *, int);
-int setHeartbeatDeadline(Heartbeat *, int);
-void printHeartbeatInfo(Heartbeat *, int);
+void heartbeat_conductor(Heartbeat *, int);
+void heartbeat_musician(Heartbeat *, int);
+void enable_heartbeat(Heartbeat *, int);
+void disable_heartbeat(Heartbeat *, int);
+int toggle_heartbeat(Heartbeat *, int);
+int set_heartbeat_period(Heartbeat *, int);
+int set_heartbeat_deadline(Heartbeat *, int);
+void print_heartbeat_info(Heartbeat *, int);
 
 extern Heartbeat heartbeatCon;
 extern Heartbeat heartbeatMus;

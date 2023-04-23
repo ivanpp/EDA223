@@ -4,11 +4,11 @@
 #include "toneGenerator.h"
 
 
-Heartbeat heartbeatCon = initHeartbeat(CONDUCTOR, heartbeatConductor);
-Heartbeat heartbeatMus = initHeartbeat(MUSICIAN, heartbeatMusician);
+Heartbeat heartbeatCon = initHeartbeat(CONDUCTOR, heartbeat_conductor);
+Heartbeat heartbeatMus = initHeartbeat(MUSICIAN, heartbeat_musician);
 
 
-void heartbeatConductor(Heartbeat *self, int unused){
+void heartbeat_conductor(Heartbeat *self, int unused){
     if(!self->enable) 
         return;
     if(app.mode == self->mode){
@@ -19,11 +19,11 @@ void heartbeatConductor(Heartbeat *self, int unused){
         self->enable = 0;
         return;
     }
-    SEND(self->periodicity, self->deadline, self, heartbeatConductor, unused);
+    SEND(self->periodicity, self->deadline, self, heartbeat_conductor, unused);
 }
 
 
-void heartbeatMusician(Heartbeat *self, int unused){
+void heartbeat_musician(Heartbeat *self, int unused){
     if(!self->enable)
         return;
     if(app.mode == self->mode){
@@ -38,50 +38,50 @@ void heartbeatMusician(Heartbeat *self, int unused){
         self->enable = 0;
         return;
     }
-    SEND(self->periodicity, self->deadline, self, heartbeatMusician, unused);
+    SEND(self->periodicity, self->deadline, self, heartbeat_musician, unused);
 }
 
 
-void enableHeartbeat(Heartbeat *self, int unused){
+void enable_heartbeat(Heartbeat *self, int unused){
     self->enable = 1;
     self->heartbeatFunc(self, 0);
 }
 
 
-void disableHeartbeat(Heartbeat *self, int unused){
+void disable_heartbeat(Heartbeat *self, int unused){
     self->enable = 0;
 }
 
 
-int toggleHeartbeat(Heartbeat *self, int unused){
+int toggle_heartbeat(Heartbeat *self, int unused){
     if(!self->enable)
-        enableHeartbeat(self, unused);
+        enable_heartbeat(self, unused);
     else
-        disableHeartbeat(self, unused);
-    printHeartbeatInfo(self, unused);
+        disable_heartbeat(self, unused);
+    print_heartbeat_info(self, unused);
     return self->enable;
 }
 
 
-int setHeartbeatPeriod(Heartbeat *self, int val){
+int set_heartbeat_period(Heartbeat *self, int val){
     val = val < self->deadline ? self->deadline : val;
     val = val > MAX_HEARTBEAT_PERIOD ? MAX_HEARTBEAT_PERIOD : val;
     self->periodicity = SEC(val);
-    printHeartbeatInfo(self, 0);
+    print_heartbeat_info(self, 0);
     return val;
 }
 
 
-int setHeartbeatDeadline(Heartbeat *self, int val){
+int set_heartbeat_deadline(Heartbeat *self, int val){
     val = val < 0 ? 0 : val;
     val = val > MAX_HEARTBEAT_DEADLINE ? MAX_HEARTBEAT_DEADLINE : val;
     self->deadline = SEC(val);
-    printHeartbeatInfo(self, 0);
+    print_heartbeat_info(self, 0);
     return val;
 }
 
 
-void printHeartbeatInfo(Heartbeat *self, int unused){
+void print_heartbeat_info(Heartbeat *self, int unused){
     int status = self->enable;
     if(status){
         char heartbeatInfo[64];

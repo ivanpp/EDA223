@@ -228,12 +228,12 @@ void reader(App *self, int c) {
             break;
         case 'h':
         case 'H': // toggle heartbeat
-            SYNC(&heartbeatCon, toggleHeartbeat, 0);
+            SYNC(&heartbeatCon, toggle_heartbeat, 0);
             break;
         case 'g':
         case 'G': // set heartbeat period (s)
             arg = parseValue(self, 0);
-            SYNC(&heartbeatCon, setHeartbeatPeriod, arg);
+            SYNC(&heartbeatCon, set_heartbeat_period, arg);
             break;
         default:
             break;
@@ -259,12 +259,12 @@ void reader(App *self, int c) {
             break;
         case 'h':
         case 'H':
-            SYNC(&heartbeatMus, toggleHeartbeat, 0);
+            SYNC(&heartbeatMus, toggle_heartbeat, 0);
             break;
         case 'g':
         case 'G':
             arg = parseValue(self, 0);
-            SYNC(&heartbeatMus, setHeartbeatPeriod, arg);
+            SYNC(&heartbeatMus, set_heartbeat_period, arg);
             break;
         default:
             break;

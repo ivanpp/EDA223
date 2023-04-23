@@ -28,6 +28,6 @@ void enter_failure_mode(FailureSim *self, int mode);
 /* Utils */
 int gen_rand_num(int min, int max);
 /* Information */
-void printFailureSimVerbose(FailureSim *self, int unused);
+void print_failureSim_verbose(FailureSim *self, int unused);
 
 #endif
