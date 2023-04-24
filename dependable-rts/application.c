@@ -9,14 +9,18 @@
 
 
 App app = initApp();
+Regulator regulatorSw = initRegulator();
 
 UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
-Can can0 = initCan(CAN_PORT0, &app, receiver);
+//Can can0 = initCan(CAN_PORT0, &app, receiver);
+Can can0 = initCan(CAN_PORT0, &regulatorSw, regulatorBufferHdlr);
+
 SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
 
 CanRegulator canRegulator = initCanRegulator();
+
 
 /* CAN MSG */
 void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
@@ -61,18 +65,92 @@ void canRegulatorFcn(CanRegulator *self, int unused){
 
 }
 
+void regulatorBufferHdlr(Regulator *self, int unused)
+{
+    char printTimingInfo[90]={};
+
+    if((self->canMsgBuffer[self->writeIdx].status == INIT) ||
+    (self->canMsgBuffer[self->writeIdx].status == READ_DONE)){
+        // copy CAN msg into RegulatorBuffer at correct index
+        CAN_RECEIVE(&can0, &self->canMsgBuffer[self->writeIdx].msg);
+
+        // mark buffer as Written 
+        self->canMsgBuffer[self->writeIdx].status = NEW_VALUE_WRITTEN;
+
+        // update write index
+        ++(self->writeIdx);
+        self->writeIdx = self->writeIdx % MAX_BUFFER_SIZE;
+
+            // timing calculations
+        int duration_sec, diff;
+        duration_sec = SEC_OF(T_SAMPLE(&self->timer));
+
+        // calculate time difference to previous msg and print
+        diff = duration_sec - self->prevArrivalTime;
+        snprintf(printTimingInfo,90, "current arrival time:%ds, diff to prev arrival:%ds\n", duration_sec, diff);
+        SCI_WRITE(&sci0, printTimingInfo);
+
+        // current arrival time becomes previous arrival time for the next msg, so update in Regulator data structure
+        self->prevArrivalTime = duration_sec;
+
+        // time diff > specified
+        // @todo use delivery time instead of diff to previous arrival time
+        if(diff > (self->delta)){
+            AFTER(SEC(self->delta),&app, receiver, unused);
+        }else{
+            // nothing to do here, explicitly written to avoid confusions
+        }
+
+    }else{
+        SCI_WRITE(&sci0, "[WARN]Discarding msg as Buffer is full, call readRegulatorBuffer() to discard old data\n");
+    }
+}
+
+void readRegulatorBuffer(Regulator *self, CANMsg *msgPtr)
+{
+#ifdef DEBUG
+    char debugPrint[64]={};
+    snprintf(debugPrint,64,"readRegulatorBuffer()[%d] status:%d\n",self->readIdx,self->canMsgBuffer[self->readIdx].status);
+    //SCI_WRITE(&sci0, debugPrint);
+#endif
+    // isReadDone is initialized with -1, updated to 1 by readRegulatorBuffer, 
+    if(self->canMsgBuffer[self->readIdx].status == NEW_VALUE_WRITTEN){
+        *msgPtr = self->canMsgBuffer[self->readIdx].msg;
+        self->canMsgBuffer[self->readIdx].status = READ_DONE;//mark corresponding Index as done
+        // @todo does it cause Race condition or invalid values as status is updated by both readRegulatorBuffer()
+        // and regulatorBufferHdlr ??
+
+        // update read Index
+        self->readIdx++;
+        self->readIdx = self->readIdx % MAX_BUFFER_SIZE;
+    }else{
+        SCI_WRITE(&sci0, "No new data to read\n");
+    }
+}
+
+void setDelta(Regulator *self, int value)
+{
+    char printMsg[64]={};
+    self->delta = value;
+    snprintf(printMsg,64,"Inter-arrival time set to %ds\n",self->delta);
+    SCI_WRITE(&sci0,printMsg);
+}
 
 void receiver(App *self, int unused) {
     CANMsg msg;
-    CAN_RECEIVE(&can0, &msg);
-    // INFO from message
+    int msgRxStatus = 0;
+    //CAN_RECEIVE(&can0, &msg); read from Regulator buffer instead
+    SYNC(&regulatorSw, readRegulatorBuffer,&msg);
+    
+    
+            // INFO from message
     int sender    = msg.nodeId;
     CAN_OPCODE op = msg.buff[0];
     int receiver  = msg.buff[1];
     int arg =      (msg.buff[2] & 0xFF) << 24 | \
-                   (msg.buff[3] & 0xFF) << 16 | \
-                   (msg.buff[4] & 0xFF) << 8  | \
-                   (msg.buff[5] & 0xFF);
+                (msg.buff[3] & 0xFF) << 16 | \
+                (msg.buff[4] & 0xFF) << 8  | \
+                (msg.buff[5] & 0xFF);
     int ending    = msg.buff[6];
 #ifdef DEBUG
     char debugInfo[64] = {};
@@ -134,7 +212,8 @@ void receiver(App *self, int unused) {
             break;
         default:;
             break;
-    }
+    }// end switch
+    
 }
 
 
@@ -228,6 +307,13 @@ void reader(App *self, int c) {
             SCI_WRITE(&sci0, "CAN Msg Print enabled\n");
         else
             SCI_WRITE(&sci0, "CAN Msg Print disabled\n");
+        break;
+    /* obtain value and set the inter-arrival time (i.e. delta) */
+    case 'l':
+    case 'L':
+        arg = parseValue(self,0);
+        SYNC(&regulatorSw,setDelta,arg);
+        break;
     default:
         break;
     }
@@ -361,8 +447,8 @@ void printVerbose(App *self, int unused){
 
 
 void helperConductor(App *self, int unused){
-    char helper [768];
-    snprintf(helper, 768, 
+    char helper [800];
+    snprintf(helper, 800, 
             "--------------------MUSICPLAYER--------------------\n"
             "press \'a\' ⟳ to restart\n"
             "press \'s\' ▶ to start\n"
@@ -383,6 +469,7 @@ void helperConductor(App *self, int unused){
             "press \'b\' to start Burst CAN Msgs\n"
             "press \'n\' to stop Burst CAN Msgs\n"
             "press \'m\' to enable or disable CAN Msg prints\n"
+            "press number with \'l\' to set min. inter-arrival time\n"
             "press \'enter\' to display helper again\n\n"
             );
     SCI_WRITE(&sci0, helper);
@@ -408,6 +495,7 @@ void helperMusician(App *self, int unused){
             "press \'b\' to start Burst CAN Msgs\n"
             "press \'n\' to stop Burst CAN Msgs\n"
             "press \'m\' to enable or disable CAN Msg prints\n"
+            "press number with \'l\' to set min. inter-arrival time\n"
             );
     SCI_WRITE(&sci0, helper);
 }
