@@ -51,9 +51,18 @@ void obtain_conductorship(Network*, int);
 void change_conductor(Network *, int);
 /* Lock */
 void reset_lock(Network *, int);
+/* Node Status */
+void set_node_online(Network *, int);
+void set_node_offline(Network *, int);
+void handle_login_request(Network *, int);
+void node_login(Network *, int);
+void node_logout(Network *, int);
+int check_self_login(Network *, int);
 /* Utils */
 int get_node_index(Network *, int);
 int get_next_node(Network *, int);
+int get_node_by_index(Network *, int);
+void node_login(Network *, int);
 /* Information */
 void print_network(Network*, int);
 void print_membership(Network *, int);

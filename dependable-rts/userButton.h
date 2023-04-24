@@ -40,6 +40,7 @@ int compare_interval_history(UserButton*, int);
 int tre_average(UserButton*, int);
 void printout_intervals(UserButton *, int);
 void checkPressAndHold(UserButton *self, int unused);
+void toggleSilentFailure(UserButton *, int);
 
 
 #endif

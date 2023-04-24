@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "failureSim.h"
 #include "systemPorts.h"
+#include "network.h"
+#include "heartbeat.h"
 #include "stm32f4xx_rng.h"
 
 #define CAN_PORT0   (CAN_TypeDef *)(CAN1)
@@ -29,6 +31,8 @@ void leave_failure_mode(FailureSim *self, int unused){
     SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
     self->failMode = 0;
     SYNC(&can0, monitor_can_restore, 0);
+    // TODO: 
+    //SYNC(&network, node_login, 0);
 }
 
 
@@ -36,6 +40,9 @@ void enter_failure1(FailureSim *self, int unused){
     SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore mannually\n");
     self->failMode = 1;
     SYNC(&can0, monitor_can_failure, 0);
+    // TODO: detect manually, this is only for test functionality
+    // After detected, it should:
+    SYNC(&network, node_logout, 0);
 }
 
 
@@ -47,6 +54,8 @@ void enter_failure2(FailureSim *self, int unused){
     self->failMode = 2;
     SYNC(&can0, monitor_can_failure, 0);
     AFTER(SEC(delay), self, leave_failure_mode, 0);
+    // TODO: detect manually, this is only for test functionality
+    SYNC(&network, node_logout, 0);
 }
 
 

@@ -73,6 +73,40 @@ void react_userButton_P2(UserButton *self, int unused){
 }
 
 
+void react_userButton_P3(UserButton *self, int unused){
+    int currentStatus = SIO_READ(&sio0);
+    if (currentStatus == PRESSED) 
+    {
+        if (app.mode == MUSICIAN) 
+        {
+            self->abortMessage = AFTER(SEC(2), self, toggleSilentFailure, 0);
+        }
+        T_RESET(&self->timerPressRelease);
+        SIO_TRIG(&sio0, RELEASED);
+#ifdef DEBUG
+        SCI_WRITE(&sci0, "[UserButton ↧]: pressed\n");
+#endif 
+    } 
+    else // release
+    { 
+        int duration_sec, duration_msec;
+        duration_sec = SEC_OF(T_SAMPLE(&self->timerPressRelease));
+        duration_msec = MSEC_OF(T_SAMPLE(&self->timerPressRelease)) + duration_sec * 1000;
+        if (app.mode == MUSICIAN && duration_msec < 1999)
+        {
+            ABORT(self->abortMessage);
+        }
+        SIO_TRIG(&sio0, PRESSED);
+#ifdef DEBUG
+        char releasedInfo[64];
+        snprintf(releasedInfo, 64,
+                "[UserButton ↥]: released, duration: %d ms\n", duration_msec);
+        SCI_WRITE(&sci0, releasedInfo);
+#endif
+    }
+}
+
+
 // UserButton interruption for EDA223
 void react_userButton(UserButton *self, int unused){
     int currentStatus = SIO_READ(&sio0);
@@ -188,6 +222,13 @@ void clear_interval_history(UserButton *self, int unused){
 void checkPressAndHold(UserButton *self, int unused){
     self->mode = PRESS_AND_HOLD;
     SCI_WRITE(&sci0, "One second passed.\n entered PRESS_AND_HOLD MODE\n");
+    return;
+}
+
+void toggleSilentFailure(UserButton *self, int unused){
+    self->mode = PRESS_AND_HOLD;
+    SCI_WRITE(&sci0, "Two second passed.\n entered PRESS_AND_HOLD MODE and request silent failure\n");
+    
     return;
 }
 

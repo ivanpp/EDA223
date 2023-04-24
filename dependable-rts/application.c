@@ -81,8 +81,20 @@ void receiver(App *self, int unused) {
         case ANSWER_CLAIM_CONDUCTOR:
             SYNC(&network, handle_answer_to_claim, arg);
             break;
-        case OBT_CONDUCTORSHIP:
+        case OBTAIN_CONDUCTORSHIP:
             SYNC(&network, change_conductor, sender);
+            break;
+        case SET_NODE_ONLINE:
+            SYNC(&network, set_node_online, arg);
+            break;
+        case SET_NODE_OFFLINE:
+            SYNC(&network, set_node_offline, arg);
+            break;
+        case NODE_LOGIN_REQUEST:
+            SYNC(&network, handle_login_request, sender);
+            break;
+        case NODE_LOGIN_CONFIRM:
+            SYNC(&network, node_login, sender);
             break;
         /* MUSIC */
         case MUSIC_START_ALL:
@@ -185,6 +197,10 @@ void reader(App *self, int c) {
     case 'F':
         arg = parseValue(self, 0);
         SYNC(&failureSim, enter_failure_mode, arg);
+        break;
+    case 'm':
+    case 'M':
+        SYNC(&network, print_membership, 0);
         break;
     default:
         break;

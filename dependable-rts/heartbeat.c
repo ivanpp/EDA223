@@ -6,6 +6,7 @@
 
 Heartbeat heartbeatCon = initHeartbeat(CONDUCTOR, heartbeat_conductor);
 Heartbeat heartbeatMus = initHeartbeat(MUSICIAN, heartbeat_musician);
+Heartbeat heartbeatLogin = initHeartbeatPeriod(MUSICIAN, heartbeat_login, 500);
 
 
 void heartbeat_conductor(Heartbeat *self, int unused){
@@ -42,6 +43,27 @@ void heartbeat_musician(Heartbeat *self, int unused){
 }
 
 
+void heartbeat_login(Heartbeat *self, int unused){
+    if(!self->enable)
+        return;
+    // if already logged in
+    if (!SYNC(&network, check_self_login, unused)) {
+        disable_heartbeat(self, unused);
+        SCI_WRITE(&sci0, "[HB/LOGIN]: login success, stop trying\n");
+        return;
+    }
+    // try login
+    if(app.mode == MUSICIAN){
+        SCI_WRITE(&sci0, "[HB/LOGIN]: try to login\n");
+        CANMsg msg;
+        construct_can_message(&msg, NODE_LOGIN_REQUEST, BROADCAST, 0);
+        CAN_SEND(&can0, &msg); // >> handle_login_request()
+    }else
+        ASYNC(&app, to_musician, 0);
+    SEND(self->periodicity, self->deadline, self, heartbeat_login, unused);
+}
+
+
 void enable_heartbeat(Heartbeat *self, int unused){
     self->enable = 1;
     self->heartbeatFunc(self, 0);
@@ -66,7 +88,7 @@ int toggle_heartbeat(Heartbeat *self, int unused){
 int set_heartbeat_period(Heartbeat *self, int val){
     val = val < self->deadline ? self->deadline : val;
     val = val > MAX_HEARTBEAT_PERIOD ? MAX_HEARTBEAT_PERIOD : val;
-    self->periodicity = SEC(val);
+    self->periodicity = MSEC(val);
     print_heartbeat_info(self, 0);
     return val;
 }
@@ -75,7 +97,7 @@ int set_heartbeat_period(Heartbeat *self, int val){
 int set_heartbeat_deadline(Heartbeat *self, int val){
     val = val < 0 ? 0 : val;
     val = val > MAX_HEARTBEAT_DEADLINE ? MAX_HEARTBEAT_DEADLINE : val;
-    self->deadline = SEC(val);
+    self->deadline = MSEC(val);
     print_heartbeat_info(self, 0);
     return val;
 }

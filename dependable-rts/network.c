@@ -1,5 +1,5 @@
 #include "network.h"
-
+#include "heartbeat.h"
 
 Network network = initNetwork(RANK);
 
@@ -54,6 +54,7 @@ void add_node_ascending(Network *self, int sender){
     for(size_t i = self->numNodes; i > 0; i--){
         if (sender < self->nodes[i-1]){
             self->nodes[i] = self->nodes[i-1];
+            self->nodeStatus[i] = self->nodeStatus[i-1];
         }
         else{
             self->nodes[i] = sender;
@@ -145,7 +146,7 @@ void obtain_conductorship(Network *self, int unused){
         reset_lock(self, 0);
     }
     CANMsg msg;
-    construct_can_message(&msg, OBT_CONDUCTORSHIP, BROADCAST, 0);
+    construct_can_message(&msg, OBTAIN_CONDUCTORSHIP, BROADCAST, 0);
     CAN_SEND(&can0, &msg);
     self->conductorRank = self->rank;
     reset_lock(self, 0);
@@ -165,6 +166,11 @@ void change_conductor(Network *self, int conductor){
     self->conductorRank = conductor;
     self->lock = 0;
     ASYNC(&app, to_musician, 0);
+#ifdef DEBUG
+    SCI_WRITE(&sci0, "[NETWORK]: Set conductor to:");
+    SCI_WRITECHAR(&sci0, self->conductorRank);
+    SCI_WRITE(&sci0, "\n");
+#endif
 }
 
 
@@ -174,6 +180,106 @@ void change_conductor(Network *self, int conductor){
 void reset_lock(Network *self, int unused){
     self->lock = 0;
     self->vote = 1;
+}
+
+
+/* Node Status */
+
+void set_node_online(Network *self, int idx){
+    int rank = get_node_by_index(self, idx);
+    if (rank == -1) 
+        return;
+    self->nodeStatus[idx] = NODE_ONLINE;
+    if(app.mode == CONDUCTOR){
+        CANMsg msg;
+        construct_can_message(&msg, SET_NODE_ONLINE, BROADCAST, idx);
+        CAN_SEND(&can0, &msg); // >> set_node_online(idx)
+    }
+    // inform the node current conductor
+    
+#ifdef DEBUG
+    print_membership(self, 0);
+#endif
+}
+
+
+void set_node_offline(Network *self, int idx){
+    int rank = get_node_by_index(self, idx);
+    if (rank == -1)
+        return;
+    self->nodeStatus[idx] = NODE_OFFLINE;
+    if(app.mode == CONDUCTOR){
+        CANMsg msg;
+        construct_can_message(&msg, SET_NODE_OFFLINE, BROADCAST, idx);
+        CAN_SEND(&can0, &msg); // >> set_node_offline(idx)
+    }
+#ifdef DEBUG
+    print_membership(self, 0);
+#endif
+}
+
+
+// used when you get some login request from offline node
+void handle_login_request(Network *self, int requester){
+    // 1. set it to online again
+    int idx = get_node_index(self, requester);
+    self->nodeStatus[idx] = NODE_ONLINE;
+    // 2. claim your existence to it
+    CANMsg msg;
+    construct_can_message(&msg, NODE_LOGIN_CONFIRM, requester, self->conductorRank);
+    CAN_SEND_WR(&can0, &msg);
+    // 3. also tell it the current conductor's rank
+    if (app.mode == CONDUCTOR){
+        construct_can_message(&msg, OBTAIN_CONDUCTORSHIP, requester, 0);
+        CAN_SEND(&can0, &msg);
+    }
+}
+
+
+// used when node join back to the network
+void node_login(Network *self, int sender){
+    // 0. node must be a musician when logged in
+    if(app.mode == CONDUCTOR){
+        SCI_WRITE(&sci0, "[NETWORK ERR]: Can't login as a conductor!\n");
+        return;
+    }
+    // 1. set self to ONLINE
+    int idx;
+    idx = get_node_index(self, self->rank);
+    self->nodeStatus[idx] = NODE_ONLINE;
+    // 2. set the sender to ONLINE
+    idx = get_node_index(self, sender);
+    self->nodeStatus[idx] = NODE_ONLINE;
+    // new conductor need to be known
+    // but maybe not here
+}
+
+
+// should be called when the node detects the failure of itself
+void node_logout(Network *self, int unused){
+    // 1. set conductor to NULL
+    self->conductorRank = NO_CONDUCTOR;
+    // 2. change self to musician
+    ASYNC(&app, to_musician, 0);
+    // 3. set all nodes to offline
+    for (size_t i = 0; i < self->numNodes; i++){
+        self->nodeStatus[i] = NODE_OFFLINE;
+    }
+    print_membership(self, 0);
+    // 4. start the heartbeat (login request)
+    SYNC(&heartbeatLogin, enable_heartbeat, 0);
+}
+
+
+int check_self_login(Network *self, int unused){
+    int idx, status;
+    idx = get_node_index(self, self->rank);
+    if(idx  == -1){
+        SCI_WRITE(&sci0, "[NETWORK ERR]: self node doesn't exist\n");
+        return NODE_OFFLINE;
+    }
+    status = self->nodeStatus[idx];
+    return status;
 }
 
 
@@ -191,7 +297,7 @@ int get_node_index(Network *self, int rank){
 
 
 // get the rank of node given its index
-int getNodeByIndex(Network *self, int idx){
+int get_node_by_index(Network *self, int idx){
     if (idx > self->numNodes - 1 || idx < 0){
         SCI_WRITE(&sci0, "WARN: invalid index\n");
         return -1;
@@ -216,6 +322,7 @@ void voteConductorMinRank(Network *self, int unused){
 void voteConductorMaxRank(Network *self, int unused){
     ;
 }
+
 
 /* Information */
 
