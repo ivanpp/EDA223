@@ -16,7 +16,8 @@ FailureSim failureSim = initFailureSim();
 /* CAN */
 
 void simulate_can_failure(Can *obj, int unused){
-    obj->port = CAN_PORT1;
+    //obj->port = CAN_PORT1;
+    obj->port = NULL;
 }
 
 

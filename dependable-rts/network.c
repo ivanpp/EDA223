@@ -127,7 +127,7 @@ void handle_claim_request(Network *self, int sender){
 
 void handle_answer_to_claim(Network *self, int agree){
     if(agree){
-        if(self->vote == self->numNodes - 1){ // all other agree
+        if(self->vote == count_valid_voters(self, 0) - 1){ // all other agree
             obtain_conductorship(self, 0);
         }else
             self->vote++;
@@ -235,6 +235,8 @@ void node_login(Network *self, int sender){
 
 // should be triggled when the node detects the failure of itself
 void node_logout(Network *self, int unused){
+    if (app.mode == CONDUCTOR)
+        SCI_WRITE(&sci0, "[NETWORK]: Conductorship void due to failure\n");
     // 1. set conductor to NULL
     self->conductorRank = NO_CONDUCTOR;
     // 2. change self to musician
@@ -289,6 +291,16 @@ int get_next_node(Network *self, int unused){
     idx = get_node_index(self, self->rank);
     next = (idx + 1) % self->numNodes;
     return self->nodes[next];
+}
+
+
+int count_valid_voters(Network *self, int unused){
+    int counter = 0;
+    for(size_t i = 0; i < self->numNodes; i++){
+        if(self->nodeStatus[i] == NODE_ONLINE)
+            counter++;
+    }
+    return counter;
 }
 
 

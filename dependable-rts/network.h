@@ -59,9 +59,9 @@ void node_logout(Network *, int);
 int check_self_login(Network *, int);
 /* Utils */
 int get_node_index(Network *, int);
-int get_next_node(Network *, int);
 int get_node_by_index(Network *, int);
-void node_login(Network *, int);
+int get_next_node(Network *, int);
+int count_valid_voters(Network *, int);
 /* Information */
 void print_network(Network*, int);
 void print_membership(Network *, int);

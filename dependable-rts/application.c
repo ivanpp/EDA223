@@ -52,10 +52,10 @@ void receiver(App *self, int unused) {
     int ending    = msg.buff[6];
 #ifdef DEBUG
     char debugInfo[64] = {};
-    snprintf(debugInfo, 64, "[0x%02X]: OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
+    snprintf(debugInfo, 64, "[%d -> %d]: OP: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
              sender,
-             msg.buff[0],
              msg.buff[1],
+             msg.buff[0],
              msg.buff[2], msg.buff[3], msg.buff[4], msg.buff[5],
              ending);
     SCI_WRITE(&sci0, debugInfo);
