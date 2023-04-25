@@ -21,14 +21,15 @@ void empty_can_interrupt(Can *obj, int unused){
 
 
 void simulate_can_failure(Can *obj, int unused){
-    obj->port = CAN_PORT1;
-    INSTALL(&can0, empty_can_interrupt, CAN_IRQ0);
+    obj->port = CAN_PORT1; // change Tx port to unused one (cable disconnected)
+    // Set CAN Rx ISR to dummy fcn so that CAN Rx Buffer is untouched
+    INSTALL(&can0, empty_can_interrupt, CAN_IRQ0); 
 }
 
 
 void simulate_can_restore(Can *obj, int unused){
-    obj->port = CAN_PORT0;
-    INSTALL(&can0, can_interrupt, CAN_IRQ0);
+    obj->port = CAN_PORT0;// change Tx port to port in use (cable connected)
+    INSTALL(&can0, can_interrupt, CAN_IRQ0);// restore to working ISR
 }
 
 
@@ -45,9 +46,9 @@ void leave_failure_mode(FailureSim *self, int unused){
     [1, 1, 1]                   [0, 1, 0]
     NODE_LOGIN_REQUEST ->
                                     handle_login_request()
-                                 <- NODE_LOGIN_CONFIRM
+                                <- NODE_LOGIN_CONFIRM
     node_login()
-                                 <- OBTAIN_CONDUCTORSHIP @CON
+                                <- OBTAIN_CONDUCTORSHIP @CON
     change_conductor()
     [0, 0, 0]                   [0, 0, 0]
     */
@@ -65,9 +66,9 @@ void toggle_failure1(FailureSim *self, int unused)
 
 void enter_failure1(FailureSim *self, int unused){
     // TODO: after implement detection (others'), this should be REMOVED
-    notify_failure(self, 0);
+    //notify_failure(self, 0);
     // CORE
-    SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore mannually\n");
+    SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore manually\n");
     self->failMode = 1;
     SYNC(&can0, simulate_can_failure, 0);
     /*

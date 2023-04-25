@@ -86,8 +86,11 @@ void receiver(App *self, int unused) {
             SYNC(&network, change_conductor, sender);
             break;
         /* STATUS */
+        case NODE_REMAIN_ACTIVE:
+            SYNC(&musicPlayer, cancel_backup, 0);
+            break;
         // TODO
-        case SET_NODE_OFFLINE:
+        case NOTIFY_NODE_OFFLINE:
             SYNC(&network, set_node_offline, arg);
             break;
         case NODE_LOGIN_REQUEST:

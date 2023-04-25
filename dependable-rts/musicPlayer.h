@@ -11,8 +11,8 @@
 #define TEMPO_MIN 30
 #define TEMPO_DEFAULT 120
 #define BEATMULT_DEFAULT 30000/TEMPO_DEFAULT
-
 #define PERIODS_IDX_DIFF -15
+#define BACKUP_DELTA 3
 
 typedef struct{
     Object super;
@@ -23,6 +23,8 @@ typedef struct{
     int isStop; // be able to stop
     int hardStopped;
     int ensemble_stop;
+    Msg backupMsg; // for backup
+    Msg detectMsg; // for detection
 } MusicPlayer;
 
 #define initMusicPlayer() { \
@@ -34,6 +36,7 @@ typedef struct{
     /*SP: stop*/ 1, \
     /*SP: hardStop*/ 1, \
     /*MP: ensemble_stop*/ 1, \
+    NULL, \
 } 
 
 extern App app;
@@ -53,6 +56,9 @@ void play_music(MusicPlayer *, int);
 /* Multi-player */
 void play_index_tone(MusicPlayer *, int);
 void play_index_tone_next(MusicPlayer *, int);
+void cancel_prev_backup(MusicPlayer *, int);
+void play_index_tone_next_backup(MusicPlayer *, int);
+void cancel_backup(MusicPlayer *, int);
 void sync_LED(MusicPlayer *, int);
 void ensemble_ready(MusicPlayer *, int);
 void ensemble_stop(MusicPlayer *, int);
@@ -67,7 +73,5 @@ void reset_all(MusicPlayer *, int);
 int toggle_music(MusicPlayer *, int);
 /* Information */
 void print_musicPlayer_verbose(MusicPlayer *, int);
-/* deprecated */
-void debugStopStatus(MusicPlayer *, int);
 
 #endif

@@ -23,6 +23,7 @@ typedef struct{
     int conductorRank;
     int lock;
     int vote;
+    Msg detectMsg;
 } Network;
 
 #define initNetwork(rank) { \
@@ -52,7 +53,14 @@ void change_conductor(Network *, int);
 /* Lock */
 void reset_lock(Network *, int);
 /* Node Status */
+    /* detection */
+void detect_all_nodes(Network *, int);
+void detect_node(Network *, int);
+void answer_detect_node(Network *, int);
+void resolve_detect_node(Network *, int);
+void notify_node_offline(Network *, int);
 void set_node_offline(Network *, int);
+    /* recover */
 void handle_login_request(Network *, int);
 void node_login(Network *, int);
 void node_logout(Network *, int);
@@ -62,6 +70,7 @@ int get_node_index(Network *, int);
 int get_node_by_index(Network *, int);
 int get_next_node(Network *, int);
 int get_next_valid_node(Network *, int);
+int get_prev_valid_node(Network *, int);
 int count_valid_voters(Network *, int);
 /* Information */
 void print_network(Network*, int);

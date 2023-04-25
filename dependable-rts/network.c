@@ -180,7 +180,70 @@ void reset_lock(Network *self, int unused){
 
 /* Node Status */
 
-// TODO
+/*
+Detection
+
+detect_node(rank)
+DETECT_OFFLINE_NODE ->
+                                    answer_detect_node()
+                                <-  ANSWER_DETECT_OFFLINE
+if NO answer:
+    NOTIFY_NODE_OFFLINE ->
+
+*/
+
+void detect_all_nodes(Network *self, int unused){
+    // FIXME: test detect node 1 first
+    detect_node(self, 1);
+}
+
+
+// detect one node at a time
+void detect_node(Network *self, int rank){
+    self->detectMsg = AFTER(MSEC(10), self, notify_node_offline, rank);
+    CANMsg msg;
+    construct_can_message(&msg, DETECT_OFFLINE_NODE, rank, 0);
+    CAN_SEND(&can0, &msg); // >> answer_detect_node()
+#ifdef DEBUG
+    char detectInfo[64];
+    snprintf(detectInfo, 64, "[NETWORK]: detect node %d\n", rank);
+    SCI_WRITE(&sci0, detectInfo);
+#endif
+}
+
+
+void answer_detect_node(Network *self, int sender){
+    CANMsg msg;
+    construct_can_message(&msg, ANSWER_DETECT_OFFLINE, sender, 0);
+    CAN_SEND(&can0, &msg); // >> resolve_detect_node()
+}
+
+
+void resolve_detect_node(Network *self, int unused){
+    ABORT(self->detectMsg);
+    // make sure set to online maybe
+}
+
+
+void notify_node_offline(Network *self, int rank){
+    set_node_offline(self, rank);
+    CANMsg msg;
+    construct_can_message(&msg, NOTIFY_NODE_OFFLINE, BROADCAST, rank);
+    CAN_SEND(&can0, &msg); // >> set_node_offline(rank)
+#ifdef DEBUG
+    char detectInfo[64];
+    snprintf(detectInfo, 64, "[NETWORK]: notify everyone node %d is OFFLINE\n", rank);
+    SCI_WRITE(&sci0, detectInfo);
+#endif
+}
+
+/*
+Notify offline
+
+NOTIFY_NODE_OFFLINE ->
+                                    set_node_offline(rank)
+
+*/
 void set_node_offline(Network *self, int rank){
     // 1. set the node to OFFLINE
     int idx = get_node_index(self, rank);
@@ -302,6 +365,17 @@ int get_next_valid_node(Network *self, int unused){
         next = (next + 1) % self->numNodes;
     }
     return self->nodes[next];
+}
+
+
+int get_prev_valid_node(Network *self, int unused){
+    int idx, prev;
+    idx = get_node_index(self, self->rank);
+    prev = (idx + self->numNodes - 1) % self->numNodes;
+    while(self->nodeStatus[prev] == NODE_OFFLINE){
+        prev = (prev + self->numNodes - 1) % self->numNodes;
+    }
+    return self->nodes[prev];
 }
 
 

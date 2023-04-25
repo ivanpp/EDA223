@@ -153,17 +153,22 @@ void play_music(MusicPlayer *self, int unused){
 
 /* Multi-player */
 
-// 1. set period
-// 2. unblank
-// 3. blank, send can msg to next node
+/*
+
+0       t1      play tone
+t1      t1+t2   (next node) play next tone
+t1+t2+d         start backup 
+
+*/
 void play_index_tone(MusicPlayer *self, int idx){
-    // check index first
+    // 0. check index first
     if (idx < 0 || idx > MUSIC_LENGTH - 1) {
         char debugInfo[32] = {};
         snprintf(debugInfo, 32, "WARN: invalid idx for song: %d\n", idx);
         SCI_WRITE(&sci0, debugInfo);
         return;
     }
+    // 2. play the tone
     int period, tempo, beatLen;
     period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
     tempo = tempos[idx];
@@ -182,9 +187,20 @@ void play_index_tone(MusicPlayer *self, int idx){
     }
     ASYNC(&toneGenerator, set_period, period);
     AFTER(MSEC(50), &toneGenerator, unblank_tone, 0);
-    AFTER(MSEC(beatLen), &toneGenerator, blank_tone, 0);
-    // next tone
+    // AFTER(MSEC(beatLen), &toneGenerator, blank_tone, 0);
+    // 3. schedule next tone, cancel the prev backup
     AFTER(MSEC(beatLen), self, play_index_tone_next, idx);
+    // 4. cancel backup for prev node
+    int prev_node = SYNC(&network, get_prev_valid_node, 0);
+    //AFTER(MSEC(beatLen), self, cancel_prev_backup, prev_node);
+    // 5. schedule backup
+    int nextTone = (idx + 1) % MUSIC_LENGTH; // check
+    int backupTime = (tempos[idx] + tempos[nextTone]) * self->beatMult + BACKUP_DELTA;
+    self->backupMsg = AFTER(MSEC(backupTime), self, play_index_tone_next_backup, idx);
+#ifdef DEBUG
+    snprintf(debug, 64, "time left to triggle backup: %d\n", backupTime);
+    SCI_WRITE(&sci0, debug);
+#endif
 }
 
 
@@ -192,9 +208,13 @@ void play_index_tone(MusicPlayer *self, int idx){
 void play_index_tone_next(MusicPlayer *self, int idx){
     if(self->ensemble_stop)
         return;
-    int nextTone, nextNode;
+    int nextTone, prevNode, nextNode;
     nextTone = (idx + 1) % MUSIC_LENGTH;
     nextNode = SYNC(&network, get_next_valid_node, 0);
+    prevNode = SYNC(&network, get_prev_valid_node, 0);
+    // 1. cancel the prev
+    cancel_prev_backup(self, prevNode);
+    // 2. ask next node to play
     if(nextNode == network.rank){
         play_index_tone(self, nextTone);
     }else{
@@ -202,6 +222,48 @@ void play_index_tone_next(MusicPlayer *self, int idx){
         construct_can_message(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
         CAN_SEND(&can0, &msg); // >> play_index_tone(idx++)
     }
+    // 3. shut self
+    SYNC(&toneGenerator, blank_tone, 0);
+}
+
+
+void cancel_prev_backup(MusicPlayer *self, int prev){
+    // 1. cancel the prev's backup
+    char debugInfo[64];
+    snprintf(debugInfo, 64, "Cancel the backup for Node: %d\n", prev);
+    SCI_WRITE(&sci0, debugInfo);
+
+    int prev_node = SYNC(&network, get_prev_valid_node, 0);
+    CANMsg msg;
+    construct_can_message(&msg, NODE_REMAIN_ACTIVE, prev_node, 0);
+    CAN_SEND_WR(&can0, &msg); // >> cancel_backup()
+}
+
+
+void play_index_tone_next_backup(MusicPlayer *self, int idx){
+    // 1. check if ensemble is stopped
+    if(self->ensemble_stop)
+        return;
+    // SCI_WRITE(&sci0, "[PLAYER]: backup triggled\n");
+    // // 2. start the detection program
+    // CANMsg msg;
+    // construct_can_message(&msg, DETECT_OFFLINE_NODE, BROADCAST, 0);
+    // if(CAN_SEND_WRN(&can0, &msg, 3)){
+    //     SYNC(&network, node_logout, 0);
+    // } else {
+    //     // detect each node
+    //     SYNC(&network, detect_all_nodes, 0);
+    // }
+    // // 3. play next note as backup
+    // idx = (idx + 1) % MUSIC_LENGTH;
+    // play_index_tone(self, idx);
+    SCI_WRITE(&sci0, "BACKUP TRIGGLED\n");
+}
+
+
+void cancel_backup(MusicPlayer *self, int unused){
+    SCI_WRITE(&sci0, "CANCELED\n");
+    ABORT(self->backupMsg);
 }
 
 
@@ -255,7 +317,6 @@ void ensemble_start_all(MusicPlayer *self, int unused){
         SCI_WRITE(&sci0, "[PLAYER ERR]: Ensemble can be only started by CONDUCTOR");
         return;
     }
-    // TODO: maybe check LOOPBACK mode etc.
     // get ready
     ensemble_ready(self, 0);
     CANMsg msg;
@@ -281,6 +342,7 @@ void ensemble_stop_all(MusicPlayer *self, int unused){
     CANMsg msg;
     construct_can_message(&msg, MUSIC_STOP_ALL, BROADCAST, 0);
     CAN_SEND(&can0, &msg); // >> ensemble_stop()
+    ABORT(self->backupMsg);
     ensemble_stop(self, 0);
 }
 
@@ -358,11 +420,4 @@ void print_musicPlayer_verbose(MusicPlayer *self, int unused){
     // print volumn
     SYNC(&toneGenerator, print_volume_info, 0);
     //SCI_WRITE(&sci0, "--------------------MUSICPLAYER--------------------\n");
-}
-
-
-void debugStopStatus(MusicPlayer *self, int unused){
-    char statsInfo[32] = {};
-    snprintf(statsInfo, 32, "isStop: %d, hardStopped: %d\n", self->isStop, self->hardStopped);
-    SCI_WRITE(&sci0, statsInfo);
 }
