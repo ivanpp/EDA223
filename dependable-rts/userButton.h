@@ -20,6 +20,7 @@ typedef struct {
     Object super;
     USER_BUTTON_MODE mode;
     int lastStatus; // not needed if using interrupt
+    int failureMode;
     Timer timerPressRelease;
     Timer timerLastPress;
     int index;
@@ -27,8 +28,16 @@ typedef struct {
     Msg abortMessage; 
 } UserButton;
 
-#define initUserButton() \
-    { initObject(), PRESS_MOMENTARY, RELEASED, initTimer(), initTimer(), 0, {},  }
+#define initUserButton() { \
+    /**/initObject(), \
+    PRESS_MOMENTARY, \
+    RELEASED, \
+    1, \
+    initTimer(), \
+    initTimer(), \
+    0, \
+    {}, \
+    }
 
 
 void react_userButton_P1(UserButton*, int);
@@ -43,6 +52,7 @@ int tre_average(UserButton*, int);
 void printout_intervals(UserButton *, int);
 void checkPressAndHold(UserButton *self, int unused);
 void toggleSilentFailure(UserButton *, int);
+void setFailureMode(UserButton *, int);
 
 
 #endif

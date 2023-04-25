@@ -15,7 +15,7 @@ UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
-SysIO sio0 = initSysIO(SIO_PORT0, &userButton, react_userButton_P2);
+SysIO sio0 = initSysIO(SIO_PORT0, &userButton, react_userButton_P3);
 
 
 /* CAN MSG */
@@ -200,6 +200,11 @@ void reader(App *self, int c) {
     case 'F':
         arg = parseValue(self, 0);
         SYNC(&failureSim, enter_failure_mode, arg);
+        break;
+    case 'p':
+    case 'P':
+        arg = parseValue(self, 0);
+        SYNC(&userButton, setFailureMode, arg);
         break;
     case 'm':
     case 'M':

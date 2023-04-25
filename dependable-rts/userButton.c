@@ -228,8 +228,25 @@ void checkPressAndHold(UserButton *self, int unused){
 void toggleSilentFailure(UserButton *self, int unused){
     self->mode = PRESS_AND_HOLD;
     SCI_WRITE(&sci0, "Two second passed.\n entered PRESS_AND_HOLD MODE and request silent failure\n");
+    if (self->failureMode == 1)
+    {
+        SYNC(&failureSim, toggle_failure1, 1);
+    }
+    else
+    {
+        SYNC(&failureSim, enter_failure_mode, 2);
+    }
+    return;
+}
 
-    SYNC(&failureSim, enter_failure_mode, 1);
+void setFailureMode(UserButton *self, int mode){
+    // a quick fix to compile
+    
+    if (mode<1 || mode > 2) 
+    {
+        SCI_WRITE(&sci0, "Invalid failure Mode.\n Please enter either 1 or 2.\n");
+    }
+    self->failureMode = mode;
     return;
 }
 

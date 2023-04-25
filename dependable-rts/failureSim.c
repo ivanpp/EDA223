@@ -11,18 +11,24 @@
 
 
 FailureSim failureSim = initFailureSim();
-
+extern Method mtable[];
 
 /* CAN */
 
+void empty_can_interrupt(Can *obj, int unused){
+    ;
+}
+
+
 void simulate_can_failure(Can *obj, int unused){
-    //obj->port = CAN_PORT1;
-    obj->port = NULL;
+    obj->port = CAN_PORT1;
+    INSTALL(&can0, empty_can_interrupt, CAN_IRQ0);
 }
 
 
 void simulate_can_restore(Can *obj, int unused){
     obj->port = CAN_PORT0;
+    INSTALL(&can0, can_interrupt, CAN_IRQ0);
 }
 
 
@@ -47,6 +53,15 @@ void leave_failure_mode(FailureSim *self, int unused){
     */
 }
 
+void toggle_failure1(FailureSim *self, int unused)
+{
+    if(self->failMode == 1) {
+        leave_failure_mode(self, 0);
+    } 
+    else {
+        enter_failure1(self, 0);
+    }
+}
 
 void enter_failure1(FailureSim *self, int unused){
     // TODO: after implement detection (others'), this should be REMOVED

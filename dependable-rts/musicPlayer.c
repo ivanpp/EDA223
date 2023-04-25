@@ -194,10 +194,14 @@ void play_index_tone_next(MusicPlayer *self, int idx){
         return;
     int nextTone, nextNode;
     nextTone = (idx + 1) % MUSIC_LENGTH;
-    nextNode = SYNC(&network, get_next_node, 0);
-    CANMsg msg;
-    construct_can_message(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
-    CAN_SEND(&can0, &msg); // >> play_index_tone(idx++)
+    nextNode = SYNC(&network, get_next_valid_node, 0);
+    if(nextNode == network.rank){
+        play_index_tone(self, nextTone);
+    }else{
+        CANMsg msg;
+        construct_can_message(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
+        CAN_SEND(&can0, &msg); // >> play_index_tone(idx++)
+    }
 }
 
 

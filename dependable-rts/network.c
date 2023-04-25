@@ -294,6 +294,17 @@ int get_next_node(Network *self, int unused){
 }
 
 
+int get_next_valid_node(Network *self, int unused){
+    int idx, next;
+    idx = get_node_index(self, self->rank);
+    next = (idx + 1) % self->numNodes;
+    while(self->nodeStatus[next] == NODE_OFFLINE){
+        next = (next + 1) % self->numNodes;
+    }
+    return self->nodes[next];
+}
+
+
 int count_valid_voters(Network *self, int unused){
     int counter = 0;
     for(size_t i = 0; i < self->numNodes; i++){

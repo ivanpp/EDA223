@@ -19,9 +19,11 @@ typedef struct{
 extern FailureSim failureSim;
 
 /* CAN */
+void empty_can_interrupt(Can *obj, int unused);
 void simulate_can_failure(Can *obj, int unused);
 void simulate_can_restore(Can *obj, int unused);
 /* Failure */
+void toggle_failure1(FailureSim *self, int unused);
 void enter_failure1(FailureSim *self, int unused);
 void enter_failure2(FailureSim *self, int unused);
 void enter_failure3(FailureSim *self, int unused);
