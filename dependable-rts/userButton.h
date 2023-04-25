@@ -2,6 +2,7 @@
 #define USER_BUTTON_H
 
 #include "TinyTimber.h"
+#include "failureSim.h"
 
 #define RELEASED 1
 #define PRESSED  0
@@ -32,6 +33,7 @@ typedef struct {
 
 void react_userButton_P1(UserButton*, int);
 void react_userButton_P2(UserButton*, int);
+void react_userButton_P3(UserButton*, int);
 void react_userButton(UserButton*, int);
 void reset_all_from_button(UserButton*, int);
 void claim_confrom_button(UserButton *, int);

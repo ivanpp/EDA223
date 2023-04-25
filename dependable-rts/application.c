@@ -75,6 +75,7 @@ void receiver(App *self, int unused) {
             // TODO: maybe a new method, to reduce communication
             SYNC(&network, handle_join_request, sender);
             break;
+        /* CONDUCTORSHIP */
         case CLAIM_CONDUCTORSHIP:
             SYNC(&network, handle_claim_request, sender);
             break;
@@ -84,9 +85,8 @@ void receiver(App *self, int unused) {
         case OBTAIN_CONDUCTORSHIP:
             SYNC(&network, change_conductor, sender);
             break;
-        case SET_NODE_ONLINE:
-            SYNC(&network, set_node_online, arg);
-            break;
+        /* STATUS */
+        // TODO
         case SET_NODE_OFFLINE:
             SYNC(&network, set_node_offline, arg);
             break;
@@ -117,6 +117,9 @@ void receiver(App *self, int unused) {
             break;
         case TEST_COMPETE_CONDUCTOR:
             SYNC(&network, claim_conductorship, 0);
+            break;
+        case TEST_NOTIFY_FAILURE:
+            SYNC(&network, set_node_offline, sender);
             break;
         default:;
             break;

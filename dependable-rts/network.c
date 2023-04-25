@@ -166,11 +166,6 @@ void change_conductor(Network *self, int conductor){
     self->conductorRank = conductor;
     self->lock = 0;
     ASYNC(&app, to_musician, 0);
-#ifdef DEBUG
-    SCI_WRITE(&sci0, "[NETWORK]: Set conductor to:");
-    SCI_WRITECHAR(&sci0, self->conductorRank);
-    SCI_WRITE(&sci0, "\n");
-#endif
 }
 
 
@@ -185,33 +180,15 @@ void reset_lock(Network *self, int unused){
 
 /* Node Status */
 
-void set_node_online(Network *self, int idx){
-    int rank = get_node_by_index(self, idx);
-    if (rank == -1) 
-        return;
-    self->nodeStatus[idx] = NODE_ONLINE;
-    if(app.mode == CONDUCTOR){
-        CANMsg msg;
-        construct_can_message(&msg, SET_NODE_ONLINE, BROADCAST, idx);
-        CAN_SEND(&can0, &msg); // >> set_node_online(idx)
-    }
-    // inform the node current conductor
-    
-#ifdef DEBUG
-    print_membership(self, 0);
-#endif
-}
-
-
-void set_node_offline(Network *self, int idx){
-    int rank = get_node_by_index(self, idx);
-    if (rank == -1)
-        return;
+// TODO
+void set_node_offline(Network *self, int rank){
+    // 1. set the node to OFFLINE
+    int idx = get_node_index(self, rank);
     self->nodeStatus[idx] = NODE_OFFLINE;
-    if(app.mode == CONDUCTOR){
-        CANMsg msg;
-        construct_can_message(&msg, SET_NODE_OFFLINE, BROADCAST, idx);
-        CAN_SEND(&can0, &msg); // >> set_node_offline(idx)
+    // 2. (OPT) elect the new conductor
+    if (self->conductorRank == rank){
+        self->conductorRank = 0;
+        claim_conductorship(self, 0);
     }
 #ifdef DEBUG
     print_membership(self, 0);
@@ -227,16 +204,17 @@ void handle_login_request(Network *self, int requester){
     // 2. claim your existence to it
     CANMsg msg;
     construct_can_message(&msg, NODE_LOGIN_CONFIRM, requester, self->conductorRank);
-    CAN_SEND_WR(&can0, &msg);
+    CAN_SEND_WR(&can0, &msg);  // >> node_login(sender)
     // 3. also tell it the current conductor's rank
     if (app.mode == CONDUCTOR){
         construct_can_message(&msg, OBTAIN_CONDUCTORSHIP, requester, 0);
-        CAN_SEND(&can0, &msg);
+        CAN_SEND(&can0, &msg); // >> change_conductor(new_conductor)
     }
+    print_membership(self, 0);
 }
 
 
-// used when node join back to the network
+// used when node join request confirmed by other node
 void node_login(Network *self, int sender){
     // 0. node must be a musician when logged in
     if(app.mode == CONDUCTOR){
@@ -244,18 +222,18 @@ void node_login(Network *self, int sender){
         return;
     }
     // 1. set self to ONLINE
+    SCI_WRITE(&sci0, "Login confirmed\n");
     int idx;
     idx = get_node_index(self, self->rank);
     self->nodeStatus[idx] = NODE_ONLINE;
     // 2. set the sender to ONLINE
     idx = get_node_index(self, sender);
     self->nodeStatus[idx] = NODE_ONLINE;
-    // new conductor need to be known
-    // but maybe not here
+    print_membership(self, 0);
 }
 
 
-// should be called when the node detects the failure of itself
+// should be triggled when the node detects the failure of itself
 void node_logout(Network *self, int unused){
     // 1. set conductor to NULL
     self->conductorRank = NO_CONDUCTOR;

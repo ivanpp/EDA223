@@ -52,7 +52,6 @@ void change_conductor(Network *, int);
 /* Lock */
 void reset_lock(Network *, int);
 /* Node Status */
-void set_node_online(Network *, int);
 void set_node_offline(Network *, int);
 void handle_login_request(Network *, int);
 void node_login(Network *, int);

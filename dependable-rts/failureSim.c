@@ -15,12 +15,12 @@ FailureSim failureSim = initFailureSim();
 
 /* CAN */
 
-void monitor_can_failure(Can *obj, int unused){
+void simulate_can_failure(Can *obj, int unused){
     obj->port = CAN_PORT1;
 }
 
 
-void monitor_can_restore(Can *obj, int unused){
+void simulate_can_restore(Can *obj, int unused){
     obj->port = CAN_PORT0;
 }
 
@@ -30,30 +30,54 @@ void monitor_can_restore(Can *obj, int unused){
 void leave_failure_mode(FailureSim *self, int unused){
     SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
     self->failMode = 0;
-    SYNC(&can0, monitor_can_restore, 0);
-    // TODO: 
-    //SYNC(&network, node_login, 0);
+    ABORT(self->abortMessage);
+    SYNC(&can0, simulate_can_restore, 0);
+    /*
+    Rejoin Pipeline (after leaving failure mode)
+
+    [1, 1, 1]                   [0, 1, 0]
+    NODE_LOGIN_REQUEST ->
+                                    handle_login_request()
+                                 <- NODE_LOGIN_CONFIRM
+    node_login()
+                                 <- OBTAIN_CONDUCTORSHIP @CON
+    change_conductor()
+    [0, 0, 0]                   [0, 0, 0]
+    */
 }
 
 
 void enter_failure1(FailureSim *self, int unused){
+    // TODO: after implement detection (others'), this should be REMOVED
+    notify_failure(self, 0);
+    // CORE
     SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore mannually\n");
     self->failMode = 1;
-    SYNC(&can0, monitor_can_failure, 0);
-    // TODO: detect manually, this is only for test functionality
-    // After detected, it should:
+    SYNC(&can0, simulate_can_failure, 0);
+    /*
+    Failure Detection Pipeline (self)
+
+
+    
+    */
+
+    // TODO: after implement detection (self's), this should be REMOVED
     SYNC(&network, node_logout, 0);
 }
 
 
 void enter_failure2(FailureSim *self, int unused){
+    // TODO: after implement detection (others'), this should be REMOVED
+    notify_failure(self, 0);
+    // CORE
     int delay = gen_rand_num(10, 30);
     char failInfo[64];
     snprintf(failInfo, 64, "[FM]: Mode F2, restore automatcially in %d s\n", delay);
     SCI_WRITE(&sci0, failInfo);
     self->failMode = 2;
-    SYNC(&can0, monitor_can_failure, 0);
-    AFTER(SEC(delay), self, leave_failure_mode, 0);
+    SYNC(&can0, simulate_can_failure, 0);
+    ABORT(self->abortMessage);
+    self->abortMessage = AFTER(SEC(delay), self, leave_failure_mode, 0);
     // TODO: detect manually, this is only for test functionality
     SYNC(&network, node_logout, 0);
 }
@@ -92,6 +116,14 @@ int gen_rand_num(int min, int max){
     while(RNG_GetFlagStatus(RNG_FLAG_DRDY) == RESET)
         ;
     return min + RNG_GetRandomNumber() % (max - min + 1);
+}
+
+
+// Only used for test
+void notify_failure(FailureSim *self, int unused){
+    CANMsg msg;
+    construct_can_message(&msg, TEST_NOTIFY_FAILURE, BROADCAST, 0);
+    CAN_SEND(&can0, &msg); // >> set_node_offline()
 }
 
 
