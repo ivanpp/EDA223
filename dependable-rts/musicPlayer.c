@@ -173,7 +173,7 @@ void play_index_tone(MusicPlayer *self, int idx){
     period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
     tempo = tempos[idx];
     beatLen = self->beatMult * tempo;
-#ifdef DEBUG_MUSIC
+#ifdef DEBUG
     char debugInfo[64] = {};
     snprintf(debugInfo, 64, "play_i[%d]: period: %d, beatLen: %d\n", idx, period, beatLen);
     SCI_WRITE(&sci0, debugInfo);
@@ -196,7 +196,7 @@ void play_index_tone(MusicPlayer *self, int idx){
     nextNode = SYNC(&network, get_next_valid_node, 0);
     backupTime = (tempos[idx] + tempos[nextTone]) * self->beatMult + BACKUP_DELTA;
     if (nextNode != network.rank){
-        self->backupMsg = AFTER(MSEC(backupTime), self, play_index_tone_next_backup, idx);
+        self->backupMsg = AFTER(MSEC(backupTime), self, play_index_tone_next_backup, idx+1);
 #ifdef DEBUG_MUSIC
         snprintf(debugInfo, 64, "Backup created, time left: %d\n", backupTime);
         SCI_WRITE(&sci0, debugInfo);

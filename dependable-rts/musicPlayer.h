@@ -24,7 +24,7 @@ typedef struct{
     int hardStopped;
     int ensemble_stop;
     Msg backupMsg; // for backup
-    Msg detectMsg; // for detection
+    Msg backupMsg2; // for detection
 } MusicPlayer;
 
 #define initMusicPlayer() { \

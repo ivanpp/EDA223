@@ -304,6 +304,7 @@ void node_login(Network *self, int sender){
 
 // should be triggled when the node detects the failure of itself
 void node_logout(Network *self, int unused){
+    SCI_WRITE(&sci0, "[DEBUG]: Logout because I'm the broken one\n");
     if (app.mode == CONDUCTOR)
         SCI_WRITE(&sci0, "[NETWORK]: Conductorship void due to failure\n");
     // 1. set conductor to NULL

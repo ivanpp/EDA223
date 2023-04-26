@@ -39,8 +39,6 @@ void construct_can_message(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg
 
 
 void receiver(App *self, int unused) {
-    if(failureSim.failMode != 0)
-        return;
     CANMsg msg;
     CAN_RECEIVE(&can0, &msg);
     // INFO from message
@@ -52,7 +50,7 @@ void receiver(App *self, int unused) {
                    (msg.buff[4] & 0xFF) << 8  | \
                    (msg.buff[5] & 0xFF);
     int ending    = msg.buff[6];
-#ifdef DEBUG
+#ifdef DEBUG_CAN
     char debugInfo[64] = {};
     snprintf(debugInfo, 64, "[%d -> %d]: OP: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
              sender,
@@ -74,7 +72,6 @@ void receiver(App *self, int unused) {
             SYNC(&network, handle_join_request, sender);
             break;
         case CLAIM_EXISTENCE:
-            // TODO: maybe a new method, to reduce communication
             SYNC(&network, handle_join_request, sender);
             break;
         /* CONDUCTORSHIP */

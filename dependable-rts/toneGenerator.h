@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #define SAFE_VOLUME 25
-#define DEFAULT_VOLUME 12
+#define DEFAULT_VOLUME 25
 #define MAX_FREQ 20000
 #define MIN_FREQ 1
 #define TONE_GEN_DEADLINE USEC(100)

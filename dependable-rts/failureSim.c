@@ -11,27 +11,27 @@
 
 
 FailureSim failureSim = initFailureSim();
-extern Method mtable[];
 
 /* CAN */
 
-void empty_can_interrupt(Can *obj, int unused){
-    SCI_WRITE(&sci0, "EMPTY CAN TRIGGLED\n");
+void empty_receiver(Can *obj, int unused){
+    CANMsg msg;
+    CAN_RECEIVE(&can0, &msg);
+    SCI_WRITE(&sci0, "CANMsg ignored\n");
+    return;
+    //SCI_WRITE(&sci0, "EMPTY CAN TRIGGLED\n");
 }
 
 
 void simulate_can_failure(Can *obj, int unused){
-    //obj->port = CAN_PORT1; // change Tx port to unused one (cable disconnected)
-    // Set CAN Rx ISR to dummy fcn so that CAN Rx Buffer is untouched
-    obj->meth = (Method)empty_can_interrupt;
-    INSTALL(&can0, empty_can_interrupt, CAN_IRQ0);
+    obj->meth = (Method)empty_receiver;
+    //obj->port = NULL;
 }
 
 
 void simulate_can_restore(Can *obj, int unused){
-    //obj->port = CAN_PORT0;// change Tx port to port in use (cable connected)
     obj->meth = (Method)receiver;
-    INSTALL(&can0, can_interrupt, CAN_IRQ0);// restore to working ISR
+    //obj->port = CAN_PORT0;
 }
 
 
@@ -41,8 +41,8 @@ void leave_failure_mode(FailureSim *self, int unused){
     SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
     self->failMode = 0;
     ABORT(self->abortMessage);
-    //SYNC(&can0, simulate_can_restore, 0);
     SIO_WRITE(&sio0, 0); // lit
+    SYNC(&can0, simulate_can_restore, 0);
     /*
     Rejoin Pipeline (after leaving failure mode)
 
@@ -68,13 +68,10 @@ void toggle_failure1(FailureSim *self, int unused)
 }
 
 void enter_failure1(FailureSim *self, int unused){
-    // TODO: after implement detection (others'), this should be REMOVED
-    //notify_failure(self, 0);
-    // CORE
-    SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore manually\n");
     self->failMode = 1;
-    //SYNC(&can0, simulate_can_failure, 0);
+    SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore manually\n");
     SIO_WRITE(&sio0, 1); // unlit
+    SYNC(&can0, simulate_can_failure, 0);
     /*
     Failure Detection Pipeline (self)
 
@@ -83,25 +80,22 @@ void enter_failure1(FailureSim *self, int unused){
     */
 
     // TODO: after implement detection (self's), this should be REMOVED
-    SYNC(&network, node_logout, 0);
+    //SYNC(&network, node_logout, 0);
 }
 
 
 void enter_failure2(FailureSim *self, int unused){
-    // TODO: after implement detection (others'), this should be REMOVED
-    //notify_failure(self, 0);
-    // CORE
+    self->failMode = 2;
     int delay = gen_rand_num(10, 30);
     char failInfo[64];
     snprintf(failInfo, 64, "[FM]: Mode F2, restore automatcially in %d s\n", delay);
     SCI_WRITE(&sci0, failInfo);
-    self->failMode = 2;
-    //SYNC(&can0, simulate_can_failure, 0);
-    ABORT(self->abortMessage);
-    self->abortMessage = AFTER(SEC(delay), self, leave_failure_mode, 0);
     SIO_WRITE(&sio0, 1); // unlit
+    SYNC(&can0, simulate_can_failure, 0);
+    //ABORT(self->abortMessage);
+    self->abortMessage = AFTER(SEC(delay), self, leave_failure_mode, 0);
     // TODO: detect manually, this is only for test functionality
-    SYNC(&network, node_logout, 0);
+    //SYNC(&network, node_logout, 0);
 }
 
 
