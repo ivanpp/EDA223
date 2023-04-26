@@ -19,7 +19,7 @@ Can can0 = initCan(CAN_PORT0, &regulatorSw, regulatorBufferHdlr);
 
 SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
 
-CanRegulator canRegulator = initCanRegulator();
+CanSenderPart5 canSenderPart5 = initCanSenderPart5();
 
 
 /* CAN MSG */
@@ -41,7 +41,7 @@ void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
     msg->buff[6] = 193;
 }
 
-void canRegulatorFcn(CanRegulator *self, int unused){
+void canSenderFcnPart5(CanSenderPart5 *self, int unused){
     CANMsg msg;
     int msgStatus = 1;
 
@@ -60,7 +60,7 @@ void canRegulatorFcn(CanRegulator *self, int unused){
     }
     if(self->isBurstMode == true) // 'n' is not yet pressed, so call yourself again
     {      
-        AFTER(MSEC(500), self, canRegulatorFcn, 0);
+        AFTER(MSEC(500), self, canSenderFcnPart5, 0);
     }
 
 }
@@ -81,21 +81,43 @@ void regulatorBufferHdlr(Regulator *self, int unused)
         ++(self->writeIdx);
         self->writeIdx = self->writeIdx % MAX_BUFFER_SIZE;
 
-            // timing calculations
-        int duration_sec, diff;
-        duration_sec = SEC_OF(T_SAMPLE(&self->timer));
+        // timing calculations
+        int currentMsgArrivalTime, diff;
+        currentMsgArrivalTime = SEC_OF(T_SAMPLE(&self->timer));
 
         // calculate time difference to previous msg and print
-        diff = duration_sec - self->prevArrivalTime;
-        snprintf(printTimingInfo,90, "current arrival time:%ds, diff to prev arrival:%ds\n", duration_sec, diff);
+        diff = currentMsgArrivalTime - self->prevMsgArrivalTime;
+        snprintf(printTimingInfo,90, "[Regulator]MsgId:%d arrival time:%ds, diff to prev arrival:%ds\n",
+        self->canMsgBuffer[self->writeIdx].msg.msgId,
+        currentMsgArrivalTime,
+        diff);
         SCI_WRITE(&sci0, printTimingInfo);
 
         // current arrival time becomes previous arrival time for the next msg, so update in Regulator data structure
-        self->prevArrivalTime = duration_sec;
+        self->prevMsgArrivalTime = currentMsgArrivalTime;
 
-        // time diff > specified
-        // @todo use delivery time instead of diff to previous arrival time
-        if(diff > (self->delta)){
+        // Now, msg is ready for delivery. Print this info
+        int currentMsgDeliveryTime, deliveryDiff;
+        currentMsgDeliveryTime = SEC_OF(T_SAMPLE(&self->timer));
+        deliveryDiff = currentMsgDeliveryTime - self->prevMsgDeliveryTime;
+        
+        snprintf(printTimingInfo,90, "[Regulator]MsdId:%d ready for delivery at:%ds, diff to prev delivery:%ds\n", 
+        self->canMsgBuffer[self->writeIdx].msg.msgId,
+        currentMsgDeliveryTime,
+        deliveryDiff);
+        SCI_WRITE(&sci0, printTimingInfo);
+
+        self->prevMsgDeliveryTime = currentMsgDeliveryTime;
+
+        // Check if regulation is necessary
+        int arrivalDeliveryDiff;
+        arrivalDeliveryDiff = currentMsgArrivalTime - self->prevMsgDeliveryTime;
+
+        if(arrivalDeliveryDiff >= self->delta)
+        {
+            // send msg immediately to application or user or receiver
+            SYNC(&app,receiver,unused);
+        }else if(deliveryDiff >= (self->delta)){
             AFTER(SEC(self->delta),&app, receiver, unused);
         }else{
             // nothing to do here, explicitly written to avoid confusions
@@ -138,10 +160,10 @@ void setDelta(Regulator *self, int value)
 
 void receiver(App *self, int unused) {
     CANMsg msg;
-    int msgRxStatus = 0;
+    int rxTime;
     //CAN_RECEIVE(&can0, &msg); read from Regulator buffer instead
     SYNC(&regulatorSw, readRegulatorBuffer,&msg);
-    
+    rxTime = SEC_OF(T_SAMPLE(&self->timer));
     
             // INFO from message
     int sender    = msg.nodeId;
@@ -151,7 +173,7 @@ void receiver(App *self, int unused) {
                 (msg.buff[3] & 0xFF) << 16 | \
                 (msg.buff[4] & 0xFF) << 8  | \
                 (msg.buff[5] & 0xFF);
-    int ending    = msg.buff[6];
+    //int ending    = msg.buff[6];
 #ifdef DEBUG
     char debugInfo[64] = {};
     //snprintf(debugInfo, 64, "[0x%02X]: OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
@@ -160,9 +182,9 @@ void receiver(App *self, int unused) {
     //         msg.buff[1],
     //         msg.buff[2], msg.buff[3], msg.buff[4], msg.buff[5],
     //         ending);
-    if(canRegulator.isPrintEnabled)
+    if(canSenderPart5.isPrintEnabled)
     {
-        snprintf(debugInfo, 64, "Received MsgId:%d\n",msg.msgId);
+        snprintf(debugInfo, 64, "[receiver] Received MsgId:%d at %d\n",msg.msgId, rxTime);
         SCI_WRITE(&sci0, debugInfo);
     }
     
@@ -279,17 +301,17 @@ void reader(App *self, int c) {
     /* send 1 CAN Msg when 'o' is pressed */
     case 'o':
     case 'O':
-        if(canRegulator.isBurstMode == false)
-            SYNC(&canRegulator,canRegulatorFcn, 0);
+        if(canSenderPart5.isBurstMode == false)
+            SYNC(&canSenderPart5,canSenderFcnPart5, 0);
         else
             SCI_WRITE(&sci0, "can't send single CAN msg due to BURST Mode, press \'n\' to come out\n");
         break;
     case 'b':
     case 'B':
         /* Check if CAN mode is already in BURST mode */
-        if(canRegulator.isBurstMode == false){
-            canRegulator.isBurstMode = true;
-            SYNC(&canRegulator,canRegulatorFcn, 0);
+        if(canSenderPart5.isBurstMode == false){
+            canSenderPart5.isBurstMode = true;
+            SYNC(&canSenderPart5,canSenderFcnPart5, 0);
         }
         else
             SCI_WRITE(&sci0, "Already in CAN BURST Mode\n");
@@ -297,13 +319,13 @@ void reader(App *self, int c) {
     case 'n':
     case 'N':
         /* Come out of CAN Burst mode */
-        canRegulator.isBurstMode = false;
+        canSenderPart5.isBurstMode = false;
         break;
     case 'm':
     case 'M':
         /* disable prints for CAN Msg Tx */
-        canRegulator.isPrintEnabled = !(canRegulator.isPrintEnabled);
-        if(canRegulator.isPrintEnabled)
+        canSenderPart5.isPrintEnabled = !(canSenderPart5.isPrintEnabled);
+        if(canSenderPart5.isPrintEnabled)
             SCI_WRITE(&sci0, "CAN Msg Print enabled\n");
         else
             SCI_WRITE(&sci0, "CAN Msg Print disabled\n");

@@ -25,6 +25,7 @@ typedef struct {
     int index; // keyboard input
     char buffer[MAX_BUFFER_SIZE];
     PlayerMode mode; // mode
+    Timer timer; // only for Verification
 } App;
 
 typedef struct{
@@ -33,7 +34,7 @@ typedef struct{
     int isBurstMode;
     uint8_t seqCounter; // sequence number counter
     // TODO Buffer Handling
-} CanRegulator;
+} CanSenderPart5;
 
 typedef enum {
     INIT,
@@ -64,7 +65,8 @@ typedef struct{
     uint8_t readIdx;
     uint8_t writeIdx;
     Timer timer;
-    uint32_t prevArrivalTime;
+    uint32_t prevMsgArrivalTime;
+    uint32_t prevMsgDeliveryTime;
     uint8_t delta;
 } Regulator;
 
@@ -77,11 +79,12 @@ typedef struct{
     0,\
     initTimer(),\
     0,\
+    0,\
     1,\
 }
 
-// initialize CanRegulator 
-#define initCanRegulator() { \
+// init CAN Sender for Part5 
+#define initCanSenderPart5() { \
     initObject(),\
     0,\
     0,\
@@ -94,6 +97,7 @@ typedef struct{
     0, \
     {}, \
     MUSICIAN, \
+    initTimer(),\
 }
 
 extern App app;
@@ -136,7 +140,7 @@ void printVerbose(App *, int);
 void helperConductor(App *, int);
 void helperMusician(App *, int);
 
-void canRegulatorFcn(CanRegulator *, int);
+void canSenderFcnPart5(CanSenderPart5 *, int);
 void regulatorBufferHdlr(Regulator *, int);
 
 void readRegulatorBuffer(Regulator *, CANMsg *msg);
