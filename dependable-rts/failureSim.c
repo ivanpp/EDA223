@@ -16,19 +16,21 @@ extern Method mtable[];
 /* CAN */
 
 void empty_can_interrupt(Can *obj, int unused){
-    ;
+    SCI_WRITE(&sci0, "EMPTY CAN TRIGGLED\n");
 }
 
 
 void simulate_can_failure(Can *obj, int unused){
-    obj->port = CAN_PORT1; // change Tx port to unused one (cable disconnected)
+    //obj->port = CAN_PORT1; // change Tx port to unused one (cable disconnected)
     // Set CAN Rx ISR to dummy fcn so that CAN Rx Buffer is untouched
-    INSTALL(&can0, empty_can_interrupt, CAN_IRQ0); 
+    obj->meth = (Method)empty_can_interrupt;
+    INSTALL(&can0, empty_can_interrupt, CAN_IRQ0);
 }
 
 
 void simulate_can_restore(Can *obj, int unused){
-    obj->port = CAN_PORT0;// change Tx port to port in use (cable connected)
+    //obj->port = CAN_PORT0;// change Tx port to port in use (cable connected)
+    obj->meth = (Method)receiver;
     INSTALL(&can0, can_interrupt, CAN_IRQ0);// restore to working ISR
 }
 
@@ -39,7 +41,8 @@ void leave_failure_mode(FailureSim *self, int unused){
     SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
     self->failMode = 0;
     ABORT(self->abortMessage);
-    SYNC(&can0, simulate_can_restore, 0);
+    //SYNC(&can0, simulate_can_restore, 0);
+    SIO_WRITE(&sio0, 0); // lit
     /*
     Rejoin Pipeline (after leaving failure mode)
 
@@ -70,7 +73,8 @@ void enter_failure1(FailureSim *self, int unused){
     // CORE
     SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore manually\n");
     self->failMode = 1;
-    SYNC(&can0, simulate_can_failure, 0);
+    //SYNC(&can0, simulate_can_failure, 0);
+    SIO_WRITE(&sio0, 1); // unlit
     /*
     Failure Detection Pipeline (self)
 
@@ -92,9 +96,10 @@ void enter_failure2(FailureSim *self, int unused){
     snprintf(failInfo, 64, "[FM]: Mode F2, restore automatcially in %d s\n", delay);
     SCI_WRITE(&sci0, failInfo);
     self->failMode = 2;
-    SYNC(&can0, simulate_can_failure, 0);
+    //SYNC(&can0, simulate_can_failure, 0);
     ABORT(self->abortMessage);
     self->abortMessage = AFTER(SEC(delay), self, leave_failure_mode, 0);
+    SIO_WRITE(&sio0, 1); // unlit
     // TODO: detect manually, this is only for test functionality
     SYNC(&network, node_logout, 0);
 }

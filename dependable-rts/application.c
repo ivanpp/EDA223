@@ -39,6 +39,8 @@ void construct_can_message(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg
 
 
 void receiver(App *self, int unused) {
+    if(failureSim.failMode != 0)
+        return;
     CANMsg msg;
     CAN_RECEIVE(&can0, &msg);
     // INFO from message
