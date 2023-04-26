@@ -188,13 +188,13 @@ if NO answer:
 
 void detect_all_nodes(Network *self, int unused){
     int rank;
-    int delay = DETECTION_INTERVAL;
+    int delay = 0;
     for(size_t i = 0; i < self->numNodes; i++){
         rank = self->nodes[i];
-        if(rank != self->rank && self->nodeStatus[i] == NODE_ONLINE)
+        if(rank != self->rank && self->nodeStatus[i] == NODE_ONLINE){
             AFTER(MSEC(delay), self, detect_node, rank);
             delay += DETECTION_INTERVAL;
-            //detect_node(self, rank);
+        }
     }
 }
 

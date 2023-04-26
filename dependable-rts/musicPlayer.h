@@ -12,7 +12,7 @@
 #define TEMPO_DEFAULT 120
 #define BEATMULT_DEFAULT 30000/TEMPO_DEFAULT
 #define PERIODS_IDX_DIFF -15
-#define BACKUP_DELTA 100
+#define BACKUP_DELTA 2
 
 typedef struct{
     Object super;
