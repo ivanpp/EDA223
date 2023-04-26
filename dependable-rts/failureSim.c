@@ -8,13 +8,13 @@
 
 #define CAN_PORT0   (CAN_TypeDef *)(CAN1)
 #define CAN_PORT1   (CAN_TypeDef *)(CAN2)
-
+//Can can0_backup = initCan(CAN_PORT0, &app, receiver);
 
 FailureSim failureSim = initFailureSim();
 
 /* CAN */
 
-void empty_receiver(Can *obj, int unused){
+void empty_receiver(App *self, int unused){
     CANMsg msg;
     CAN_RECEIVE(&can0, &msg);
     SCI_WRITE(&sci0, "CANMsg ignored\n");
@@ -24,8 +24,8 @@ void empty_receiver(Can *obj, int unused){
 
 
 void simulate_can_failure(Can *obj, int unused){
+    //obj->port = CAN_PORT1;
     obj->meth = (Method)empty_receiver;
-    //obj->port = NULL;
 }
 
 
@@ -38,10 +38,9 @@ void simulate_can_restore(Can *obj, int unused){
 /* Failure */
 
 void leave_failure_mode(FailureSim *self, int unused){
-    SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
     self->failMode = 0;
+    SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
     ABORT(self->abortMessage);
-    SIO_WRITE(&sio0, 0); // lit
     SYNC(&can0, simulate_can_restore, 0);
     /*
     Rejoin Pipeline (after leaving failure mode)
@@ -70,7 +69,6 @@ void toggle_failure1(FailureSim *self, int unused)
 void enter_failure1(FailureSim *self, int unused){
     self->failMode = 1;
     SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore manually\n");
-    SIO_WRITE(&sio0, 1); // unlit
     SYNC(&can0, simulate_can_failure, 0);
     /*
     Failure Detection Pipeline (self)
@@ -90,7 +88,6 @@ void enter_failure2(FailureSim *self, int unused){
     char failInfo[64];
     snprintf(failInfo, 64, "[FM]: Mode F2, restore automatcially in %d s\n", delay);
     SCI_WRITE(&sci0, failInfo);
-    SIO_WRITE(&sio0, 1); // unlit
     SYNC(&can0, simulate_can_failure, 0);
     //ABORT(self->abortMessage);
     self->abortMessage = AFTER(SEC(delay), self, leave_failure_mode, 0);

@@ -75,7 +75,8 @@ typedef enum {
     MUSIC_MUTE,
     MUSIC_VOL_UP,
     MUSIC_VOL_DOWN,
-    DEBUG_OP
+    DEBUG_OP,
+    EMPTY_MSG,
 } CAN_OPCODE;
 
 void reader(App*, int);
@@ -83,6 +84,7 @@ void receiver(App*, int);
 void to_musician(App*, int);
 void to_conductor(App*, int);
 void construct_can_message(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg);
+void construct_can_message2(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg);
 void print_app_verbose(App *, int);
 void print_verbose(App *, int);
 void helper_conductor(App *, int);

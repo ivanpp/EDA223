@@ -44,8 +44,10 @@ void heartbeat_musician(Heartbeat *self, int unused){
 
 
 void heartbeat_login(Heartbeat *self, int unused){
-    if(!self->enable)
+    if(!self->enable){
+        SCI_WRITE(&sci0, "[HB/LOGIN]: return\n");
         return;
+    }
     // if already logged in
     if (!SYNC(&network, check_self_login, unused)) {
         disable_heartbeat(self, unused);
@@ -59,7 +61,7 @@ void heartbeat_login(Heartbeat *self, int unused){
         construct_can_message(&msg, NODE_LOGIN_REQUEST, BROADCAST, 0);
         CAN_SEND(&can0, &msg); // >> handle_login_request()
     }else
-        ASYNC(&app, to_musician, 0);
+        SYNC(&app, to_musician, 0);
     SEND(self->periodicity, self->deadline, self, heartbeat_login, unused);
 }
 

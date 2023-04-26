@@ -178,7 +178,7 @@ void play_index_tone(MusicPlayer *self, int idx){
     snprintf(debugInfo, 64, "play_i[%d]: period: %d, beatLen: %d\n", idx, period, beatLen);
     SCI_WRITE(&sci0, debugInfo);
 #endif
-    ASYNC(&toneGenerator, set_period, period);
+    SYNC(&toneGenerator, set_period, period);
     AFTER(MSEC(50), &toneGenerator, unblank_tone, 0);
     // 3. LED
     if (app.mode == CONDUCTOR) 
@@ -190,6 +190,7 @@ void play_index_tone(MusicPlayer *self, int idx){
     }
     // 3. schedule next tone, cancel the prev backup
     AFTER(MSEC(beatLen), self, play_index_tone_next, idx);
+    AFTER(MSEC(beatLen), &toneGenerator, blank_tone, 0);
     // 4. schedule backup
     int nextTone, nextNode, backupTime;
     nextTone = (idx + 1) % MUSIC_LENGTH;
@@ -202,6 +203,7 @@ void play_index_tone(MusicPlayer *self, int idx){
         SCI_WRITE(&sci0, debugInfo);
 #endif
     }
+    ABORT(self->backupMsg2);
 }
 
 
@@ -229,7 +231,7 @@ void play_index_tone_next(MusicPlayer *self, int idx){
         CAN_SEND(&can0, &msg); // >> play_index_tone(idx++)
     }
     // 3. shut self
-    SYNC(&toneGenerator, blank_tone, 0);
+    //SYNC(&toneGenerator, blank_tone, 0);
 }
 
 
@@ -240,7 +242,7 @@ void cancel_prev_backup(MusicPlayer *self, int prev){
         CANMsg msg;
         construct_can_message(&msg, NODE_REMAIN_ACTIVE, prev_node, 0);
         CAN_SEND_WR(&can0, &msg); // >> cancel_backup()
-#ifdef DEBUG
+#ifdef DEBUG_BAKCUP
         char debugInfo[64];
         snprintf(debugInfo, 64, "Cancel the backup for Node: %d\n", prev);
         SCI_WRITE(&sci0, debugInfo);
@@ -262,6 +264,7 @@ void play_index_tone_next_backup(MusicPlayer *self, int idx){
     construct_can_message(&msg, DEBUG_OP, BROADCAST, 0); // test message
     if(CAN_SEND_WRN(&can0, &msg, 1)){
         SYNC(&network, node_logout, 0);
+        return;
     } else {
         // detect each node
         SYNC(&network, detect_all_nodes, 0);
@@ -274,12 +277,26 @@ void play_index_tone_next_backup(MusicPlayer *self, int idx){
     SCI_WRITE(&sci0, debugInfo);
 #endif
     // resume music
-    AFTER(MSEC(10), self, play_index_tone, idx);
+    //AFTER(MSEC(10), self, play_index_tone, idx);
+    AFTER(MSEC(10), self, play_index_tone_next, idx);
 }
 
 
 void cancel_backup(MusicPlayer *self, int unused){
     ABORT(self->backupMsg);
+    int time = 4 * self->beatMult + BACKUP_DELTA;
+    self->backupMsg2 = AFTER(MSEC(time), self, backup2, 0);
+}
+
+
+void backup2(MusicPlayer *self, int unused){
+    // if this is executed, self may be broken
+    SCI_WRITE(&sci0, "[PLAYER]: 2nd backup triggled\n");
+    CANMsg msg;
+    construct_can_message(&msg, DEBUG_OP, BROADCAST, 0);
+    if(CAN_SEND(&can0, &msg)){
+        SYNC(&network, node_logout, 0);
+    }
 }
 
 
@@ -436,4 +453,10 @@ void print_musicPlayer_verbose(MusicPlayer *self, int unused){
     // print volumn
     SYNC(&toneGenerator, print_volume_info, 0);
     //SCI_WRITE(&sci0, "--------------------MUSICPLAYER--------------------\n");
+}
+
+
+void abort_all_backup(MusicPlayer *self, int unused){
+    ABORT(self->backupMsg);
+    ABORT(self->backupMsg2);
 }

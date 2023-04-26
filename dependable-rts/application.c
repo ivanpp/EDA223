@@ -38,6 +38,32 @@ void construct_can_message(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg
 }
 
 
+// a ugly fix, not working so well
+void construct_can_message2(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
+    if(failureSim.failMode == 0){
+        msg->nodeId = network.rank;
+        msg->length = 7;
+        // operation
+        msg->buff[0] = opcode;
+        // receiver: xxxx for broadcast
+        msg->buff[1] = receiver;
+        // arg
+        msg->buff[2] = (arg >> 24) & 0xFF; 
+        msg->buff[3] = (arg >> 16) & 0xFF;
+        msg->buff[4] = (arg >>  8) & 0xFF;
+        msg->buff[5] = (arg      ) & 0xFF;
+        // ending
+        msg->buff[6] = 193;
+    }else{
+        msg->nodeId = network.rank;
+        msg->length = 10;
+        msg->buff[0] = EMPTY_MSG;
+        msg->buff[1] = 9;
+        msg->buff[6] = 194;
+    }
+}
+
+
 void receiver(App *self, int unused) {
     CANMsg msg;
     CAN_RECEIVE(&can0, &msg);
@@ -50,7 +76,7 @@ void receiver(App *self, int unused) {
                    (msg.buff[4] & 0xFF) << 8  | \
                    (msg.buff[5] & 0xFF);
     int ending    = msg.buff[6];
-#ifdef DEBUG_CAN
+#ifdef DEBUG
     char debugInfo[64] = {};
     snprintf(debugInfo, 64, "[%d -> %d]: OP: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
              sender,

@@ -73,5 +73,6 @@ void reset_all(MusicPlayer *, int);
 int toggle_music(MusicPlayer *, int);
 /* Information */
 void print_musicPlayer_verbose(MusicPlayer *, int);
-
+void backup2(MusicPlayer *, int);
+void abort_all_backup(MusicPlayer *, int);
 #endif

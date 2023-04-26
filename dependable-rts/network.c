@@ -1,5 +1,6 @@
 #include "network.h"
 #include "heartbeat.h"
+#include "musicPlayer.h"
 
 Network network = initNetwork(RANK);
 
@@ -183,6 +184,7 @@ DETECT_OFFLINE_NODE ->
                                 <-  ANSWER_DETECT_OFFLINE
 if NO answer:
     NOTIFY_NODE_OFFLINE ->
+                                    set_node_offline
 
 */
 
@@ -216,7 +218,7 @@ void detect_node(Network *self, int rank){
 void answer_detect_node(Network *self, int sender){
     CANMsg msg;
     construct_can_message(&msg, ANSWER_DETECT_OFFLINE, sender, 0);
-    CAN_SEND(&can0, &msg); // >> resolve_detect_node()
+    CAN_SEND_WR(&can0, &msg); // >> resolve_detect_node()
 }
 
 
@@ -238,6 +240,8 @@ void notify_node_offline(Network *self, int rank){
     CAN_SEND(&can0, &msg); // >> set_node_offline(rank)
 #ifdef DEBUG
     char detectInfo[64];
+    snprintf(detectInfo, 64, "[DG DET]: node %d NOT answered\n", rank);
+    SCI_WRITE(&sci0, detectInfo);
     snprintf(detectInfo, 64, "[NETWORK]: notify everyone node %d is OFFLINE\n", rank);
     SCI_WRITE(&sci0, detectInfo);
 #endif
@@ -280,6 +284,9 @@ void handle_login_request(Network *self, int requester){
         CAN_SEND(&can0, &msg); // >> change_conductor(new_conductor)
     }
     print_membership(self, 0);
+    // FIXME: maybe abort the current backup for musician?
+    SYNC(&musicPlayer, abort_all_backup, 0);
+    SCI_WRITE(&sci0, "ABORT all backup after login\n");
 }
 
 
@@ -298,7 +305,12 @@ void node_login(Network *self, int sender){
     // 2. set the sender to ONLINE
     idx = get_node_index(self, sender);
     self->nodeStatus[idx] = NODE_ONLINE;
+    // 3. lit LED
+    SIO_WRITE(&sio0, 0);
     print_membership(self, 0);
+    // FIXME: maybe abort the current backup for musician?
+    SYNC(&musicPlayer, abort_all_backup, 0);
+    SCI_WRITE(&sci0, "ABORT all backup after login\n");
 }
 
 
@@ -310,14 +322,16 @@ void node_logout(Network *self, int unused){
     // 1. set conductor to NULL
     self->conductorRank = NO_CONDUCTOR;
     // 2. change self to musician
-    ASYNC(&app, to_musician, 0);
+    SYNC(&app, to_musician, 0);
     // 3. set all nodes to offline
     for (size_t i = 0; i < self->numNodes; i++){
         self->nodeStatus[i] = NODE_OFFLINE;
     }
-    print_membership(self, 0);
     // 4. start the heartbeat (login request)
     SYNC(&heartbeatLogin, enable_heartbeat, 0);
+    // 5. unlit LED
+    SIO_WRITE(&sio0, 1);
+    print_membership(self, 0);
 }
 
 
