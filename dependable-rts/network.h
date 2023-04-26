@@ -13,6 +13,8 @@
 #define NO_CONDUCTOR 0
 #define NODE_ONLINE 0
 #define NODE_OFFLINE 1
+#define DETECTION_INTERVAL 2
+#define DETECTION_ANSWER_DEADLINE 2
 
 typedef struct{
     Object super;

@@ -187,26 +187,27 @@ if NO answer:
 */
 
 void detect_all_nodes(Network *self, int unused){
-    // FIXME: test detect node 1 first
-    //detect_node(self, 1);
     int rank;
+    int delay = DETECTION_INTERVAL;
     for(size_t i = 0; i < self->numNodes; i++){
         rank = self->nodes[i];
         if(rank != self->rank && self->nodeStatus[i] == NODE_ONLINE)
-            detect_node(self, rank);
+            AFTER(MSEC(delay), self, detect_node, rank);
+            delay += DETECTION_INTERVAL;
+            //detect_node(self, rank);
     }
 }
 
 
 // detect one node at a time
 void detect_node(Network *self, int rank){
-    self->detectMsg = AFTER(MSEC(10), self, notify_node_offline, rank);
+    self->detectMsg = AFTER(MSEC(1), self, notify_node_offline, rank);
     CANMsg msg;
     construct_can_message(&msg, DETECT_OFFLINE_NODE, rank, 0);
     CAN_SEND(&can0, &msg); // >> answer_detect_node()
 #ifdef DEBUG
     char detectInfo[64];
-    snprintf(detectInfo, 64, "[NETWORK]: detect node %d\n", rank);
+    snprintf(detectInfo, 64, "[NETWORK]: detecting node %d\n", rank);
     SCI_WRITE(&sci0, detectInfo);
 #endif
 }
@@ -219,8 +220,13 @@ void answer_detect_node(Network *self, int sender){
 }
 
 
-void resolve_detect_node(Network *self, int unused){
+void resolve_detect_node(Network *self, int sender){
     ABORT(self->detectMsg);
+#ifdef DEBUG
+    char debugInfo[64];
+    snprintf(debugInfo, 64, "[DG DET]: node %d answered\n", sender);
+    SCI_WRITE(&sci0, debugInfo);
+#endif
     // make sure set to online maybe
 }
 
@@ -248,14 +254,14 @@ void set_node_offline(Network *self, int rank){
     // 1. set the node to OFFLINE
     int idx = get_node_index(self, rank);
     self->nodeStatus[idx] = NODE_OFFLINE;
+#ifdef DEBUG
+    print_membership(self, 0);
+#endif
     // 2. (OPT) elect the new conductor
     if (self->conductorRank == rank){
         self->conductorRank = 0;
         claim_conductorship(self, 0);
     }
-#ifdef DEBUG
-    print_membership(self, 0);
-#endif
 }
 
 

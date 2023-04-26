@@ -86,10 +86,15 @@ void receiver(App *self, int unused) {
             SYNC(&network, change_conductor, sender);
             break;
         /* STATUS */
+        case DETECT_OFFLINE_NODE:
+            SYNC(&network, answer_detect_node, sender);
+            break;
+        case ANSWER_DETECT_OFFLINE:
+            SYNC(&network, resolve_detect_node, sender);
+            break;
         case NODE_REMAIN_ACTIVE:
             SYNC(&musicPlayer, cancel_backup, 0);
             break;
-        // TODO
         case NOTIFY_NODE_OFFLINE:
             SYNC(&network, set_node_offline, arg);
             break;
