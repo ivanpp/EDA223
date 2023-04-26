@@ -39,11 +39,12 @@ typedef struct{
 
 extern Network network;
 
+
+/* Join Network*/
 void claim_existence(Network*, int);
 int search_network(Network*, int);
 void handle_join_request(Network*, int);
 void add_node_ascending(Network*, int);
-int sort_network(Network*, int);
 /* Conductorship */
 void claim_conductorship(Network*, int);
 void handle_claim_request(Network*, int);
@@ -71,6 +72,7 @@ int get_node_by_index(Network *, int);
 int get_next_node(Network *, int);
 int get_next_valid_node(Network *, int);
 int get_prev_valid_node(Network *, int);
+int get_first_valid_node(Network *, int);
 int count_valid_voters(Network *, int);
 /* Information */
 void print_network(Network*, int);

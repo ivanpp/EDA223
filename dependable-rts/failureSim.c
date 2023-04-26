@@ -85,7 +85,7 @@ void enter_failure1(FailureSim *self, int unused){
 
 void enter_failure2(FailureSim *self, int unused){
     // TODO: after implement detection (others'), this should be REMOVED
-    notify_failure(self, 0);
+    //notify_failure(self, 0);
     // CORE
     int delay = gen_rand_num(10, 30);
     char failInfo[64];

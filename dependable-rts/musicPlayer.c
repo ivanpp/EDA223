@@ -157,14 +157,14 @@ void play_music(MusicPlayer *self, int unused){
 
 0       t1      play tone
 t1      t1+t2   (next node) play next tone
-t1+t2+d         start backup 
+t1+t2+d         start backup
 
 */
 void play_index_tone(MusicPlayer *self, int idx){
     // 0. check index first
     if (idx < 0 || idx > MUSIC_LENGTH - 1) {
-        char debugInfo[32] = {};
-        snprintf(debugInfo, 32, "WARN: invalid idx for song: %d\n", idx);
+        char debugInfo[64];
+        snprintf(debugInfo, 64, "WARN: invalid idx for song: %d\n", idx);
         SCI_WRITE(&sci0, debugInfo);
         return;
     }
@@ -175,9 +175,12 @@ void play_index_tone(MusicPlayer *self, int idx){
     beatLen = self->beatMult * tempo;
 #ifdef DEBUG
     char debug[64] = {};
-    snprintf(debug, 64, "[%d]: period: %d, beatLen: %d\n", idx, period, beatLen);
+    snprintf(debug, 64, "play_i[%d]: period: %d, beatLen: %d\n", idx, period, beatLen);
     SCI_WRITE(&sci0, debug);
 #endif
+    ASYNC(&toneGenerator, set_period, period);
+    AFTER(MSEC(50), &toneGenerator, unblank_tone, 0);
+    // 3. LED
     if (app.mode == CONDUCTOR) 
         sync_LED(self, idx);
     else {
@@ -185,27 +188,30 @@ void play_index_tone(MusicPlayer *self, int idx){
         construct_can_message(&msg, MUSIC_SYNC_LED, network.conductorRank, idx);
         CAN_SEND(&can0, &msg); // >> sync_LED(idx)
     }
-    ASYNC(&toneGenerator, set_period, period);
-    AFTER(MSEC(50), &toneGenerator, unblank_tone, 0);
-    // AFTER(MSEC(beatLen), &toneGenerator, blank_tone, 0);
     // 3. schedule next tone, cancel the prev backup
     AFTER(MSEC(beatLen), self, play_index_tone_next, idx);
-    // 4. cancel backup for prev node
-    int prev_node = SYNC(&network, get_prev_valid_node, 0);
-    //AFTER(MSEC(beatLen), self, cancel_prev_backup, prev_node);
-    // 5. schedule backup
-    int nextTone = (idx + 1) % MUSIC_LENGTH; // check
-    int backupTime = (tempos[idx] + tempos[nextTone]) * self->beatMult + BACKUP_DELTA;
-    self->backupMsg = AFTER(MSEC(backupTime), self, play_index_tone_next_backup, idx);
+    // 4. schedule backup
+    int nextTone, nextNode, backupTime;
+    nextTone = (idx + 1) % MUSIC_LENGTH;
+    nextNode = SYNC(&network, get_next_valid_node, 0);
+    backupTime = (tempos[idx] + tempos[nextTone]) * self->beatMult + BACKUP_DELTA;
+    if (nextNode != network.rank){
+        self->backupMsg = AFTER(MSEC(backupTime), self, play_index_tone_next_backup, idx);
 #ifdef DEBUG
-    snprintf(debug, 64, "time left to triggle backup: %d\n", backupTime);
-    SCI_WRITE(&sci0, debug);
+        snprintf(debug, 64, "Backup created, time left: %d\n", backupTime);
+        SCI_WRITE(&sci0, debug);
 #endif
+    }
 }
 
 
 // send idx (which note to play) to next node
 void play_index_tone_next(MusicPlayer *self, int idx){
+#ifdef DEBUG
+    char debugInfo[64] = {};
+    snprintf(debugInfo, 64, "play_n[%d]\n", idx);
+    SCI_WRITE(&sci0, debugInfo);
+#endif
     if(self->ensemble_stop)
         return;
     int nextTone, prevNode, nextNode;
@@ -213,10 +219,12 @@ void play_index_tone_next(MusicPlayer *self, int idx){
     nextNode = SYNC(&network, get_next_valid_node, 0);
     prevNode = SYNC(&network, get_prev_valid_node, 0);
     // 1. cancel the prev
+    // put if here?
     cancel_prev_backup(self, prevNode);
     // 2. ask next node to play
     if(nextNode == network.rank){
         play_index_tone(self, nextTone);
+        ;
     }else{
         CANMsg msg;
         construct_can_message(&msg, MUSIC_PLAY_NOTE_IDX, nextNode, nextTone);
@@ -229,40 +237,53 @@ void play_index_tone_next(MusicPlayer *self, int idx){
 
 void cancel_prev_backup(MusicPlayer *self, int prev){
     // 1. cancel the prev's backup
-    char debugInfo[64];
-    snprintf(debugInfo, 64, "Cancel the backup for Node: %d\n", prev);
-    SCI_WRITE(&sci0, debugInfo);
-
     int prev_node = SYNC(&network, get_prev_valid_node, 0);
-    CANMsg msg;
-    construct_can_message(&msg, NODE_REMAIN_ACTIVE, prev_node, 0);
-    CAN_SEND_WR(&can0, &msg); // >> cancel_backup()
+    if(prev_node != network.rank){
+        CANMsg msg;
+        construct_can_message(&msg, NODE_REMAIN_ACTIVE, prev_node, 0);
+        CAN_SEND_WR(&can0, &msg); // >> cancel_backup()
+#ifdef DEBUG
+        char debugInfo[64];
+        snprintf(debugInfo, 64, "Cancel the backup for Node: %d\n", prev);
+        SCI_WRITE(&sci0, debugInfo);
+#endif
+    }
 }
 
 
 void play_index_tone_next_backup(MusicPlayer *self, int idx){
+    ABORT(self->backupMsg);
     // 1. check if ensemble is stopped
     if(self->ensemble_stop)
         return;
-    // SCI_WRITE(&sci0, "[PLAYER]: backup triggled\n");
-    // // 2. start the detection program
-    // CANMsg msg;
-    // construct_can_message(&msg, DETECT_OFFLINE_NODE, BROADCAST, 0);
-    // if(CAN_SEND_WRN(&can0, &msg, 3)){
-    //     SYNC(&network, node_logout, 0);
-    // } else {
-    //     // detect each node
-    //     SYNC(&network, detect_all_nodes, 0);
-    // }
-    // // 3. play next note as backup
-    // idx = (idx + 1) % MUSIC_LENGTH;
-    // play_index_tone(self, idx);
-    SCI_WRITE(&sci0, "BACKUP TRIGGLED\n");
+#ifdef DEBUG
+    char debugInfo[64];
+    snprintf(debugInfo, 64, "[PLAYER]: backup triggled [%d]\n", idx);
+    SCI_WRITE(&sci0, debugInfo);
+#endif
+    // 2. start the detection program
+    CANMsg msg;
+    construct_can_message(&msg, DEBUG_OP, BROADCAST, 0); // test message
+    if(CAN_SEND_WRN(&can0, &msg, 1)){
+        SYNC(&network, node_logout, 0);
+    } else {
+        // detect each node
+        SYNC(&network, detect_all_nodes, 0);
+    }
+    // 3. play next note as backup
+    idx = (idx) % MUSIC_LENGTH;
+#ifdef DEBUG
+    snprintf(debugInfo, 64, "play_b[%d]\n", idx);
+    SCI_WRITE(&sci0, debugInfo);
+#endif
+    play_index_tone(self, idx);
 }
 
 
 void cancel_backup(MusicPlayer *self, int unused){
+#ifdef DEBUG
     SCI_WRITE(&sci0, "CANCELED\n");
+#endif
     ABORT(self->backupMsg);
 }
 
@@ -325,8 +346,8 @@ void ensemble_start_all(MusicPlayer *self, int unused){
     // sync tempo, key
     set_tempo_all(self, self->tempo);
     set_key_all(self, self->key);
-    // start from first node
-    int firstNode = network.nodes[0];
+    // start from first valid node
+    int firstNode = SYNC(&network, get_first_valid_node, unused);
     if (firstNode == network.rank)
         play_index_tone(self, 0);
     else{

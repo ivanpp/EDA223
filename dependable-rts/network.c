@@ -82,12 +82,6 @@ void claim_existence(Network *self, int receiver){
 }
 
 
-// sort the nodes of the network by rank, no need if we force the order
-int sort_network(Network *self, int unused){
-    return 0;
-}
-
-
 /* Conductorship */
 
 void claim_conductorship(Network *self, int unused){
@@ -194,7 +188,13 @@ if NO answer:
 
 void detect_all_nodes(Network *self, int unused){
     // FIXME: test detect node 1 first
-    detect_node(self, 1);
+    //detect_node(self, 1);
+    int rank;
+    for(size_t i = 0; i < self->numNodes; i++){
+        rank = self->nodes[i];
+        if(rank != self->rank && self->nodeStatus[i] == NODE_ONLINE)
+            detect_node(self, rank);
+    }
 }
 
 
@@ -376,6 +376,15 @@ int get_prev_valid_node(Network *self, int unused){
         prev = (prev + self->numNodes - 1) % self->numNodes;
     }
     return self->nodes[prev];
+}
+
+
+int get_first_valid_node(Network *self, int unused){
+    for(size_t i = 0; i < self->numNodes; i++){
+        if(self->nodeStatus[i] == NODE_ONLINE)
+            return self->nodes[i];
+    }
+    return self->rank;
 }
 
 
