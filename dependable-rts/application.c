@@ -123,11 +123,15 @@ void receiver(App *self, int unused) {
         case NOTIFY_NODE_OFFLINE:
             SYNC(&network, set_node_offline, arg);
             break;
+            /* rejoin */
         case NODE_LOGIN_REQUEST:
             SYNC(&network, handle_login_request, sender);
             break;
         case NODE_LOGIN_CONFIRM:
             SYNC(&network, node_login, sender);
+            break;
+        case NODE_LOGIN_SUCCESS:
+            SYNC(&network, finish_login, sender);
             break;
         /* MUSIC */
         case MUSIC_START_ALL:

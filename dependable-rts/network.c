@@ -269,48 +269,74 @@ void set_node_offline(Network *self, int rank){
 }
 
 
-// used when you get some login request from offline node
+/*
+    Rejoin Pipeline
+*/
+// used when you get some login request from previous offline node
 void handle_login_request(Network *self, int requester){
-    // 1. set it to online again
-    int idx = get_node_index(self, requester);
-    self->nodeStatus[idx] = NODE_ONLINE;
-    // 2. claim your existence to it
+    // 1. claim your existence to it
     CANMsg msg;
     construct_can_message(&msg, NODE_LOGIN_CONFIRM, requester, self->conductorRank);
     CAN_SEND_WR(&can0, &msg);  // >> node_login(sender)
-    // 3. also tell it the current conductor's rank
+    // 2. also tell it the current conductor's rank
     if (app.mode == CONDUCTOR){
         construct_can_message(&msg, OBTAIN_CONDUCTORSHIP, requester, 0);
         CAN_SEND(&can0, &msg); // >> change_conductor(new_conductor)
     }
-    print_membership(self, 0);
-    // FIXME: maybe abort the current backup for musician?
-    SYNC(&musicPlayer, abort_all_backup, 0);
-    SCI_WRITE(&sci0, "ABORT all backup after ohter's login\n");
 }
 
 
 // used when node join request confirmed by other node
 void node_login(Network *self, int sender){
-    // 0. node must be a musician when logged in
+    // 0. refresh rejoin task
+    ABORT(self->rejoinMsg);
+    // 1. node must be a musician when logged in
     if(app.mode == CONDUCTOR){
         SCI_WRITE(&sci0, "[NETWORK ERR]: Can't login as a conductor!\n");
         return;
     }
-    // 1. set self to ONLINE
-    SCI_WRITE(&sci0, "Login confirmed\n");
+#ifdef DEBUG
+    char debugInfo[64];
+    snprintf(debugInfo, 64, "Login confirmed by %d\n", sender);
+    SCI_WRITE(&sci0, debugInfo);
+#endif
     int idx;
+    // 2. set self to ONLINE
     idx = get_node_index(self, self->rank);
     self->nodeStatus[idx] = NODE_ONLINE;
-    // 2. set the sender to ONLINE
+    // 3. set the sender to ONLINE
     idx = get_node_index(self, sender);
     self->nodeStatus[idx] = NODE_ONLINE;
-    // 3. lit LED
-    SIO_WRITE(&sio0, 0);
     print_membership(self, 0);
-    // FIXME: maybe abort the current backup for musician?
+    // 4. schedule the rejoin
+    self->rejoinMsg = AFTER(MSEC(5), self, node_login_success, 0);
+}
+
+
+void node_login_success(Network *self, int unused){
+    SCI_WRITE(&sci0, "[NETWORK]: login success, notify all to let me join\n");
+    print_membership(self, 0);
+    SIO_WRITE(&sio0, 0); // lit
+    // all other nodes can set me to ONLINE now (safe)
+    CANMsg msg;
+    construct_can_message(&msg, NODE_LOGIN_SUCCESS, BROADCAST, unused);
+    CAN_SEND_WR(&can0, &msg); // >> finish_login(requester)
+}
+
+
+void finish_login(Network *self, int requester){
+    // 1. set it to online again
+    int idx = get_node_index(self, requester);
+    self->nodeStatus[idx] = NODE_ONLINE;
+    // 2. abort musicbackup once, safety reason, maybe first?
     SYNC(&musicPlayer, abort_all_backup, 0);
-    SCI_WRITE(&sci0, "ABORT all backup after self's login\n");
+    SCI_WRITE(&sci0, "ABORT all backup because one node login successfully\n");
+#ifdef DEBUG
+    char debugInfo[64];
+    snprintf(debugInfo, 64, "From my side, [%d] login successfully\n", requester);
+    SCI_WRITE(&sci0, debugInfo);
+#endif
+    print_membership(self, 0);
 }
 
 

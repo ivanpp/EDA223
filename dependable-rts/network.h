@@ -26,6 +26,7 @@ typedef struct{
     int lock;
     int vote;
     Msg detectMsg;
+    Msg rejoinMsg;
 } Network;
 
 #define initNetwork(rank) { \
@@ -66,6 +67,8 @@ void set_node_offline(Network *, int);
     /* recover */
 void handle_login_request(Network *, int);
 void node_login(Network *, int);
+void node_login_success(Network *, int);
+void finish_login(Network *, int);
 void node_logout(Network *, int);
 int check_self_login(Network *, int);
 /* Utils */

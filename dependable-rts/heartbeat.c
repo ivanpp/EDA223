@@ -42,7 +42,18 @@ void heartbeat_musician(Heartbeat *self, int unused){
     SEND(self->periodicity, self->deadline, self, heartbeat_musician, unused);
 }
 
+    /*
+    Rejoin Pipeline (after leaving failure mode)
 
+    [1, 1, 1]                   [0, 1, 0]
+    NODE_LOGIN_REQUEST ->
+                                   handle_login_request() @CON
+                                <- NODE_LOGIN_CONFIRM
+    node_login()
+                                <- OBTAIN_CONDUCTORSHIP @CON
+    change_conductor()
+    [0, 0, 0]                   [0, 0, 0]
+    */
 void heartbeat_login(Heartbeat *self, int unused){
     if(!self->enable){
         SCI_WRITE(&sci0, "[HB/LOGIN]: return\n");
