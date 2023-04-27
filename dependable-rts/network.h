@@ -44,8 +44,8 @@ extern Network network;
 
 
 /* Join Network*/
-void claim_existence(Network*, int);
 int search_network(Network*, int);
+void claim_existence(Network*, int);
 void handle_join_request(Network*, int);
 void add_node_ascending(Network*, int);
 /* Conductorship */
@@ -54,7 +54,6 @@ void handle_claim_request(Network*, int);
 void handle_answer_to_claim(Network*, int);
 void obtain_conductorship(Network*, int);
 void change_conductor(Network *, int);
-/* Lock */
 void reset_lock(Network *, int);
 /* Node Status */
     /* detection */
@@ -78,7 +77,7 @@ int get_next_node(Network *, int);
 int get_next_valid_node(Network *, int);
 int get_prev_valid_node(Network *, int);
 int get_first_valid_node(Network *, int);
-int count_valid_voters(Network *, int);
+int count_online_nodes(Network *, int);
 /* Information */
 void print_network(Network*, int);
 void print_membership(Network *, int);

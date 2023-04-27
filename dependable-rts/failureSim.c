@@ -8,7 +8,6 @@
 
 #define CAN_PORT0   (CAN_TypeDef *)(CAN1)
 #define CAN_PORT1   (CAN_TypeDef *)(CAN2)
-//Can can0_backup = initCan(CAN_PORT0, &app, receiver);
 
 FailureSim failureSim = initFailureSim();
 
@@ -18,20 +17,16 @@ void empty_receiver(App *self, int unused){
     CANMsg msg;
     CAN_RECEIVE(&can0, &msg);
     SCI_WRITE(&sci0, "CANMsg ignored\n");
-    return;
-    //SCI_WRITE(&sci0, "EMPTY CAN TRIGGLED\n");
 }
 
 
 void simulate_can_failure(Can *obj, int unused){
-    //obj->port = CAN_PORT1;
     obj->meth = (Method)empty_receiver;
 }
 
 
 void simulate_can_restore(Can *obj, int unused){
     obj->meth = (Method)receiver;
-    //obj->port = CAN_PORT0;
 }
 
 
@@ -39,21 +34,9 @@ void simulate_can_restore(Can *obj, int unused){
 
 void leave_failure_mode(FailureSim *self, int unused){
     self->failMode = 0;
-    SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
     ABORT(self->abortMessage);
     SYNC(&can0, simulate_can_restore, 0);
-    /*
-    Rejoin Pipeline (after leaving failure mode)
-
-    [1, 1, 1]                   [0, 1, 0]
-    NODE_LOGIN_REQUEST ->
-                                    handle_login_request()
-                                <- NODE_LOGIN_CONFIRM
-    node_login()
-                                <- OBTAIN_CONDUCTORSHIP @CON
-    change_conductor()
-    [0, 0, 0]                   [0, 0, 0]
-    */
+    SCI_WRITE(&sci0, "[FM]: Leave Failure mode\n");
 }
 
 void toggle_failure1(FailureSim *self, int unused)
@@ -68,31 +51,20 @@ void toggle_failure1(FailureSim *self, int unused)
 
 void enter_failure1(FailureSim *self, int unused){
     self->failMode = 1;
-    SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore manually\n");
     SYNC(&can0, simulate_can_failure, 0);
-    /*
-    Failure Detection Pipeline (self)
-
-
-    
-    */
-
-    // TODO: after implement detection (self's), this should be REMOVED
-    //SYNC(&network, node_logout, 0);
+    SCI_WRITE(&sci0, "[FM]: Mode F1, need to restore manually\n");
 }
 
 
 void enter_failure2(FailureSim *self, int unused){
     self->failMode = 2;
     int delay = gen_rand_num(10, 30);
+    SYNC(&can0, simulate_can_failure, 0);
+    ABORT(self->abortMessage);
+    self->abortMessage = AFTER(SEC(delay), self, leave_failure_mode, 0);
     char failInfo[64];
     snprintf(failInfo, 64, "[FM]: Mode F2, restore automatcially in %d s\n", delay);
     SCI_WRITE(&sci0, failInfo);
-    SYNC(&can0, simulate_can_failure, 0);
-    //ABORT(self->abortMessage);
-    self->abortMessage = AFTER(SEC(delay), self, leave_failure_mode, 0);
-    // TODO: detect manually, this is only for test functionality
-    //SYNC(&network, node_logout, 0);
 }
 
 

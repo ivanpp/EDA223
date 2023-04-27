@@ -5,6 +5,19 @@
 Network network = initNetwork(RANK);
 
 
+    /*
+    Join network
+
+    (new member)
+    SEARCH_NETWORK  ->
+                                        handle_join_request()
+                                    <-  CLAIM_EXISTENCE
+    handle_join_request()
+    CLAIM_EXISTENCE  ->
+                                        ignore
+
+    */
+
 // search for existing network by broadcasting a CANMsg
 int search_network(Network *self, int unused){
     SCI_WRITE(&sci0, "[NETWORK]: Searching other networks\n");
@@ -12,6 +25,14 @@ int search_network(Network *self, int unused){
     construct_can_message(&msg, SEARCH_NETWORK, BROADCAST, self->rank);
     CAN_SEND_WR(&can0, &msg); // >> handle_join_request(sender)
     return 0;
+}
+
+
+void claim_existence(Network *self, int receiver){
+    SCI_WRITE(&sci0, "[NETWORK]: Try to claim my Existence\n");
+    CANMsg msg;
+    construct_can_message(&msg, CLAIM_EXISTENCE, receiver, self->rank);
+    CAN_SEND_WR(&can0, &msg); // >> handle_join_request(sender)
 }
 
 
@@ -75,15 +96,25 @@ void add_node_ascending(Network *self, int sender){
 }
 
 
-void claim_existence(Network *self, int receiver){
-    SCI_WRITE(&sci0, "[NETWORK]: Try to claim my Existence\n");
-    CANMsg msg;
-    construct_can_message(&msg, CLAIM_EXISTENCE, receiver, self->rank);
-    CAN_SEND_WR(&can0, &msg); // >> handle_join_request(sender)
-}
-
-
 /* Conductorship */
+
+    /*
+    Claim conductorship
+
+    lock self
+    CLAIM_CONDUCTORSHIP  ->
+                                    if lock free or locked by lower:
+                                        lock acquire by sender
+                                    <-  ANSWER_CLAIM_CONDUCTOR(YES)
+    (if enough votes)
+    OBTAIN_CONDUCTORSHIP  ->
+                                        change_conductor(condutor)
+
+                                    if locked by higher:
+                                    <-  ANSWER_CLAIM_CONDUCTOR(NO)
+    give up, reset
+
+    */
 
 void claim_conductorship(Network *self, int unused){
     if (self->conductorRank == self->rank){
@@ -122,7 +153,7 @@ void handle_claim_request(Network *self, int sender){
 
 void handle_answer_to_claim(Network *self, int agree){
     if(agree){
-        if(self->vote == count_valid_voters(self, 0) - 1){ // all other agree
+        if(self->vote == count_online_nodes(self, 0) - 1){ // all other agree
             obtain_conductorship(self, 0);
         }else
             self->vote++;
@@ -164,8 +195,6 @@ void change_conductor(Network *self, int conductor){
 }
 
 
-/* Lock */
-
 // reset the lock, used when fail to get the conductorship
 void reset_lock(Network *self, int unused){
     self->lock = 0;
@@ -175,18 +204,18 @@ void reset_lock(Network *self, int unused){
 
 /* Node Status */
 
-/*
-Detection
+    /*
+    Detection
 
-detect_node(rank)
-DETECT_OFFLINE_NODE ->
-                                    answer_detect_node()
-                                <-  ANSWER_DETECT_OFFLINE
-if NO answer:
-    NOTIFY_NODE_OFFLINE ->
-                                    set_node_offline
+    detect_node(rank)
+    DETECT_OFFLINE_NODE  ->
+                                        answer_detect_node()
+                                    <-  ANSWER_DETECT_OFFLINE
+    if NO answer:
+        NOTIFY_NODE_OFFLINE  ->
+                                        set_node_offline
 
-*/
+    */
 
 void detect_all_nodes(Network *self, int unused){
     int rank;
@@ -229,7 +258,6 @@ void resolve_detect_node(Network *self, int sender){
     snprintf(debugInfo, 64, "[DG DET]: node %d answered\n", sender);
     SCI_WRITE(&sci0, debugInfo);
 #endif
-    // make sure set to online maybe
 }
 
 
@@ -238,50 +266,64 @@ void notify_node_offline(Network *self, int rank){
     CANMsg msg;
     construct_can_message(&msg, NOTIFY_NODE_OFFLINE, BROADCAST, rank);
     CAN_SEND(&can0, &msg); // >> set_node_offline(rank)
-#ifdef DEBUG
     char detectInfo[64];
-    snprintf(detectInfo, 64, "[DG DET]: node %d NOT answered\n", rank);
-    SCI_WRITE(&sci0, detectInfo);
     snprintf(detectInfo, 64, "[NETWORK]: notify everyone node %d is OFFLINE\n", rank);
     SCI_WRITE(&sci0, detectInfo);
-#endif
 }
 
-/*
-Notify offline
 
-NOTIFY_NODE_OFFLINE ->
-                                    set_node_offline(rank)
-
-*/
 void set_node_offline(Network *self, int rank){
     // 1. set the node to OFFLINE
     int idx = get_node_index(self, rank);
     self->nodeStatus[idx] = NODE_OFFLINE;
-#ifdef DEBUG
-    print_membership(self, 0);
-#endif
     // 2. (OPT) elect the new conductor
     if (self->conductorRank == rank){
         self->conductorRank = 0;
         claim_conductorship(self, 0);
     }
+    char nodeInfo[64];
+    snprintf(nodeInfo, 64, "[NETWORK]: node %d OFFLINE\n", rank);
+    SCI_WRITE(&sci0, nodeInfo);
+    print_membership(self, 0);
 }
 
 
-/*
-    Rejoin Pipeline
-*/
+    /*
+    Rejoin pipeline
+
+    (self)                              (others)
+    [1, 1, 1]                           [1, 0, 0]
+    NODE_LOGIN_REQUEST  ->
+    NODE_LOGIN_REQUEST  ->
+    NODE_LOGIN_REQUEST  ->
+                                        handle_login_request()
+                                    <-  NODE_LOGIN_CONFIRM
+    [0, 0, 1]
+                                    <-  NODE_LOGIN_CONFIRM
+    [0, 0, 0]
+                                    <-  OBTAIN_CONDUCTORSHIP @CON
+                                    <-  SET_KEY_ALL @CON
+                                    <-  SET_TEMPO_ALL @CON
+    NODE_LOGIN_SUCCESS  ->
+                                        finish_login()
+                                        [0, 0, 0]
+
+    */
+
 // used when you get some login request from previous offline node
 void handle_login_request(Network *self, int requester){
     // 1. claim your existence to it
     CANMsg msg;
     construct_can_message(&msg, NODE_LOGIN_CONFIRM, requester, self->conductorRank);
     CAN_SEND_WR(&can0, &msg);  // >> node_login(sender)
-    // 2. also tell it the current conductor's rank
+    // 2. inform conductorship, tempo, key
     if (app.mode == CONDUCTOR){
         construct_can_message(&msg, OBTAIN_CONDUCTORSHIP, requester, 0);
         CAN_SEND(&can0, &msg); // >> change_conductor(new_conductor)
+        construct_can_message(&msg, MUSIC_SET_TEMPO_ALL, requester, musicPlayer.tempo);
+        CAN_SEND(&can0, &msg);
+        construct_can_message(&msg, MUSIC_SET_KEY_ALL, requester, musicPlayer.key);
+        CAN_SEND(&can0, &msg);
     }
 }
 
@@ -317,7 +359,6 @@ void node_login_success(Network *self, int unused){
     SCI_WRITE(&sci0, "[NETWORK]: login success, notify all to let me join\n");
     print_membership(self, 0);
     SIO_WRITE(&sio0, 0); // lit
-    // all other nodes can set me to ONLINE now (safe)
     CANMsg msg;
     construct_can_message(&msg, NODE_LOGIN_SUCCESS, BROADCAST, unused);
     CAN_SEND_WR(&can0, &msg); // >> finish_login(requester)
@@ -328,14 +369,14 @@ void finish_login(Network *self, int requester){
     // 1. set it to online again
     int idx = get_node_index(self, requester);
     self->nodeStatus[idx] = NODE_ONLINE;
-    // 2. abort musicbackup once, safety reason, maybe first?
+    // 2. abort musicbackup once, safety reason
     SYNC(&musicPlayer, abort_all_backup, 0);
-    SCI_WRITE(&sci0, "ABORT all backup because one node login successfully\n");
 #ifdef DEBUG
-    char debugInfo[64];
-    snprintf(debugInfo, 64, "From my side, [%d] login successfully\n", requester);
-    SCI_WRITE(&sci0, debugInfo);
+    SCI_WRITE(&sci0, "ABORT all backup because one node login successfully\n");
 #endif
+    char loginInfo[64];
+    snprintf(loginInfo, 64, "node [%d] login successfully\n", requester);
+    SCI_WRITE(&sci0, loginInfo);
     print_membership(self, 0);
 }
 
@@ -433,23 +474,13 @@ int get_first_valid_node(Network *self, int unused){
 }
 
 
-int count_valid_voters(Network *self, int unused){
+int count_online_nodes(Network *self, int unused){
     int counter = 0;
     for(size_t i = 0; i < self->numNodes; i++){
         if(self->nodeStatus[i] == NODE_ONLINE)
             counter++;
     }
     return counter;
-}
-
-
-void voteConductorMinRank(Network *self, int unused){
-    ;
-}
-
-
-void voteConductorMaxRank(Network *self, int unused){
-    ;
 }
 
 
