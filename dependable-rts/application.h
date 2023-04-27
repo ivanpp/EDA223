@@ -35,6 +35,12 @@ typedef struct{
     uint8_t seqCounter; // sequence number counter
 } CanSenderPart5;
 
+// typedef struct{
+//     uchar padding1;
+//     CANMsg msg;
+//     uchar padding2;
+// }CANMsgPadded;
+
 typedef struct{
     Object super;
     CANMsg canMsgBuffer[MAX_BUFFER_SIZE];// @todo decide buffer size based on some calculations
@@ -45,7 +51,7 @@ typedef struct{
     uint32_t prevMsgArrivalTime;
     uint32_t prevMsgDeliveryTime;
     uint8_t delta;
-} Regulator;
+} Regulator __attribute__((packed,aligned(32)));
 
 
 /* initCanMsgWithReadFlag(),*/
@@ -121,6 +127,7 @@ void helperMusician(App *, int);
 
 void canSenderFcnPart5(CanSenderPart5 *, int);
 
+void setReadIdx(Regulator *, int );
 void enqueueCanMsg(Regulator *, CANMsg *);
 void resetIndices(Regulator *, int);
 void dequeueCanMsg(Regulator *, int);
