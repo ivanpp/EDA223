@@ -6,7 +6,7 @@
 #include "heartbeat.h"
 #include <stdlib.h>
 #include <stdio.h>
-
+#include<string.h>
 
 App app = initApp();
 Regulator regulatorSw = initRegulator();
@@ -93,7 +93,6 @@ void resetIndices(Regulator *self, int unused)
 
 void enqueueCanMsg(Regulator *self, CANMsg *msgPtr) 
 {
-    char debugInfo[64]={};
     if((self->readIdx == 0 && self->writeIdx == MAX_BUFFER_SIZE - 1) || self->readIdx == self->writeIdx +1) 
     {
         //Write that message discareded. 
@@ -106,9 +105,10 @@ void enqueueCanMsg(Regulator *self, CANMsg *msgPtr)
             self->readIdx = 0;
         }
         self->writeIdx = (self->writeIdx + 1) % MAX_BUFFER_SIZE;
-        self->canMsgBuffer[self->writeIdx] = *msgPtr;
-
-        #ifdef DEBUG        
+        //self->canMsgBuffer[self->writeIdx] = *msgPtr;
+        memcpy(&(self->canMsgBuffer[self->writeIdx]), msgPtr, sizeof(CANMsg));
+        #ifdef DEBUG
+        char debugInfo[64]={};
         snprintf(debugInfo, 64, "Write msg to writeIdx: %d\n",self->writeIdx);
         SCI_WRITE(&sci0, debugInfo);
         #endif
@@ -133,7 +133,8 @@ void dequeueCanMsg(Regulator *self, int unused)
     }
     else
     {
-        msg = self->canMsgBuffer[self->readIdx];
+        //msg = self->canMsgBuffer[self->readIdx];
+        memcpy(&msg, &(self->canMsgBuffer[self->readIdx]), sizeof(CANMsg));
         if (self->readIdx == self->writeIdx) 
         {
             resetIndices(self, 0);
