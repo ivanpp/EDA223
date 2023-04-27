@@ -4,17 +4,20 @@
 #include "userButton.h"
 #include "network.h"
 #include "heartbeat.h"
+#include "regulator.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include<string.h>
+#include <string.h>
 
 App app = initApp();
 Regulator regulatorSw = initRegulator();
 
 UserButton userButton = initUserButton();
 
+extern Negulator regulator;
+
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
-Can can0 = initCan(CAN_PORT0, &app, receiver);
+Can can0 = initCan(CAN_PORT0, &regulator, reg_receiver);
 //Can can0 = initCan(CAN_PORT0, &regulatorSw, regulatorBufferHdlr);
 
 SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);

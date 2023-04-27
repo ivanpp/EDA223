@@ -56,6 +56,7 @@ OBJECTS= $(DEBUGDIR)dispatch.o \
          $(DEBUGDIR)musicPlayer.o \
          $(DEBUGDIR)userButton.o \
          $(DEBUGDIR)heartbeat.o \
+         $(DEBUGDIR)regulator.o \
          $(DEBUGDIR)application.o
          #$(DEBUGDIR)playList.o 
 
@@ -122,7 +123,7 @@ $(DEBUGDIR)sioTinyTimber.o: sioTinyTimber.c sioTinyTimber.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 
 # User-defined targets
-$(DEBUGDIR)playList.o: playList.c playList.h
+$(DEBUGDIR)regulator.o: regulator.c regulator.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
 $(DEBUGDIR)toneGenerator.o: toneGenerator.c toneGenerator.h
 	$(CC) -c $< -o $@ $(CCFLAGS)
