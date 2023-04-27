@@ -335,13 +335,17 @@ void to_musician(App *self, int unused){
         SCI_WRITE(&sci0, "WARN: illegal musician change\n");
     }
     self->mode = MUSICIAN;
+    int status = SYNC(&network, check_self_login, unused);
     // LED
-    int muteStatus = toneGenerator.isMuted;
-    int safeTime = 4 * musicPlayer.beatMult;
-    if (muteStatus)
-        AFTER(MSEC(safeTime), &sio0, sio_write, 1); // unlit LED (safe)
-    else
-        AFTER(MSEC(safeTime), &sio0, sio_write, 0); // lit LED (safe)
+    if(status == NODE_ONLINE){
+        int muteStatus = toneGenerator.isMuted;
+        int safeTime = 4 * musicPlayer.beatMult;
+        if (muteStatus)
+            AFTER(MSEC(safeTime), &sio0, sio_write, 1); // unlit LED (safe)
+        else
+            AFTER(MSEC(safeTime), &sio0, sio_write, 0); // lit LED (safe)
+    }else
+        SIO_WRITE(&sio0, 1);
 }
 
 

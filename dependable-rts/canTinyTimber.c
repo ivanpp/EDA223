@@ -1,5 +1,6 @@
 #include "TinyTimber.h"
 #include "canTinyTimber.h"
+#include "failureSim.h"
 
 //#define	__CAN_LOOPBACK	// Note: requires physical loopback between CAN 1 and 2 jacks
 
@@ -130,6 +131,10 @@ int can_receive(Can *self, CANMsg *msg){
 // Copy the given message to a transmit buffer and send the message
 //
 int can_send(Can *self, CANMsg *msg){
+	if(failureSim.failMode != 0){
+		DUMP("CAN Tx fail!\n\r");
+		return 1;
+	}
     uchar index;
 	CAN_TypeDef* canport = self->port;
 	CanTxMsg TxMessage;

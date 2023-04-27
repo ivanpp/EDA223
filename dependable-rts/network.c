@@ -286,7 +286,7 @@ void handle_login_request(Network *self, int requester){
     print_membership(self, 0);
     // FIXME: maybe abort the current backup for musician?
     SYNC(&musicPlayer, abort_all_backup, 0);
-    SCI_WRITE(&sci0, "ABORT all backup after login\n");
+    SCI_WRITE(&sci0, "ABORT all backup after ohter's login\n");
 }
 
 
@@ -310,7 +310,7 @@ void node_login(Network *self, int sender){
     print_membership(self, 0);
     // FIXME: maybe abort the current backup for musician?
     SYNC(&musicPlayer, abort_all_backup, 0);
-    SCI_WRITE(&sci0, "ABORT all backup after login\n");
+    SCI_WRITE(&sci0, "ABORT all backup after self's login\n");
 }
 
 
@@ -321,16 +321,14 @@ void node_logout(Network *self, int unused){
         SCI_WRITE(&sci0, "[NETWORK]: Conductorship void due to failure\n");
     // 1. set conductor to NULL
     self->conductorRank = NO_CONDUCTOR;
-    // 2. change self to musician
-    SYNC(&app, to_musician, 0);
     // 3. set all nodes to offline
     for (size_t i = 0; i < self->numNodes; i++){
         self->nodeStatus[i] = NODE_OFFLINE;
     }
+    // 2. change self to musician
+    SYNC(&app, to_musician, 0);
     // 4. start the heartbeat (login request)
     SYNC(&heartbeatLogin, enable_heartbeat, 0);
-    // 5. unlit LED
-    SIO_WRITE(&sio0, 1);
     print_membership(self, 0);
 }
 
