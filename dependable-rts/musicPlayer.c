@@ -13,6 +13,9 @@ int set_key(MusicPlayer *self, int key){
     key = key < KEY_MIN ? KEY_MIN : key;
     key = key > KEY_MAX ? KEY_MAX : key;
     self->key = key;
+    char keyInfo[32];
+    snprintf(keyInfo, 32, "[PLAYER]: key set to %d\n", key);
+    SCI_WRITE(&sci0, keyInfo);
     return key;
 }
 
@@ -24,6 +27,11 @@ int set_tempo(MusicPlayer *self, int tempo){
     int beatMult = 30 * 1000 / tempo;
     self->tempo   = tempo;
     self->beatMult = beatMult;
+    char tempoInfo[32];
+    snprintf(tempoInfo, 32, "[PLAYER]: tempo set to %d\n", tempo);
+    SCI_WRITE(&sci0, tempoInfo);
+    ABORT(self->backupMsg);
+    ABORT(self->backupMsg2);
     return tempo;
 }
 
