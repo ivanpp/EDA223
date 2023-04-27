@@ -39,7 +39,6 @@ typedef struct{
     Object super;
     CANMsg canMsgBuffer[MAX_BUFFER_SIZE];// @todo decide buffer size based on some calculations
     uint8_t ready;
-    uint8_t isDequeueRunning;
     int8_t readIdx;
     int8_t writeIdx;
     Timer timer;
@@ -54,8 +53,7 @@ typedef struct{
 #define initRegulator() {\
     initObject(),\
     {},\
-    /* ready */0,\
-    0,\
+    /* ready */1,\
     -1,\
     -1,\
     initTimer(),\
@@ -128,8 +126,6 @@ void resetIndices(Regulator *, int);
 void dequeueCanMsg(Regulator *, int);
 void regulateMsg(Regulator *, CANMsg *);
 
-void setDequeueFlag(Regulator *, int);
-void setReadyFlag(Regulator *, int unused);
 void setDelta(Regulator *, int value);
 
 
