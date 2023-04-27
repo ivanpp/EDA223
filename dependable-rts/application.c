@@ -137,7 +137,6 @@ void enqueueCanMsg(Regulator *self, CANMsg *msgPtr)
 void dequeueCanMsg(Regulator *self, int unused)
 {
     char debugInfo[64]={};
-    CANMsg msg;
     int rxTimeSec;
 
     if(self->readIdx == -1) 
@@ -151,9 +150,13 @@ void dequeueCanMsg(Regulator *self, int unused)
     }
     else
     {
-        //msg = self->canMsgBuffer[self->readIdx];
-        // memcpy(&msg, &(self->canMsgBuffer[self->readIdx]), sizeof(CANMsg));
-         int8_t localReadIdx = self->readIdx;
+        //msg = self->canMsgBuffer[self->readIdx]; // crashes
+        // memcpy(&msg, &(self->canMsgBuffer[self->readIdx]), sizeof(CANMsg)); // crashes
+        // int8_t localReadIdx = self->readIdx;
+        rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
+        snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %d\n",self->canMsgBuffer[self->readIdx].msgId, rxTimeSec);
+        //snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %d\n",msg.msgId, rxTimeSec); // crashes
+        SCI_WRITE(&sci0, debugInfo);
         if (self->readIdx == self->writeIdx) 
         {
             resetIndices(self, 0);
@@ -162,9 +165,7 @@ void dequeueCanMsg(Regulator *self, int unused)
         {
             self->readIdx = (self->readIdx + 1) % MAX_BUFFER_SIZE;
         }
-        rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
-        snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %d\n",self->canMsgBuffer[localReadIdx].msgId, rxTimeSec);
-        SCI_WRITE(&sci0, debugInfo);
+        
         AFTER(SEC(self->delta),&regulatorSw, dequeueCanMsg,0);
     }
 }

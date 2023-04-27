@@ -48,10 +48,9 @@ typedef struct{
     int8_t readIdx;
     int8_t writeIdx;
     Timer timer;
-    uint32_t prevMsgArrivalTime;
-    uint32_t prevMsgDeliveryTime;
     uint8_t delta;
-} Regulator __attribute__((packed,aligned(32)));
+} Regulator __attribute__((aligned(2))); // if aligned is not used, it crashes. Since aligned() 
+//is used, the canMsgBuffer can be placed anywhere inside the struct now
 
 
 /* initCanMsgWithReadFlag(),*/
@@ -63,8 +62,6 @@ typedef struct{
     -1,\
     -1,\
     initTimer(),\
-    0,\
-    0,\
     1,\
 }
 
