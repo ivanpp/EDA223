@@ -33,50 +33,28 @@ typedef struct{
     int isPrintEnabled;
     int isBurstMode;
     uint8_t seqCounter; // sequence number counter
-    // TODO Buffer Handling
 } CanSenderPart5;
 
-typedef enum {
-    INIT,
-    NEW_VALUE_WRITTEN,
-    READ_DONE,
-} Status;
-
 typedef struct{
     Object super;
-
-    // single CAN Msg 
-    CANMsg msg;
-
-    // regulatorBufferHdlr : write NEW_VALUE_WRITTEN, readRegulatorBuffer: write READ_DONE
-    // @todo check if this causes race condition
-    Status status;
-}CanMsgWithReadFlag;
-
-#define initCanMsgWithReadFlag() {\
-    initObject(),\
-    {},\
-    INIT,\
-}
-
-typedef struct{
-    Object super;
-    CanMsgWithReadFlag canMsgBuffer[MAX_BUFFER_SIZE];// @todo decide buffer size based on some calculations
-    uint8_t readIdx;
-    uint8_t writeIdx;
+    CANMsg canMsgBuffer[MAX_BUFFER_SIZE];// @todo decide buffer size based on some calculations
+    uint8_t ready;
+    int8_t readIdx;
+    int8_t writeIdx;
     Timer timer;
     uint32_t prevMsgArrivalTime;
     uint32_t prevMsgDeliveryTime;
     uint8_t delta;
 } Regulator;
 
+
 /* initCanMsgWithReadFlag(),*/
 // initialize RegulatorBufferHdlr
 #define initRegulator() {\
     initObject(),\
     {},\
-    0,\
-    0,\
+    -1,\
+    -1,\
     initTimer(),\
     0,\
     0,\
@@ -141,9 +119,12 @@ void helperConductor(App *, int);
 void helperMusician(App *, int);
 
 void canSenderFcnPart5(CanSenderPart5 *, int);
-void regulatorBufferHdlr(Regulator *, int);
 
-void readRegulatorBuffer(Regulator *, CANMsg *msg);
+void enqueue(Regulator *, CANMsg *);
+void dequeue(Regulator *, int);
+void regulateMsg(Regulator *, CANMsg *);
+
+void setReadyFlag(Regulator *, int unused);
 void setDelta(Regulator *, int value);
 
 
