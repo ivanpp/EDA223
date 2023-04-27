@@ -72,13 +72,12 @@ void regulateMsg(Regulator *self, CANMsg *msgPtr) {
         self->ready = false;
         // deliver msg Immediately 
         rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
-        snprintf(debugInfo, 64, "MsgId:%d delivered at %d\n",msgPtr->msgId, rxTimeSec);
+        snprintf(debugInfo, 64, "        MsgId:%d delivered at %d\n",msgPtr->msgId, rxTimeSec);
         SCI_WRITE(&sci0, debugInfo);
         AFTER(SEC(self->delta),&regulatorSw, dequeueCanMsg,0);
     } 
     else
     {
-        SCI_WRITE(&sci0, "Try enqueue \n");
         enqueueCanMsg(self, msgPtr);
     }
     // Else enqueue
@@ -96,21 +95,25 @@ void enqueueCanMsg(Regulator *self, CANMsg *msgPtr)
     if((self->readIdx == 0 && self->writeIdx == MAX_BUFFER_SIZE - 1) || self->readIdx == self->writeIdx +1) 
     {
         //Write that message discareded. 
+        #ifdef DEBUG
+        SCI_WRITE(&sci0, "discarding msg");
+        #endif
         return;
     }
     else 
     {
-        if (self->readIdx == -1) 
-        {   
-            self->readIdx = 0;
-        }
+        // this part causes crash. Need to further investigate. But, for now, things seem to work as usual
+        // if (self->readIdx == -1) 
+        // {   
+        //     self->readIdx = 0;
+        // }
         self->writeIdx = (self->writeIdx + 1) % MAX_BUFFER_SIZE;
         //self->canMsgBuffer[self->writeIdx] = *msgPtr;
         memcpy(&(self->canMsgBuffer[self->writeIdx]), msgPtr, sizeof(CANMsg));
         #ifdef DEBUG
         char debugInfo[64]={};
-        snprintf(debugInfo, 64, "Write msg to writeIdx: %d\n",self->writeIdx);
-        SCI_WRITE(&sci0, debugInfo);
+        snprintf(debugInfo, 20, "writeIdx: %d\n",self->writeIdx);
+        //SCI_WRITE(&sci0, debugInfo);
         #endif
     }
 }
@@ -125,7 +128,7 @@ void dequeueCanMsg(Regulator *self, int unused)
     if(self->readIdx == -1) 
     {
         #ifdef DEBUG        
-        snprintf(debugInfo, 64, "Queue is empty, resetting ready flag. \n");
+        snprintf(debugInfo, 64, "Queue empty, resetting ready flag. \n");
         SCI_WRITE(&sci0, debugInfo);
         #endif
         self->ready = 1;
@@ -144,7 +147,7 @@ void dequeueCanMsg(Regulator *self, int unused)
             self->readIdx = (self->readIdx + 1) % MAX_BUFFER_SIZE;
         }
         rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
-        snprintf(debugInfo, 64, "[dequeue] MsgId:%d delivered at %d\n",msg.msgId, rxTimeSec);
+        snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %d\n",msg.msgId, rxTimeSec);
         SCI_WRITE(&sci0, debugInfo);
         AFTER(SEC(self->delta),&regulatorSw, dequeueCanMsg,0);
     }
@@ -159,12 +162,11 @@ void setDelta(Regulator *self, int value)
 }
 
 void receiver(App *self, int unused) {
-    SCI_WRITE(&sci0,"1. RECIEVER GOT MESSAGE \n");
     CANMsg msg;
-    //int rxTime;
+    int rxTime;
     CAN_RECEIVE(&can0, &msg);
     SYNC(&regulatorSw, regulateMsg, &msg);
-    //rxTime = SEC_OF(T_SAMPLE(&self->timer));
+    rxTime = SEC_OF(T_SAMPLE(&self->timer));
     
             // INFO from message
     int sender    = msg.nodeId;
@@ -176,7 +178,7 @@ void receiver(App *self, int unused) {
                 (msg.buff[5] & 0xFF);
     //int ending    = msg.buff[6];
 #ifdef DEBUG
-    //char debugInfo[64] = {};
+    char debugInfo[64] = {};
     //snprintf(debugInfo, 64, "[0x%02X]: OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
     //         sender,
     //         msg.buff[0],
@@ -185,7 +187,7 @@ void receiver(App *self, int unused) {
     //         ending);
     if(canSenderPart5.isPrintEnabled)
     {
-        //snprintf(debugInfo, 64, "[receiver] Received MsgId:%d at %d\n",msg.msgId, rxTime);
+        snprintf(debugInfo, 64, "    [receiver] Received MsgId:%d at %d\n",msg.msgId, rxTime);
         //SCI_WRITE(&sci0, debugInfo);
     }
     
