@@ -9,7 +9,6 @@
 
 #define BROADCAST 0x00
 
-
 /* keyboard */
 #define MAX_BUFFER_SIZE 32
 
@@ -26,6 +25,7 @@ typedef struct {
     int index; // keyboard input
     char buffer[MAX_BUFFER_SIZE];
     PlayerMode mode; // mode
+    Timer timer; // only for Verification
 } App;
 
 typedef struct{
@@ -33,11 +33,40 @@ typedef struct{
     int isPrintEnabled;
     int isBurstMode;
     uint8_t seqCounter; // sequence number counter
-    // TODO Buffer Handling
-} CanRegulator;
+} CanSenderPart5;
 
-// initialize CanRegulator 
-#define initCanRegulator() { \
+// typedef struct{
+//     uchar padding1;
+//     CANMsg msg;
+//     uchar padding2;
+// }CANMsgPadded;
+
+typedef struct{
+    Object super;
+    CANMsg canMsgBuffer[MAX_BUFFER_SIZE];// @todo decide buffer size based on some calculations
+    uint8_t ready;
+    int8_t readIdx;
+    int8_t writeIdx;
+    Timer timer;
+    uint8_t delta;
+} Regulator __attribute__((aligned(2))); // if aligned is not used, it crashes. Since aligned() 
+//is used, the canMsgBuffer can be placed anywhere inside the struct now
+
+
+/* initCanMsgWithReadFlag(),*/
+// initialize RegulatorBufferHdlr
+#define initRegulator() {\
+    initObject(),\
+    {},\
+    /* ready */1,\
+    -1,\
+    -1,\
+    initTimer(),\
+    1,\
+}
+
+// init CAN Sender for Part5 
+#define initCanSenderPart5() { \
     initObject(),\
     0,\
     0,\
@@ -50,6 +79,7 @@ typedef struct{
     0, \
     {}, \
     MUSICIAN, \
+    initTimer(),\
 }
 
 extern App app;
@@ -92,9 +122,18 @@ void printVerbose(App *, int);
 void helperConductor(App *, int);
 void helperMusician(App *, int);
 
-void canRegulatorFcn(CanRegulator *, int);
+void canSenderFcnPart5(CanSenderPart5 *, int);
 void trySendSingleCanMessage(App *, int);
 void tryEnableBurstMode(App *, int);
 void disableBurstMode(App *, int);
+
+void setReadIdx(Regulator *, int );
+void enqueueCanMsg(Regulator *, CANMsg *);
+void resetIndices(Regulator *, int);
+void dequeueCanMsg(Regulator *, int);
+void regulateMsg(Regulator *, CANMsg *);
+
+void setDelta(Regulator *, int value);
+
 
 #endif

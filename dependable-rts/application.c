@@ -6,17 +6,21 @@
 #include "heartbeat.h"
 #include <stdlib.h>
 #include <stdio.h>
-
+#include<string.h>
 
 App app = initApp();
+Regulator regulatorSw = initRegulator();
 
 UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
+//Can can0 = initCan(CAN_PORT0, &regulatorSw, regulatorBufferHdlr);
+
 SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
 
-CanRegulator canRegulator = initCanRegulator();
+CanSenderPart5 canSenderPart5 = initCanSenderPart5();
+
 
 /* CAN MSG */
 void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
@@ -37,7 +41,7 @@ void constructCanMessage(CANMsg *msg, CAN_OPCODE opcode, int receiver, int arg){
     msg->buff[6] = 193;
 }
 
-void canRegulatorFcn(CanRegulator *self, int unused){
+void canSenderFcnPart5(CanSenderPart5 *self, int unused){
     CANMsg msg;
     int msgStatus = 1;
 
@@ -56,25 +60,62 @@ void canRegulatorFcn(CanRegulator *self, int unused){
     }
     if(self->isBurstMode == true) // 'n' is not yet pressed, so call yourself again
     {      
-        AFTER(MSEC(500), self, canRegulatorFcn, 0);
+        AFTER(MSEC(500), self, canSenderFcnPart5, 0);
     }
 
 }
+void regulateMsg(Regulator *self, CANMsg *msgPtr) {
+    char debugInfo[64]={};
+    int rxTimeSec;
+    if (self->ready) 
+    {
+        self->ready = false;
+        // deliver msg Immediately 
+        rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
+        snprintf(debugInfo, 64, "        MsgId:%d delivered at %ds\n",msgPtr->msgId, rxTimeSec);
+        SCI_WRITE(&sci0, debugInfo);
+        AFTER(SEC(self->delta),&regulatorSw, dequeueCanMsg,0);
+    } 
+    else
+    {
+        enqueueCanMsg(self, msgPtr);
+    }
+    // Else enqueue
+}
 
 void trySendSingleCanMessage(App *self, int unused) {
-    if(canRegulator.isBurstMode == false)
-        SYNC(&canRegulator, canRegulatorFcn, 0);
+    if(regulatorSw.isBurstMode == false)
+        SYNC(&regulatorSw, canSenderFcnPart5, 0);
     else
         SCI_WRITE(&sci0, "can't send single CAN msg due to BURST Mode, press \'n\' to come out\n");
+}
+// must be called only by the dequeueCanMsg()
+void resetIndices(Regulator *self, int unused)
+{
+    self->writeIdx = -1;
+    self->readIdx = -1;
+}
+void setReadIdx(Regulator *self, int f_readIdx)
+{
+    if((f_readIdx >= 0) && ( f_readIdx <  MAX_BUFFER_SIZE)){
+        self->readIdx = f_readIdx;
+        #ifdef DEBUG
+        char debugInfo[64]={};
+        snprintf(debugInfo, 64, "ReadIdx set to: %d\n",self->readIdx);
+        SCI_WRITE(&sci0, debugInfo);
+        #endif
+    }else{
+        SCI_WRITE(&sci0, "readIdx not in [-1 to MAX_BUFFER_SIZE] range\n");
+    }
 }
 
 void tryEnableBurstMode(App *self, int unused) {
     /* Check if CAN mode is already in BURST mode */
         
-    if(canRegulator.isBurstMode == false)
+    if(regulatorSw.isBurstMode == false)
     {
-        canRegulator.isBurstMode = true;
-        SYNC(&canRegulator,canRegulatorFcn, 0);
+        regulatorSw.isBurstMode = true;
+        SYNC(&regulatorSw,canSenderFcnPart5, 0);
     }
     else
     {
@@ -85,21 +126,98 @@ void tryEnableBurstMode(App *self, int unused) {
 void disableBurstMode(App *self, int unused) 
 {
     /* Come out of CAN Burst mode */
-    canRegulator.isBurstMode = false;
+    regulatorSw.isBurstMode = false;
+}
+
+void enqueueCanMsg(Regulator *self, CANMsg *msgPtr) 
+{
+    if((self->readIdx == 0 && self->writeIdx == MAX_BUFFER_SIZE - 1) || self->readIdx == self->writeIdx +1) 
+    {
+        //Write that message discareded. 
+        #ifdef DEBUG
+        SCI_WRITE(&sci0, "discarding msg as buffer is full\n");
+        #endif
+        return;
+    }
+    else 
+    {
+        // this part causes crash. Need to further investigate. But, for now, things seem to work as usual
+        if (self->readIdx == -1) 
+        {   
+            ASYNC(&regulatorSw,setReadIdx,0); // this has to be ASYNC so that it happens concurrently for each queued msg
+        }
+        self->writeIdx = (self->writeIdx + 1) % MAX_BUFFER_SIZE;
+        //self->canMsgBuffer[self->writeIdx] = *msgPtr;
+        memcpy(&(self->canMsgBuffer[self->writeIdx]), msgPtr, sizeof(CANMsg));
+        #ifdef DEBUG
+        char debugInfo[78]={};
+        snprintf(debugInfo, 78, "    [enqueue] MsgId: %d queued at WriteIdx: %d, current readIdx:%d\n",self->canMsgBuffer[self->writeIdx].msgId, self->writeIdx, self->readIdx);
+        SCI_WRITE(&sci0, debugInfo);
+        #endif
+    }
+}
+
+// Deque and send, unless empty, in which case we set ready. 
+void dequeueCanMsg(Regulator *self, int unused)
+{
+    char debugInfo[64]={};
+    int rxTimeSec;
+
+    if(self->readIdx == -1) 
+    {
+        #ifdef DEBUG        
+        snprintf(debugInfo, 64, "Queue empty, resetting ready flag. \n");
+        SCI_WRITE(&sci0, debugInfo);
+        #endif
+        self->ready = 1;
+        return;
+    }
+    else
+    {
+        //msg = self->canMsgBuffer[self->readIdx]; // crashes
+        // memcpy(&msg, &(self->canMsgBuffer[self->readIdx]), sizeof(CANMsg)); // crashes
+        // int8_t localReadIdx = self->readIdx;
+        rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
+        snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %ds\n",self->canMsgBuffer[self->readIdx].msgId, rxTimeSec);
+        //snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %d\n",msg.msgId, rxTimeSec); // crashes
+        SCI_WRITE(&sci0, debugInfo);
+        if (self->readIdx == self->writeIdx) 
+        {
+            resetIndices(self, 0);
+        }
+        else 
+        {
+            self->readIdx = (self->readIdx + 1) % MAX_BUFFER_SIZE;
+        }
+        
+        AFTER(SEC(self->delta),&regulatorSw, dequeueCanMsg,0);
+    }
+}
+
+void setDelta(Regulator *self, int value)
+{
+    char printMsg[64]={};
+    self->delta = value;
+    snprintf(printMsg,64,"Inter-arrival time set to %ds\n",self->delta);
+    SCI_WRITE(&sci0,printMsg);
 }
 
 void receiver(App *self, int unused) {
     CANMsg msg;
+    int rxTime;
     CAN_RECEIVE(&can0, &msg);
-    // INFO from message
+    SYNC(&regulatorSw, regulateMsg, &msg);
+    rxTime = SEC_OF(T_SAMPLE(&self->timer));
+    
+            // INFO from message
     int sender    = msg.nodeId;
     CAN_OPCODE op = msg.buff[0];
     int receiver  = msg.buff[1];
     int arg =      (msg.buff[2] & 0xFF) << 24 | \
-                   (msg.buff[3] & 0xFF) << 16 | \
-                   (msg.buff[4] & 0xFF) << 8  | \
-                   (msg.buff[5] & 0xFF);
-    int ending    = msg.buff[6];
+                (msg.buff[3] & 0xFF) << 16 | \
+                (msg.buff[4] & 0xFF) << 8  | \
+                (msg.buff[5] & 0xFF);
+    //int ending    = msg.buff[6];
 #ifdef DEBUG
     char debugInfo[64] = {};
     //snprintf(debugInfo, 64, "[0x%02X]: OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
@@ -108,10 +226,10 @@ void receiver(App *self, int unused) {
     //         msg.buff[1],
     //         msg.buff[2], msg.buff[3], msg.buff[4], msg.buff[5],
     //         ending);
-    if(canRegulator.isPrintEnabled)
+    if(canSenderPart5.isPrintEnabled)
     {
-        snprintf(debugInfo, 64, "Received MsgId:%d\n",msg.msgId);
-        SCI_WRITE(&sci0, debugInfo);
+        snprintf(debugInfo, 64, "    [receiver] Received MsgId:%d at %d\n",msg.msgId, rxTime);
+        //SCI_WRITE(&sci0, debugInfo);
     }
     
 #endif
@@ -160,7 +278,8 @@ void receiver(App *self, int unused) {
             break;
         default:;
             break;
-    }
+    }// end switch
+    
 }
 
 
@@ -206,9 +325,9 @@ void reader(App *self, int c) {
         printVerbose(self, 0);
         break;
     /* Get conductorship, brutely, like KIM */
-    case 'x':
-    case 'X':
-        SYNC(&network, obtainConductorship, 0);
+    case 'n':
+    case 'N':
+        //SYNC(&network, obtainConductorship, 0); not needed for part5
         break;
     /* manually trigger searching of network */
     case 'z':
@@ -232,102 +351,109 @@ void reader(App *self, int c) {
     case 'B':
         tryEnableBurstMode(self, 0);
         break;
-    case 'n':
-    case 'N':
+    case 'x':
+    case 'X':
         disableBurstMode(self, 0);
         break;
     case 'm':
     case 'M':
         /* disable prints for CAN Msg Tx */
-        canRegulator.isPrintEnabled = !(canRegulator.isPrintEnabled);
-        if(canRegulator.isPrintEnabled)
+        canSenderPart5.isPrintEnabled = !(canSenderPart5.isPrintEnabled);
+        if(canSenderPart5.isPrintEnabled)
             SCI_WRITE(&sci0, "CAN Msg Print enabled\n");
         else
             SCI_WRITE(&sci0, "CAN Msg Print disabled\n");
+        break;
+    /* obtain value and set the inter-arrival time (i.e. delta) */
+    case 'l':
+    case 'L':
+        arg = parseValue(self,0);
+        SYNC(&regulatorSw,setDelta,arg);
+        break;
     default:
         break;
     }
     // CONDUCTOR or MUSICIAN
-    if (self->mode == CONDUCTOR){
-        switch (c)
-        {
-        /* display helper */
-        case '\n':;
-            helperConductor(self, 0);
-            break;
-        case '\r':
-            break;
-        /* MUSIC */
-        case 'a': // restart
-        case 'A':
-            SYNC(&network, ensembleRestartAll, 0);
-            break;
-        case 's': // start
-        case 'S':
-            SYNC(&musicPlayer, ensembleStartAll, 0);
-            break;
-        case 'd': // stop
-        case 'D':
-            SYNC(&musicPlayer, ensembleStopAll, 0);
-            break;
-        case 'k':
-        case 'K': // key
-            arg = parseValue(self, 0);
-            SYNC(&musicPlayer, setKeyAll, arg);
-            break;
-        case 'j':
-        case 'J': // tempo
-            arg = parseValue(self, 0);
-            SYNC(&musicPlayer, setTempoAll, arg);
-            break;
-        case 'r':
-        case 'R': // reset: key, tempo
-            SYNC(&musicPlayer, resetAll, 0);
-            break;
-        case 'h':
-        case 'H': // toggle heartbeat
-            SYNC(&heartbeatCon, toggleHeartbeat, 0);
-            break;
-        case 'g':
-        case 'G': // set heartbeat period (s)
-            arg = parseValue(self, 0);
-            SYNC(&heartbeatCon, setHeartbeatPeriod, arg);
-            break;
-        default:
-            break;
-        }
-    } 
-    else{ // Musician
-        switch (c)
-        {
-        /* display helper */
-        case '\n':;
-            helperMusician(self, 0);
-            break;
-        case '\r':
-            break;
-        case 't': // toggle mute
-        case 'T':
-            SYNC(&musicPlayer, toggleMusic, 0);
-            break;
-        /* Claim conductorship, ask others for vote */
-        case 'c':
-        case 'C': // problem 2
-            SYNC(&network, claimConductorship, 0);
-            break;
-        case 'h':
-        case 'H':
-            SYNC(&heartbeatMus, toggleHeartbeat, 0);
-            break;
-        case 'g':
-        case 'G':
-            arg = parseValue(self, 0);
-            SYNC(&heartbeatMus, setHeartbeatPeriod, arg);
-            break;
-        default:
-            break;
-        }
-    }
+    // if (self->mode == CONDUCTOR){
+    //     switch (c)
+    //     {
+    //     /* display helper */
+    //     case '\n':;
+    //         helperConductor(self, 0);
+    //         break;
+    //     case '\r':
+    //         break;
+    //     /* MUSIC */
+    //     case 'a': // restart
+    //     case 'A':
+    //         SYNC(&network, ensembleRestartAll, 0);
+    //         break;
+    //     case 's': // start
+    //     case 'S':
+    //         SYNC(&musicPlayer, ensembleStartAll, 0);
+    //         break;
+    //     case 'd': // stop
+    //     case 'D':
+    //         SYNC(&musicPlayer, ensembleStopAll, 0);
+    //         break;
+    //     case 'k':
+    //     case 'K': // key
+    //         arg = parseValue(self, 0);
+    //         SYNC(&musicPlayer, setKeyAll, arg);
+    //         break;
+    //     case 'j':
+    //     case 'J': // tempo
+    //         arg = parseValue(self, 0);
+    //         SYNC(&musicPlayer, setTempoAll, arg);
+    //         break;
+    //     case 'r':
+    //     case 'R': // reset: key, tempo
+    //         SYNC(&musicPlayer, resetAll, 0);
+    //         break;
+    //     case 'h':
+    //     case 'H': // toggle heartbeat
+    //         SYNC(&heartbeatCon, toggleHeartbeat, 0);
+    //         break;
+    //     case 'g':
+    //     case 'G': // set heartbeat period (s)
+    //         arg = parseValue(self, 0);
+    //         SYNC(&heartbeatCon, setHeartbeatPeriod, arg);
+    //         break;
+    //     default:
+    //         break;
+    //     }
+    // } 
+    // else{ // Musician
+    //     switch (c)
+    //     {
+    //     /* display helper */
+    //     case '\n':;
+    //         helperMusician(self, 0);
+    //         break;
+    //     case '\r':
+    //         break;
+    //     case 't': // toggle mute
+    //     case 'T':
+    //         SYNC(&musicPlayer, toggleMusic, 0);
+    //         break;
+    //     /* Claim conductorship, ask others for vote */
+    //     case 'c':
+    //     case 'C': // problem 2
+    //         SYNC(&network, claimConductorship, 0);
+    //         break;
+    //     case 'h':
+    //     case 'H':
+    //         SYNC(&heartbeatMus, toggleHeartbeat, 0);
+    //         break;
+    //     case 'g':
+    //     case 'G':
+    //         arg = parseValue(self, 0);
+    //         SYNC(&heartbeatMus, setHeartbeatPeriod, arg);
+    //         break;
+    //     default:
+    //         break;
+    //     }
+    // }
 }
 
 
@@ -377,8 +503,8 @@ void printVerbose(App *self, int unused){
 
 
 void helperConductor(App *self, int unused){
-    char helper [768];
-    snprintf(helper, 768, 
+    char helper [800];
+    snprintf(helper, 800, 
             "--------------------MUSICPLAYER--------------------\n"
             "press \'a\' ⟳ to restart\n"
             "press \'s\' ▶ to start\n"
@@ -397,8 +523,9 @@ void helperConductor(App *self, int unused){
             "---------------------Manual CAN Msg send ---------\n"
             "press \'o\' to transmit single CAN Msg\n"
             "press \'b\' to start Burst CAN Msgs\n"
-            "press \'n\' to stop Burst CAN Msgs\n"
+            "press \'x\' to stop Burst CAN Msgs\n"
             "press \'m\' to enable or disable CAN Msg prints\n"
+            "press number with \'l\' to set min. inter-arrival time\n"
             "press \'enter\' to display helper again\n\n"
             );
     SCI_WRITE(&sci0, helper);
@@ -422,8 +549,9 @@ void helperMusician(App *self, int unused){
             "---------------------Manual CAN Msg send ---------\n"
             "press \'o\' to transmit single CAN Msg\n"
             "press \'b\' to start Burst CAN Msgs\n"
-            "press \'n\' to stop Burst CAN Msgs\n"
+            "press \'x\' to stop Burst CAN Msgs\n"
             "press \'m\' to enable or disable CAN Msg prints\n"
+            "press number with \'l\' to set min. inter-arrival time\n"
             );
     SCI_WRITE(&sci0, helper);
 }
