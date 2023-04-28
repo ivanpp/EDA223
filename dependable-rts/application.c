@@ -478,10 +478,16 @@ void printAppVerbose(App *self, int unused){
 void printVerbose(App *self, int unused){
     printAppVerbose(self, 0);
     //SCI_WRITE(&sci0, "\n");
-    SYNC(&network, printNetworkVerbose, 0);
+    //SYNC(&network, printNetworkVerbose, 0);
     //SCI_WRITE(&sci0, "\n");
-    SYNC(&musicPlayer, printMusicPlayerVerbose, 0);
+    //SYNC(&musicPlayer, printMusicPlayerVerbose, 0);
     //SCI_WRITE(&sci0, "\n");
+    char sizeInfo[64];
+    snprintf(sizeInfo, 64, "size of regulator: %d Bytes\n", sizeof(regulatorSw));
+    SCI_WRITE(&sci0, sizeInfo);
+    CANMsg msg;
+    snprintf(sizeInfo, 64, "size of CANMsg stored in buffer: %d Bytes\n", sizeof(msg) * MAX_BUFFER_SIZE);
+    SCI_WRITE(&sci0, sizeInfo);
     SCI_WRITE(&sci0, "---------------------------------------------------\n");
 }
 
