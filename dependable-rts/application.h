@@ -35,15 +35,9 @@ typedef struct{
     uint8_t seqCounter; // sequence number counter
 } CanSenderPart5;
 
-// typedef struct{
-//     uchar padding1;
-//     CANMsg msg;
-//     uchar padding2;
-// }CANMsgPadded;
-
 typedef struct{
     Object super;
-    CANMsg canMsgBuffer[MAX_BUFFER_SIZE];// @todo decide buffer size based on some calculations
+    CANMsg canMsgBuffer[MAX_BUFFER_SIZE];
     uint8_t ready;
     int8_t readIdx;
     int8_t writeIdx;

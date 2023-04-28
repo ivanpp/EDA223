@@ -15,7 +15,6 @@ UserButton userButton = initUserButton();
 
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
-//Can can0 = initCan(CAN_PORT0, &regulatorSw, regulatorBufferHdlr);
 
 SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
 
@@ -121,7 +120,6 @@ void enqueueCanMsg(Regulator *self, CANMsg *msgPtr)
             ASYNC(&regulatorSw,setReadIdx,0); // this has to be ASYNC so that it happens concurrently for each queued msg
         }
         self->writeIdx = (self->writeIdx + 1) % MAX_BUFFER_SIZE;
-        //self->canMsgBuffer[self->writeIdx] = *msgPtr;
         memcpy(&(self->canMsgBuffer[self->writeIdx]), msgPtr, sizeof(CANMsg));
         #ifdef DEBUG
         char debugInfo[78]={};
@@ -148,12 +146,8 @@ void dequeueCanMsg(Regulator *self, int unused)
     }
     else
     {
-        //msg = self->canMsgBuffer[self->readIdx]; // crashes
-        // memcpy(&msg, &(self->canMsgBuffer[self->readIdx]), sizeof(CANMsg)); // crashes
-        // int8_t localReadIdx = self->readIdx;
         rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
         snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %ds\n",self->canMsgBuffer[self->readIdx].msgId, rxTimeSec);
-        //snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %d\n",msg.msgId, rxTimeSec); // crashes
         SCI_WRITE(&sci0, debugInfo);
         if (self->readIdx == self->writeIdx) 
         {
@@ -194,12 +188,7 @@ void receiver(App *self, int unused) {
     //int ending    = msg.buff[6];
 #ifdef DEBUG
     char debugInfo[64] = {};
-    //snprintf(debugInfo, 64, "[0x%02X]: OP: 0x%02X, RE: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
-    //         sender,
-    //         msg.buff[0],
-    //         msg.buff[1],
-    //         msg.buff[2], msg.buff[3], msg.buff[4], msg.buff[5],
-    //         ending);
+
     if(canSenderPart5.isPrintEnabled)
     {
         snprintf(debugInfo, 64, "    [receiver] Received MsgId:%d at %d\n",msg.msgId, rxTime);
@@ -301,7 +290,6 @@ void reader(App *self, int c) {
     /* Get conductorship, brutely, like KIM */
     case 'n':
     case 'N':
-        //SYNC(&network, obtainConductorship, 0); not needed for part5
         break;
     /* manually trigger searching of network */
     case 'z':
@@ -357,87 +345,6 @@ void reader(App *self, int c) {
     default:
         break;
     }
-    // CONDUCTOR or MUSICIAN
-    // if (self->mode == CONDUCTOR){
-    //     switch (c)
-    //     {
-    //     /* display helper */
-    //     case '\n':;
-    //         helperConductor(self, 0);
-    //         break;
-    //     case '\r':
-    //         break;
-    //     /* MUSIC */
-    //     case 'a': // restart
-    //     case 'A':
-    //         SYNC(&network, ensembleRestartAll, 0);
-    //         break;
-    //     case 's': // start
-    //     case 'S':
-    //         SYNC(&musicPlayer, ensembleStartAll, 0);
-    //         break;
-    //     case 'd': // stop
-    //     case 'D':
-    //         SYNC(&musicPlayer, ensembleStopAll, 0);
-    //         break;
-    //     case 'k':
-    //     case 'K': // key
-    //         arg = parseValue(self, 0);
-    //         SYNC(&musicPlayer, setKeyAll, arg);
-    //         break;
-    //     case 'j':
-    //     case 'J': // tempo
-    //         arg = parseValue(self, 0);
-    //         SYNC(&musicPlayer, setTempoAll, arg);
-    //         break;
-    //     case 'r':
-    //     case 'R': // reset: key, tempo
-    //         SYNC(&musicPlayer, resetAll, 0);
-    //         break;
-    //     case 'h':
-    //     case 'H': // toggle heartbeat
-    //         SYNC(&heartbeatCon, toggleHeartbeat, 0);
-    //         break;
-    //     case 'g':
-    //     case 'G': // set heartbeat period (s)
-    //         arg = parseValue(self, 0);
-    //         SYNC(&heartbeatCon, setHeartbeatPeriod, arg);
-    //         break;
-    //     default:
-    //         break;
-    //     }
-    // } 
-    // else{ // Musician
-    //     switch (c)
-    //     {
-    //     /* display helper */
-    //     case '\n':;
-    //         helperMusician(self, 0);
-    //         break;
-    //     case '\r':
-    //         break;
-    //     case 't': // toggle mute
-    //     case 'T':
-    //         SYNC(&musicPlayer, toggleMusic, 0);
-    //         break;
-    //     /* Claim conductorship, ask others for vote */
-    //     case 'c':
-    //     case 'C': // problem 2
-    //         SYNC(&network, claimConductorship, 0);
-    //         break;
-    //     case 'h':
-    //     case 'H':
-    //         SYNC(&heartbeatMus, toggleHeartbeat, 0);
-    //         break;
-    //     case 'g':
-    //     case 'G':
-    //         arg = parseValue(self, 0);
-    //         SYNC(&heartbeatMus, setHeartbeatPeriod, arg);
-    //         break;
-    //     default:
-    //         break;
-    //     }
-    // }
 }
 
 
@@ -477,11 +384,6 @@ void printAppVerbose(App *self, int unused){
 
 void printVerbose(App *self, int unused){
     printAppVerbose(self, 0);
-    //SCI_WRITE(&sci0, "\n");
-    //SYNC(&network, printNetworkVerbose, 0);
-    //SCI_WRITE(&sci0, "\n");
-    //SYNC(&musicPlayer, printMusicPlayerVerbose, 0);
-    //SCI_WRITE(&sci0, "\n");
     char sizeInfo[64];
     snprintf(sizeInfo, 64, "size of regulator: %d Bytes\n", sizeof(regulatorSw));
     SCI_WRITE(&sci0, sizeInfo);
@@ -553,11 +455,7 @@ void startApp(App *self, int arg) {
     SCI_INIT(&sci0);
     SIO_INIT(&sio0);
     SCI_WRITE(&sci0, "Hello from DRTS Group 15\n\n");
-    //BEFORE(toneGenerator.toneGenDeadline,&toneGenerator, playTone, /*unused*/0);
-    
-    // init network
-    //SYNC(&network, printNetwork, 0);
-    //SYNC(&network, searchNetwork, 0);
+
 }
 
 
