@@ -17,7 +17,7 @@ Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
 //Can can0 = initCan(CAN_PORT0, &regulatorSw, regulatorBufferHdlr);
 
-SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
+SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP5);
 
 CanSenderPart5 canSenderPart5 = initCanSenderPart5();
 
@@ -84,8 +84,8 @@ void regulateMsg(Regulator *self, CANMsg *msgPtr) {
 }
 
 void trySendSingleCanMessage(App *self, int unused) {
-    if(regulatorSw.isBurstMode == false)
-        SYNC(&regulatorSw, canSenderFcnPart5, 0);
+    if(canSenderPart5.isBurstMode == false)
+        SYNC(&canSenderPart5, canSenderFcnPart5, 0);
     else
         SCI_WRITE(&sci0, "can't send single CAN msg due to BURST Mode, press \'n\' to come out\n");
 }
@@ -112,10 +112,10 @@ void setReadIdx(Regulator *self, int f_readIdx)
 void tryEnableBurstMode(App *self, int unused) {
     /* Check if CAN mode is already in BURST mode */
         
-    if(regulatorSw.isBurstMode == false)
+    if(canSenderPart5.isBurstMode == false)
     {
-        regulatorSw.isBurstMode = true;
-        SYNC(&regulatorSw,canSenderFcnPart5, 0);
+        canSenderPart5.isBurstMode = true;
+        SYNC(&canSenderPart5,canSenderFcnPart5, 0);
     }
     else
     {
@@ -126,7 +126,7 @@ void tryEnableBurstMode(App *self, int unused) {
 void disableBurstMode(App *self, int unused) 
 {
     /* Come out of CAN Burst mode */
-    regulatorSw.isBurstMode = false;
+    canSenderPart5.isBurstMode = false;
 }
 
 void enqueueCanMsg(Regulator *self, CANMsg *msgPtr) 
