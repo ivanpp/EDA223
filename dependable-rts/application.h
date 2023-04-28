@@ -10,7 +10,7 @@
 #define BROADCAST 0x00
 
 /* keyboard */
-#define MAX_BUFFER_SIZE 32
+#define MAX_BUFFER_SIZE 10
 
 
 /* Application */
@@ -33,6 +33,8 @@ typedef struct{
     int isPrintEnabled;
     int isBurstMode;
     uint8_t seqCounter; // sequence number counter
+    unsigned int msgInterval;
+    int burstInterval;
 } CanSenderPart5;
 
 // typedef struct{
@@ -48,7 +50,7 @@ typedef struct{
     int8_t readIdx;
     int8_t writeIdx;
     Timer timer;
-    uint8_t delta;
+    unsigned int delta;
 } Regulator __attribute__((aligned(2))); // if aligned is not used, it crashes. Since aligned() 
 //is used, the canMsgBuffer can be placed anywhere inside the struct now
 
@@ -71,6 +73,8 @@ typedef struct{
     0,\
     0,\
     0,\
+    500,\
+    50,\
 }
 
 // initialize a MusicPlayer with its rank
@@ -132,5 +136,6 @@ void regulateMsg(Regulator *, CANMsg *);
 
 void setDelta(Regulator *, int value);
 
-
+void setMsgSendingIntervalMs(CanSenderPart5 *, int);
+void stopBurstMode(CanSenderPart5 *, int);
 #endif

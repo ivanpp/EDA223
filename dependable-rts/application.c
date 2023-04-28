@@ -52,7 +52,7 @@ void canSenderFcnPart5(CanSenderPart5 *self, int unused){
     {
         if(self->isPrintEnabled){
             char seqCntrPrint [32];
-            snprintf(seqCntrPrint, 32, "Sequence Num: %d sent\n",self->seqCounter);
+            snprintf(seqCntrPrint, 32, "SeqNum:%d sent\n",self->seqCounter);
             SCI_WRITE(&sci0, seqCntrPrint);
         }
         ++self->seqCounter;
@@ -60,7 +60,7 @@ void canSenderFcnPart5(CanSenderPart5 *self, int unused){
     }
     if(self->isBurstMode == true) // 'n' is not yet pressed, so call yourself again
     {      
-        AFTER(MSEC(500), self, canSenderFcnPart5, 0);
+        AFTER(USEC(self->msgInterval), self, canSenderFcnPart5, 0);
     }
 
 }
@@ -73,8 +73,8 @@ void regulateMsg(Regulator *self, CANMsg *msgPtr) {
         // deliver msg Immediately 
         rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
         snprintf(debugInfo, 64, "        MsgId:%d delivered at %ds\n",msgPtr->msgId, rxTimeSec);
-        SCI_WRITE(&sci0, debugInfo);
-        AFTER(SEC(self->delta),&regulatorSw, dequeueCanMsg,0);
+        //SCI_WRITE(&sci0, debugInfo);
+        AFTER(USEC(self->delta),&regulatorSw, dequeueCanMsg,0);
     } 
     else
     {
@@ -136,11 +136,15 @@ void dequeueCanMsg(Regulator *self, int unused)
 {
     char debugInfo[64]={};
     int rxTimeSec;
+    //long perfStart, perfEnd;
+    //long diff;
+
+    //perfStart = USEC_OF(T_SAMPLE(&self->timer));
 
     if(self->readIdx == -1) 
     {
         #ifdef DEBUG        
-        snprintf(debugInfo, 64, "Queue empty, resetting ready flag. \n");
+        snprintf(debugInfo, 64, "Queue empty\n");
         SCI_WRITE(&sci0, debugInfo);
         #endif
         self->ready = 1;
@@ -151,10 +155,11 @@ void dequeueCanMsg(Regulator *self, int unused)
         //msg = self->canMsgBuffer[self->readIdx]; // crashes
         // memcpy(&msg, &(self->canMsgBuffer[self->readIdx]), sizeof(CANMsg)); // crashes
         // int8_t localReadIdx = self->readIdx;
-        rxTimeSec = SEC_OF(T_SAMPLE(&self->timer));
-        snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %ds\n",self->canMsgBuffer[self->readIdx].msgId, rxTimeSec);
-        //snprintf(debugInfo, 64, "        [dequeue] MsgId:%d delivered at %d\n",msg.msgId, rxTimeSec); // crashes
+        rxTimeSec = USEC_OF(T_SAMPLE(&self->timer));
+        #ifdef DEBUG 
+        snprintf(debugInfo, 64, "[dq] MsgId:%d delivered\n",self->canMsgBuffer[self->readIdx].msgId);
         SCI_WRITE(&sci0, debugInfo);
+        #endif
         if (self->readIdx == self->writeIdx) 
         {
             resetIndices(self, 0);
@@ -164,15 +169,20 @@ void dequeueCanMsg(Regulator *self, int unused)
             self->readIdx = (self->readIdx + 1) % MAX_BUFFER_SIZE;
         }
         
-        AFTER(SEC(self->delta),&regulatorSw, dequeueCanMsg,0);
+        AFTER(USEC(self->delta),&regulatorSw, dequeueCanMsg,0);
     }
+    // perfEnd = USEC_OF(T_SAMPLE(&self->timer));
+    // diff = perfEnd - perfStart;
+    // snprintf(debugInfo, 64, "[dequeue]Exec.time: %ld us, start:%ld, end:%ld\n",diff, perfStart, perfEnd);
+    // SCI_WRITE(&sci0, debugInfo);
+
 }
 
 void setDelta(Regulator *self, int value)
 {
     char printMsg[64]={};
     self->delta = value;
-    snprintf(printMsg,64,"Inter-arrival time set to %ds\n",self->delta);
+    snprintf(printMsg,64,"Inter-arrival time set to %d us\n",self->delta);
     SCI_WRITE(&sci0,printMsg);
 }
 
@@ -272,6 +282,18 @@ int parseValue(App *self, int unused) {
     return atoi(self->buffer);
 }
 
+void setMsgSendingIntervalMs(CanSenderPart5 *self, int f_msgInterval)
+{
+    char debugPrint[32]={};
+    self->msgInterval = f_msgInterval;
+    snprintf(debugPrint,32,"msgInterval set to: %u us\n",self->msgInterval);
+    SCI_WRITE(&sci0, debugPrint);
+}
+
+void stopBurstMode(CanSenderPart5 *self, int unused)
+{
+    self->isBurstMode = false;
+}
 
 /* SCI reader */
 void reader(App *self, int c) {
@@ -330,6 +352,8 @@ void reader(App *self, int c) {
         if(canSenderPart5.isBurstMode == false){
             canSenderPart5.isBurstMode = true;
             SYNC(&canSenderPart5,canSenderFcnPart5, 0);
+            arg = parseValue(self,0);
+            AFTER(USEC(arg), &canSenderPart5, stopBurstMode, 0);
         }
         else
             SCI_WRITE(&sci0, "Already in CAN BURST Mode\n");
@@ -354,6 +378,10 @@ void reader(App *self, int c) {
         arg = parseValue(self,0);
         SYNC(&regulatorSw,setDelta,arg);
         break;
+    case 'p':
+    case 'P':
+        arg = parseValue(self,0);
+        SYNC(&regulatorSw,setMsgSendingIntervalMs,arg);
     default:
         break;
     }
