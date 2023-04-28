@@ -17,7 +17,7 @@ CCFLAGS=     -g \
              -DSTM32F40_41xxx \
              -I ./device/inc \
              -I ./driver/inc \
-             -DDEBUG
+             #-DDEBUG \
 
 ASFLAGS=     -IIFLAGS
 

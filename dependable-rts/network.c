@@ -192,6 +192,9 @@ void change_conductor(Network *self, int conductor){
     self->conductorRank = conductor;
     self->lock = 0;
     ASYNC(&app, to_musician, 0);
+    char condInfo[64];
+    snprintf(condInfo, 64, "[NETWORK]: %d is our my conductor\n", self->conductorRank);
+    SCI_WRITE(&sci0, condInfo);
 }
 
 
@@ -542,5 +545,8 @@ void test_reset_condutor(Network *self, int unused){
     self->lock = 0;
     self->conductorRank = 0;
     self->vote = 1;
+    for (size_t i = 0; i < self->numNodes; i++){
+        self->nodeStatus[i] = 0;
+    }
     SCI_WRITE(&sci0, "[TEST]: Conductorship re-initialized\n");
 }
