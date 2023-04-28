@@ -352,6 +352,8 @@ void node_login(Network *self, int sender){
     print_membership(self, 0);
     // 4. schedule the rejoin
     self->rejoinMsg = AFTER(MSEC(5), self, node_login_success, 0);
+    // 5. try... to make sure
+    SYNC(&musicPlayer, ensemble_set_start, 0);
 }
 
 
@@ -378,6 +380,7 @@ void finish_login(Network *self, int requester){
     snprintf(loginInfo, 64, "node [%d] login successfully\n", requester);
     SCI_WRITE(&sci0, loginInfo);
     print_membership(self, 0);
+    SYNC(&musicPlayer, abort_all_backup, 0);
 }
 
 

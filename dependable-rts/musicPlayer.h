@@ -62,10 +62,10 @@ void cancel_backup(MusicPlayer *, int);
 void sync_LED(MusicPlayer *, int);
 void ensemble_ready(MusicPlayer *, int);
 void ensemble_stop(MusicPlayer *, int);
+void ensemble_set_start(MusicPlayer *, int);
 void ensemble_start_all(MusicPlayer *, int);
 void ensemble_stop_all(MusicPlayer *, int);
 void ensemble_restart_all(MusicPlayer *, int);
-void play_music_masked(MusicPlayer *, int);
 /* MP: key, tempo, mute*/
 int set_key_all(MusicPlayer *, int);
 int set_tempo_all(MusicPlayer *, int);

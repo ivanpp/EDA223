@@ -222,8 +222,11 @@ void play_index_tone_next(MusicPlayer *self, int idx){
     snprintf(debugInfo, 64, "play_n[%d]\n", idx);
     SCI_WRITE(&sci0, debugInfo);
 #endif
-    if(self->ensemble_stop)
+    if(self->ensemble_stop){
+        SCI_WRITE(&sci0, "pi get returned\n");
         return;
+    }
+        
     int nextTone, prevNode, nextNode;
     nextTone = (idx + 1) % MUSIC_LENGTH;
     nextNode = SYNC(&network, get_next_valid_node, 0);
@@ -352,6 +355,11 @@ void ensemble_stop(MusicPlayer *self, int unused){
 }
 
 
+void ensemble_set_start(MusicPlayer *self, int unused){
+    self->ensemble_stop = 0;
+}
+
+
 // CONDUCTOR: start playing music the round-robin way
 void ensemble_start_all(MusicPlayer *self, int unused){
     if(app.mode != CONDUCTOR){
@@ -393,12 +401,6 @@ void ensemble_restart_all(MusicPlayer *self, int unused){
     ensemble_stop_all(self, 0);
     // FIXME: use elegant way
     AFTER(SEC(1), &musicPlayer, ensemble_start_all, 0);
-}
-
-
-/* TODO the masked way*/
-void play_music_masked(MusicPlayer *self, int unused){
-    ;
 }
 
 

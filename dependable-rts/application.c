@@ -76,7 +76,7 @@ void receiver(App *self, int unused) {
                    (msg.buff[4] & 0xFF) << 8  | \
                    (msg.buff[5] & 0xFF);
     int ending    = msg.buff[6];
-#ifdef DEBUG
+#ifdef DEBUG_CAN
     char debugInfo[64] = {};
     snprintf(debugInfo, 64, "[%d -> %d]: OP: 0x%02X, ARG: 0x%02X%02X%02X%02X, END: 0x%02X\n",
              sender,
