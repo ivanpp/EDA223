@@ -15,11 +15,11 @@
 
 ## EDA423 Dependable Real-Time Systems
 
-- [x] Problem 1: Listen to the Round Robin <p1>
-- [x] Problem 2: Embrace Your New Conductor <p2>
-- [x] Problem 3: The Sound of Silence <p3>
-- [x] Problem 4: Silence that Conductor <p3>
-- [x] Problem 5: Rule the Regulator <p5>
+- [x] Problem 1: Listen to the Round Robin (branch: main, p2)
+- [x] Problem 2: Embrace Your New Conductor (branch: main, p2)
+- [x] Problem 3: The Sound of Silence (branch: main, p4)
+- [x] Problem 4: Silence that Conductor (branch: main, p4)
+- [x] Problem 5: Rule the Regulator (branch: p5)
 
 ## Useful Links
 
