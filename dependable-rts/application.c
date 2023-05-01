@@ -16,7 +16,7 @@ UserButton userButton = initUserButton();
 Serial sci0 = initSerial(SCI_PORT0, &app, reader);
 Can can0 = initCan(CAN_PORT0, &app, receiver);
 
-SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP2);
+SysIO sio0 = initSysIO(SIO_PORT0, &userButton, reactUserButtonP5);
 
 CanSenderPart5 canSenderPart5 = initCanSenderPart5();
 
@@ -82,6 +82,12 @@ void regulateMsg(Regulator *self, CANMsg *msgPtr) {
     // Else enqueue
 }
 
+void trySendSingleCanMessage(App *self, int unused) {
+    if(canSenderPart5.isBurstMode == false)
+        SYNC(&canSenderPart5, canSenderFcnPart5, 0);
+    else
+        SCI_WRITE(&sci0, "can't send single CAN msg due to BURST Mode, press \'n\' to come out\n");
+}
 // must be called only by the dequeueCanMsg()
 void resetIndices(Regulator *self, int unused)
 {
@@ -100,6 +106,26 @@ void setReadIdx(Regulator *self, int f_readIdx)
     }else{
         SCI_WRITE(&sci0, "readIdx not in [-1 to MAX_BUFFER_SIZE] range\n");
     }
+}
+
+void tryEnableBurstMode(App *self, int unused) {
+    /* Check if CAN mode is already in BURST mode */
+        
+    if(canSenderPart5.isBurstMode == false)
+    {
+        canSenderPart5.isBurstMode = true;
+        SYNC(&canSenderPart5,canSenderFcnPart5, 0);
+    }
+    else
+    {
+        SCI_WRITE(&sci0, "Already in CAN BURST Mode\n");
+    }  
+}
+
+void disableBurstMode(App *self, int unused) 
+{
+    /* Come out of CAN Burst mode */
+    canSenderPart5.isBurstMode = false;
 }
 
 void enqueueCanMsg(Regulator *self, CANMsg *msgPtr) 
@@ -307,25 +333,15 @@ void reader(App *self, int c) {
     /* send 1 CAN Msg when 'o' is pressed */
     case 'o':
     case 'O':
-        if(canSenderPart5.isBurstMode == false)
-            SYNC(&canSenderPart5,canSenderFcnPart5, 0);
-        else
-            SCI_WRITE(&sci0, "can't send single CAN msg due to BURST Mode, press \'n\' to come out\n");
+        trySendSingleCanMessage(self, 0);
         break;
     case 'b':
     case 'B':
-        /* Check if CAN mode is already in BURST mode */
-        if(canSenderPart5.isBurstMode == false){
-            canSenderPart5.isBurstMode = true;
-            SYNC(&canSenderPart5,canSenderFcnPart5, 0);
-        }
-        else
-            SCI_WRITE(&sci0, "Already in CAN BURST Mode\n");
+        tryEnableBurstMode(self, 0);
         break;
     case 'x':
     case 'X':
-        /* Come out of CAN Burst mode */
-        canSenderPart5.isBurstMode = false;
+        disableBurstMode(self, 0);
         break;
     case 'm':
     case 'M':

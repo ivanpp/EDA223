@@ -117,6 +117,9 @@ void helperConductor(App *, int);
 void helperMusician(App *, int);
 
 void canSenderFcnPart5(CanSenderPart5 *, int);
+void trySendSingleCanMessage(App *, int);
+void tryEnableBurstMode(App *, int);
+void disableBurstMode(App *, int);
 
 void setReadIdx(Regulator *, int );
 void enqueueCanMsg(Regulator *, CANMsg *);
