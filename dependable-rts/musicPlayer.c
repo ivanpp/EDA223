@@ -165,7 +165,7 @@ void playIndexTone(MusicPlayer *self, int idx){
         return;
     }
     int period, tempo, beatLen;
-    period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
+    period = pianoPeriods[brotherJohn[idx] + self->key - PERIODS_IDX_DIFF];
     tempo = tempos[idx];
     beatLen = self->beatMult * tempo;
 #ifdef DEBUG
