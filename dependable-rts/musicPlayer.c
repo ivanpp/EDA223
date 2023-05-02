@@ -178,7 +178,7 @@ void play_index_tone(MusicPlayer *self, int idx){
     }
     // 2. play the tone
     int period, tempo, beatLen;
-    period = pianoPeriods[brotherJohn[idx] - PERIODS_IDX_DIFF];
+    period = pianoPeriods[brotherJohn[idx] + self->key - PERIODS_IDX_DIFF];
     tempo = tempos[idx];
     beatLen = self->beatMult * tempo;
 #ifdef DEBUG
